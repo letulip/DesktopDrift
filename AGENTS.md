@@ -12,8 +12,15 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Has a "Sandbox" tile linking to the game and a disabled "Time Attack"
     placeholder.
-  - `sandbox.html` — the entire game engine, inlined in one `<script>` block
-    (~820 lines). This is where ~all logic lives.
+  - `sandbox.html` — the game page: markup only. All logic lives in the
+    external `js/game.js` (~730 lines), loaded via
+    `<script src="js/game.js"></script>` at the end of `<body>`.
+- **File layout:** HTML, CSS and JS are split into separate files (no build
+  step — plain `<link>`/`<script src>`):
+  - `css/base.css` — shared `html`/`body` reset (both pages).
+  - `css/menu.css` — menu styles (`index.html`).
+  - `css/sandbox.css` — HUD styles + mobile media query (`sandbox.html`).
+  - `js/game.js` — the whole game engine.
 - **Relationship:** `index.html` → `sandbox.html` via `<a href="sandbox.html">`.
   In-game "☰ Menu" button navigates back with `location.href = 'index.html'`.
 - **Assets:** `bismark.svg`, `panda.svg` are **reference art only** — they are
@@ -48,19 +55,21 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | test      | — (none)                                                      | No test suite. See Testing. |
 | lint      | — (none)                                                      | No linter configured. |
 | typecheck | — (none)                                                      | Plain JS, no TypeScript. |
-| syntax check (de-facto) | extract the inline `<script>` and run `node --check` on it | Used in practice to validate `sandbox.html` edits. |
+| syntax check (de-facto) | `node --check js/game.js` | Used in practice to validate game-logic edits. |
 
-De-facto syntax check used in this repo:
+De-facto syntax check used in this repo (now that the JS is a standalone
+file, no extraction is needed):
 
 ```bash
-node -e 'const fs=require("fs");const h=fs.readFileSync("sandbox.html","utf8");const m=[...h.matchAll(/<script>([\s\S]*?)<\/script>/g)];fs.writeFileSync("/tmp/dd.js",m[0][1]);' \
-  && node --check /tmp/dd.js && echo OK
+node --check js/game.js && echo OK
 ```
 
 ## Architecture
 
-Everything below refers to `sandbox.html` unless noted. There are no modules;
-all state lives in top-level `let`/`const` globals in one inline `<script>`.
+Everything below refers to `js/game.js` (the game engine for `sandbox.html`)
+unless noted. There are no modules; the file is loaded as a classic
+`<script>` (not `type="module"`), so all state lives in top-level
+`let`/`const` globals and works from `file://` too.
 
 - **Entry / loop:** `requestAnimationFrame(frame)` drives `frame(now)`. Delta
   time `dt` is computed per frame and clamped to `0.05` s. `resize()` keeps the
@@ -104,7 +113,9 @@ all state lives in top-level `let`/`const` globals in one inline `<script>`.
 ## Code style
 
 - **Language:** Vanilla ES2020. No TypeScript, no modules (`import`/`export`),
-  no JSX. One inline `<script>` per page.
+  no JSX. Game logic is one classic `<script src>` file (`js/game.js`); CSS is
+  in `css/*.css`. Keep it that way — do not switch to ES modules (it would break
+  `file://` use and the no-build setup).
 - **Linter / formatter:** None configured. Match the existing style by hand.
 - **Indentation:** 2 spaces. Semicolons used. `const`/`let` (no `var`).
 - **Naming:** `camelCase` for variables/functions; `UPPER_SNAKE` /
@@ -125,10 +136,10 @@ all state lives in top-level `let`/`const` globals in one inline `<script>`.
   about this; do not claim coverage.
 - **Run all / one test:** N/A.
 - **Coverage threshold:** N/A.
-- **Current practice:** Validation is (1) the `node --check` syntax pass on the
-  extracted inline script (see Commands), and (2) manual verification in a
-  browser / preview — drive the car, watch the HUD, exercise scoring and
-  collisions. There is no headless test harness committed.
+- **Current practice:** Validation is (1) the `node --check js/game.js` syntax
+  pass (see Commands), and (2) manual verification in a browser / preview —
+  drive the car, watch the HUD, exercise scoring and collisions. There is no
+  headless test harness committed.
 
 ## Deployment
 
@@ -173,10 +184,10 @@ all state lives in top-level `let`/`const` globals in one inline `<script>`.
   is meant to run from the workspace root; `DesktopDrift/.claude/launch.json`
   omits it and is meant to run from inside `DesktopDrift/`. Both use port 8777
   and name `desktopdrift`. Launching both at once will conflict on the port.
-- **The whole game is one inline `<script>` in `sandbox.html` (~820 lines).**
-  No modules means everything is a global and ordering matters. To syntax-check,
-  extract the script and run `node --check` (see Commands) — you cannot
-  `node --check` the `.html` directly.
+- **The whole game is one file: `js/game.js` (~730 lines).** No modules means
+  everything is a global and ordering matters (the file runs top-to-bottom). It
+  is a standalone `.js`, so syntax-check it directly: `node --check js/game.js`
+  (see Commands).
 - **Car names & history.** In-code car names are `Bismark` (formerly
   "Mercedes W124") and `Panda` (formerly "Toyota AE86"). Reference-art files now
   match: `bismark.svg` and `panda.svg`. (Earlier revisions kept the old

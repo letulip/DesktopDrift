@@ -1,0 +1,2 @@
+/* Общий сброс для всех страниц Desktop Drift */
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0907; touch-action: none; }
