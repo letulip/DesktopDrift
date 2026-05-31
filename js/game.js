@@ -286,6 +286,19 @@ function hitConeAt(c, px, py, r) {
   flash('cone!  -200', '#ffb14d');
 }
 
+// --- Кадронезависимая «живая» физика ---
+// Покадровые множители (grip/rollFriction/затухание конусов) раньше применялись РАЗ В
+// КАДР, поэтому на 120 Гц гасили скорость вдвое чаще, чем на 60 Гц. Возводим их в степень
+// dt*PHYS_HZ → СРЕДНЕЕ ощущение одинаково на любой частоте. Эталон = 120 Гц (то самое
+// «цепкое/идеальное»). Меньше PHYS_HZ → более скользко; больше → суше.
+const PHYS_HZ = 120;
+// «Живость» (расходящиеся круги) раньше возникала случайно — из джиттера кадров: dt скакал,
+// а grip применялся фиксировано. Нормализация это убивала → стерильный «идеальный круг».
+// Тут воспроизводим дрожание ЧЕСТНО: плавный шум от НАКОПЛЕННОГО ВРЕМЕНИ (а не числа кадров),
+// поэтому он одинаков на 60 и 120 Гц. Модулируем «эффективную длину кадра» для сцепления.
+const GRIP_WOBBLE = 0.22;   // амплитуда живого дрожания сцепления (0 = ровный круг)
+let physT = 0;              // накопленное время физики, с — аргумент шума «живости»
+
 let last = performance.now();
 function frame(now) {
   let dt = (now - last) / 1000; last = now;
@@ -317,9 +330,17 @@ function frame(now) {
   const speed = Math.hypot(car.vx, car.vy);
   const drifting = Math.abs(vS) > 60 && speed > 90;
 
+  physT += dt;
+  // плавный «живой» шум (сумма несоизмеримых синусов ≈ дрожание шасси), ≈[-1..1]
+  const wob = 0.6 * Math.sin(physT * 5.3 + 1.7) + 0.4 * Math.sin(physT * 12.1 + 4.2);
+  // дрожание ощутимо только в скольжении: на прямой и при слабом заносе круг ровный
+  const cornering = Math.min(1, Math.abs(vS) / 100) * Math.min(1, speed / P.maxSpeed);
+  const fAdj = dt * PHYS_HZ;                                   // нормализация средней физики
+  const gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * cornering);  // + «живое» дрожание сцепления
+
   if (vF < P.maxSpeed) vF += P.thrust * dt;
-  vF *= P.rollFriction;
-  vS *= P.grip;
+  vF *= Math.pow(P.rollFriction, fAdj);   // продольное трение качения — независимо от FPS
+  vS *= Math.pow(P.grip, gripAdj);        // боковое сцепление: норм. среднее + живость
   vF *= Math.max(0, 1 - P.driftDrag * Math.abs(vS) * dt);
 
   const turnFactor = Math.max(P.lowSpeedTurn, Math.min(speed / 160, 1));
@@ -351,8 +372,9 @@ function frame(now) {
   for (const c of cones) {
     for (const p of bodyPts) hitConeAt(c, p[0], p[1], CR);
     if (c.knocked) {
+      const dAdj = Math.pow(0.9, fAdj);   // затухание сбитого конуса — независимо от FPS
       c.x += c.vx * dt; c.y += c.vy * dt;
-      c.vx *= 0.9; c.vy *= 0.9; c.ang += c.spin * dt; c.spin *= 0.9;
+      c.vx *= dAdj; c.vy *= dAdj; c.ang += c.spin * dt; c.spin *= dAdj;
     }
   }
 
