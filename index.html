@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Desktop Drift</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0907; touch-action: none; }
+  #menu {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(120% 120% at 50% 0%, #2a2622 0%, #14110f 55%, #0b0907 100%);
+    font: 14px/1.4 -apple-system, system-ui, sans-serif; color: #fff;
+  }
+  .menu-inner { text-align: center; padding: 24px; max-width: 760px; width: 100%; }
+  .logo {
+    margin: 0; font-weight: 800; letter-spacing: 2px;
+    font-size: clamp(34px, 8vw, 64px);
+    background: linear-gradient(180deg, #fff 0%, #ffb14d 130%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 6px 30px rgba(255,150,60,.18);
+  }
+  .tagline { margin: 8px 0 30px; opacity: .65; font-size: clamp(13px, 2.4vw, 17px); }
+  .tiles { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .tile {
+    flex: 1 1 220px; max-width: 280px; text-align: left;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px; padding: 20px; color: #fff; cursor: pointer; text-decoration: none;
+    display: block; font: inherit;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .tile:hover { transform: translateY(-3px); border-color: rgba(255,177,77,.7); background: rgba(255,177,77,.10); }
+  .tile-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .tile-sub { opacity: .65; font-size: 13px; }
+  .tile.disabled { cursor: default; opacity: .4; pointer-events: none; }
+  .tile-badge { display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; opacity: .7; }
+  .menu-foot { margin-top: 26px; opacity: .45; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="menu">
+  <div class="menu-inner">
+    <h1 class="logo">DESKTOP DRIFT</h1>
+    <p class="tagline">Top-down drift racing across the kitchen table</p>
+    <div class="tiles">
+      <a class="tile" href="sandbox.html">
+        <div class="tile-title">Sandbox</div>
+        <div class="tile-sub">Free roam the table circuit. No limits — just learn the slide.</div>
+        <span class="tile-badge">▶ Play</span>
+      </a>
+      <div class="tile disabled">
+        <div class="tile-title">Time Attack</div>
+        <div class="tile-sub">Chase your best lap against the clock.</div>
+        <span class="tile-badge">Coming soon</span>
+      </div>
+    </div>
+    <div class="menu-foot">Keyboard: ← → to steer · C to swap car</div>
+  </div>
+</div>
+</body>
+</html>
