@@ -25,6 +25,11 @@ const CFG = {
   driftDrag: 0.004,     // потеря скорости в заносе
   driftSteerBoost: 1.2  // острее руль в заносе (помогает перекладке)
 };
+// Частота, под которую откалибрована «покадровая» физика (grip/rollFriction и
+// затухание сбитых конусов). Раньше множители применялись раз в кадр, поэтому
+// на 120 Гц гасили скорость вдвое чаще, чем на 60 Гц. Теперь возводим их в
+// степень dt*PHYS_HZ → одинаковое ощущение на любой частоте. 120 = эталон.
+const PHYS_HZ = 120;
 // Модели машинок (вид сверху). Векторные (примитивы) или по SVG-контуру (path).
 const CARS = [
   { name: 'Bismark', len: 82, body: '#474d56', stroke: '#222222', vw: 426, vh: 157, flip: true,
@@ -317,9 +322,10 @@ function frame(now) {
   const speed = Math.hypot(car.vx, car.vy);
   const drifting = Math.abs(vS) > 60 && speed > 90;
 
+  const fAdj = dt * PHYS_HZ;   // показатель для покадровых множителей: =1 на 120 Гц, =2 на 60 Гц
   if (vF < P.maxSpeed) vF += P.thrust * dt;
-  vF *= P.rollFriction;
-  vS *= P.grip;
+  vF *= Math.pow(P.rollFriction, fAdj);   // трение качения — независимо от FPS
+  vS *= Math.pow(P.grip, fAdj);           // боковое сцепление — независимо от FPS
   vF *= Math.max(0, 1 - P.driftDrag * Math.abs(vS) * dt);
 
   const turnFactor = Math.max(P.lowSpeedTurn, Math.min(speed / 160, 1));
@@ -351,8 +357,9 @@ function frame(now) {
   for (const c of cones) {
     for (const p of bodyPts) hitConeAt(c, p[0], p[1], CR);
     if (c.knocked) {
+      const dAdj = Math.pow(0.9, fAdj);   // затухание сбитого конуса — независимо от FPS
       c.x += c.vx * dt; c.y += c.vy * dt;
-      c.vx *= 0.9; c.vy *= 0.9; c.ang += c.spin * dt; c.spin *= 0.9;
+      c.vx *= dAdj; c.vy *= dAdj; c.ang += c.spin * dt; c.spin *= dAdj;
     }
   }
 
