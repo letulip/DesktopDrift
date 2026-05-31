@@ -182,11 +182,14 @@ unless noted. There are no modules; the file is loaded as a classic
 - **Frame-rate-independent handling (how the per-frame factors work).** `grip`,
   `rollFriction` and the knocked-cone damping are per-frame multipliers, so they
   are raised to the power `dt * PHYS_HZ` each frame (`vS *= Math.pow(P.grip,
-  fAdj)`). `PHYS_HZ = 120` is the reference rate: the exponent is 1 at 120 Hz
-  (the values are the literal per-frame factors there) and 2 at 60 Hz, which
+  fAdj)`). `PHYS_HZ = 60` is the reference rate: the exponent is 1 at 60 Hz
+  (the values are the literal per-frame factors there) and 0.5 at 120 Hz, which
   keeps per-second decay — and the handling feel — identical at any refresh
-  rate. When tuning `grip`/`rollFriction`, remember the number you type is the
-  **per-frame-at-120 Hz** factor, not per-second.
+  rate. The reference is **60 Hz on purpose**: that is the loose, slidey,
+  drift-like ("болтанка") feel — more lateral velocity survives each second.
+  Lowering `PHYS_HZ` (or raising `grip` toward 1) makes it looser still; raising
+  it makes the car grippier/"drier". When tuning `grip`/`rollFriction`, remember
+  the number you type is the **per-frame-at-60 Hz** factor, not per-second.
 - **Two `launch.json` configs with different cwd assumptions.**
   `../.claude/launch.json` (workspace root) passes `--directory DesktopDrift` and
   is meant to run from the workspace root; `DesktopDrift/.claude/launch.json`
