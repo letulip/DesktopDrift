@@ -93,7 +93,11 @@ unless noted. There are no modules; the file is loaded as a classic
 - **Physics:** Velocity is decomposed into forward `vF` and lateral `vS`.
   Key tunables: `grip` (lateral retention/slide), `selfAlign` (snaps heading to
   motion — lower = holds slide longer), `thrust`, `maxSpeed`, `steer`,
-  `steerSmooth`, `driftSteerBoost`, `rollFriction`, `driftDrag`.
+  `steerSmooth`, `driftSteerBoost`, `rollFriction`, `driftDrag`. Frame-rate feel
+  is governed by globals above `frame()`: `PHYS_HZ` (reference rate for the
+  `dt`-power normalization — keeps the *average* feel equal across refresh rates)
+  plus `GRIP_WOBBLE` / `STEER_WOBBLE` (amplitudes of the time-driven liveliness:
+  grip breathing and heading wander). See Gotchas.
 - **Scoring (combo bank/burn model):** Points accumulate into `comboPoints`
   during a drift (`slip × speed × dt × 0.0015 × mult`). The combo is **banked**
   into `score` only on a clean drift finish (`bankCombo`), and **burned** with no
@@ -179,13 +183,30 @@ unless noted. There are no modules; the file is loaded as a classic
 
 ## Gotchas
 
-- **Frame-rate-dependent handling (known issue).** `grip` and `rollFriction` are
-  applied *per frame* (`vS *= grip`) without `dt` correction. On 120 Hz displays
-  (e.g. ProMotion phones) these multiplications happen twice as often per second,
-  so the car loses lateral grip faster and feels more oversteer-y than on 60 Hz.
-  Tuning values are implicitly calibrated for ~60 fps. Making physics
-  frame-rate-independent (raising factors to a `dt`-based power) is a deliberate,
-  not-yet-done change that would shift the current feel.
+- **Frame-rate handling = consistent *average* + deliberate *liveliness* (two
+  separate things — do not conflate).** The per-frame multipliers (`grip`,
+  `rollFriction`, knocked-cone damping) are raised to the power `dt * PHYS_HZ`
+  (`vS *= Math.pow(P.grip, gripAdj)`), so the *average* per-second decay is the
+  same on 60 / 120 / 144 Hz. `PHYS_HZ = 120` is the reference rate — the grippy
+  "ideal" feel; lower it for a looser/more-slidey car, raise it for drier grip.
+  - **Why the wobble exists.** Before normalization the diverging, "alive" drift
+    circles came *accidentally* from frame-timing jitter (an unstable `dt` feeding
+    a non-`dt`-scaled `grip`). Pure normalization removed that and produced a
+    sterile "perfect circle". So liveliness is now re-injected *on purpose*: a
+    smooth time-driven noise (`wob`, a sum of incommensurate sines of the
+    accumulated `physT`, **not** frame count) modulates the effective grip
+    exponent (`gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * cornering)`). Because it's
+    a function of elapsed seconds, it is identical at any refresh rate. It is
+    gated by `cornering` (slip × speed), so straights and gentle driving stay
+    clean and only hard slides breathe.
+  - **Two-layer noise.** `wobSlow` (period ~3–8 s) drifts the radius lap-to-lap
+    — this is the main "diverging circles" effect; `wobFast` adds fine chassis
+    texture. The slow layer also lightly steers (`STEER_WOBBLE`) for a visible
+    wander, gated to slides only (no floor) so straights stay clean.
+  - **Knobs (all just above `frame()` in `js/game.js`).** `PHYS_HZ` = average
+    grippiness / which refresh rate's feel everyone gets. `GRIP_WOBBLE` = grip
+    breathing amplitude. `STEER_WOBBLE` = heading-wander amplitude (rad/s). Set
+    the two wobbles to `0` for a perfectly steady circle (A/B feel tests).
 - **Two `launch.json` configs with different cwd assumptions.**
   `../.claude/launch.json` (workspace root) passes `--directory DesktopDrift` and
   is meant to run from the workspace root; `DesktopDrift/.claude/launch.json`
