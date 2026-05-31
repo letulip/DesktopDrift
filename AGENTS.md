@@ -143,14 +143,21 @@ unless noted. There are no modules; the file is loaded as a classic
 
 ## Deployment
 
-- **Branch → environment mapping:** TBD — none configured.
-- **CI/CD platform:** None. No GitHub Actions, no `.github/`, no pipeline files.
-- **Manual steps:** This is a static site. Any static host (GitHub Pages,
-  Netlify, Vercel static, S3, or `python3 -m http.server`) can serve the folder;
-  no build is required. Entry point: `index.html`.
-- **Rollback procedure:** TBD — establish once a host and git history exist.
-  Until then, rollback = restore previous file copies.
-- **Monitoring URL:** TBD — none.
+- **Branch → environment mapping:** `main` → GitHub Pages (`github-pages`
+  environment). There is no separate staging branch.
+- **CI/CD platform:** GitHub Actions — `.github/workflows/static.yml` ("Deploy
+  static content to Pages"). It runs on every push to `main` (and can be run
+  manually via `workflow_dispatch` from the Actions tab). No build step: it
+  uploads the **entire repository** (`path: '.'`) as the Pages artifact and
+  deploys it. Reference art, `items/`, and `.md` files are published too.
+- **Manual steps:** None for the live site — just push to `main`. Locally, any
+  static host (`python3 -m http.server`, Netlify, Vercel static, S3) can serve
+  the folder; no build is required. Entry point: `index.html`.
+- **Rollback procedure:** Revert the offending commit on `main` and push — the
+  workflow redeploys automatically. (Or re-run an earlier successful "Deploy to
+  Pages" run from the Actions tab.) Do not force-push `main`.
+- **Monitoring URL:** the GitHub Pages site for the `letulip/DesktopDrift` repo
+  (the deploy job exposes the live `page_url` in its `github-pages` environment).
 
 ## Safety (DO NOT SHORTEN)
 
@@ -204,13 +211,16 @@ unless noted. There are no modules; the file is loaded as a classic
 
 ## Commit / PR conventions
 
-- **Existing history:** None established (the repo had no git history before
-  this documentation work).
+- **Remote:** `git@github.com:letulip/DesktopDrift.git`. Default branch `main`.
+  Changes land via PRs merged into `main` (e.g. #1 docs, #2 Pages workflow).
 - **Format:** Use **Conventional Commits** (`feat:`, `fix:`, `docs:`,
-  `refactor:`, `chore:`). Example used for this task:
-  `docs: add AGENTS.md for AI coding agents`.
-- **Required checks:** Before committing code changes, run the `node --check`
-  syntax pass and a manual browser smoke test. No automated CI gate exists.
-- **Review policy:** TBD — no remote, branch protection, or reviewers configured.
-- **This documentation task:** branch `docs/agents-md`; one commit per generated
-  `.md` file. No push / PR is possible until a remote is configured.
+  `refactor:`, `chore:`). Examples from history:
+  `docs: add AGENTS.md for AI coding agents`,
+  `refactor: split HTML, CSS and JS into separate files`.
+- **Required checks:** Before committing code changes, run
+  `node --check js/game.js` and a manual browser smoke test. CI
+  (`static.yml`) only **deploys** on push to `main` — it runs no tests/lint, so
+  it will not catch a broken build. Validate locally first.
+- **Review policy:** No branch protection or required reviewers configured;
+  pushing/merging to `main` is unrestricted. Pushing to `main` triggers a live
+  Pages deploy, so treat `main` as production.
