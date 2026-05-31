@@ -16,9 +16,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     (~820 lines). This is where ~all logic lives.
 - **Relationship:** `index.html` → `sandbox.html` via `<a href="sandbox.html">`.
   In-game "☰ Menu" button navigates back with `location.href = 'index.html'`.
-- **Assets:** `ae86.svg`, `ae86.jpg`, `w124.svg`, `w124.jpg` are **reference
-  art only** — they are NOT loaded at runtime. Cars are drawn from SVG `path`
-  strings hard-coded in the `CARS` array inside `sandbox.html`.
+- **Assets:** `bismark.svg`, `panda.svg` are **reference art only** — they are
+  NOT loaded at runtime. Cars are drawn from SVG `path` strings hard-coded in
+  the `CARS` array inside `sandbox.html`. (The old `*.jpg` references and the
+  `ae86.*`/`w124.*` names were removed; filenames now match the in-code car
+  names.)
 
 ## Setup
 
@@ -175,12 +177,13 @@ all state lives in top-level `let`/`const` globals in one inline `<script>`.
   No modules means everything is a global and ordering matters. To syntax-check,
   extract the script and run `node --check` (see Commands) — you cannot
   `node --check` the `.html` directly.
-- **Car display names vs. asset names.** In-code car names are `Bismark`
-  (formerly "Mercedes W124") and `Panda` (formerly "Toyota AE86"). The reference
-  art files are still named `w124.*` and `ae86.*` respectively.
-- **Reference art is not loaded at runtime.** `*.svg`/`*.jpg` are design
-  references; the cars render from inline SVG `path` strings in `CARS`. Editing
-  the image files changes nothing in-game.
+- **Car names & history.** In-code car names are `Bismark` (formerly
+  "Mercedes W124") and `Panda` (formerly "Toyota AE86"). Reference-art files now
+  match: `bismark.svg` and `panda.svg`. (Earlier revisions kept the old
+  `w124.*`/`ae86.*` filenames; that mismatch no longer exists.)
+- **Reference art is not loaded at runtime.** `bismark.svg`/`panda.svg` are
+  design references; the cars render from inline SVG `path` strings in `CARS`.
+  Editing the image files changes nothing in-game.
 - **No persistence.** Chosen car and body color reset on every reload (no
   `localStorage`).
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
