@@ -295,8 +295,11 @@ const PHYS_HZ = 120;
 // «Живость» (расходящиеся круги) раньше возникала случайно — из джиттера кадров: dt скакал,
 // а grip применялся фиксировано. Нормализация это убивала → стерильный «идеальный круг».
 // Тут воспроизводим дрожание ЧЕСТНО: плавный шум от НАКОПЛЕННОГО ВРЕМЕНИ (а не числа кадров),
-// поэтому он одинаков на 60 и 120 Гц. Модулируем «эффективную длину кадра» для сцепления.
-const GRIP_WOBBLE = 0.22;   // амплитуда живого дрожания сцепления (0 = ровный круг)
+// поэтому он одинаков на 60 и 120 Гц. Два слоя: МЕДЛЕННЫЙ увод (радиус «гуляет» от витка к
+// витку — главный источник «расходящихся кругов») + быстрая текстура. Модулируем и сцепление,
+// и слегка курс. Всё *dt / через Math.pow → среднее и сама «живость» одинаковы на любой частоте.
+const GRIP_WOBBLE  = 0.5;   // амплитуда дрожания сцепления (0 = ровный круг)
+const STEER_WOBBLE = 0.16;  // амплитуда «увода» курса, рад/с (0 = без виляния траектории)
 let physT = 0;              // накопленное время физики, с — аргумент шума «живости»
 
 let last = performance.now();
@@ -331,12 +334,17 @@ function frame(now) {
   const drifting = Math.abs(vS) > 60 && speed > 90;
 
   physT += dt;
-  // плавный «живой» шум (сумма несоизмеримых синусов ≈ дрожание шасси), ≈[-1..1]
-  const wob = 0.6 * Math.sin(physT * 5.3 + 1.7) + 0.4 * Math.sin(physT * 12.1 + 4.2);
-  // дрожание ощутимо только в скольжении: на прямой и при слабом заносе круг ровный
-  const cornering = Math.min(1, Math.abs(vS) / 100) * Math.min(1, speed / P.maxSpeed);
-  const fAdj = dt * PHYS_HZ;                                   // нормализация средней физики
-  const gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * cornering);  // + «живое» дрожание сцепления
+  // медленный увод (период ~3–8 с → радиус «гуляет» от витка к витку) ≈[-1.5..1.5]
+  const wobSlow = Math.sin(physT * 0.8 + 1.7) + 0.5 * Math.sin(physT * 1.9 + 4.2);
+  // быстрая текстура (мелкое дрожание шасси) ≈[-1..1]
+  const wobFast = 0.6 * Math.sin(physT * 5.3 + 0.5) + 0.4 * Math.sin(physT * 12.1 + 2.1);
+  const wob = 0.7 * wobSlow + 0.3 * wobFast;
+  // живость сцепления есть всегда в движении (база 0.4), сильнее — в скольжении
+  const live = Math.min(1, speed / P.maxSpeed) * (0.4 + 0.6 * Math.min(1, Math.abs(vS) / 80));
+  // увод курса включается только при заносе (без пола) → прямые остаются ровными
+  const liveSteer = Math.min(1, speed / P.maxSpeed) * Math.min(1, Math.abs(vS) / 60);
+  const fAdj = dt * PHYS_HZ;                              // нормализация средней физики
+  const gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * live);  // + «живое» дрожание сцепления
 
   if (vF < P.maxSpeed) vF += P.thrust * dt;
   vF *= Math.pow(P.rollFriction, fAdj);   // продольное трение качения — независимо от FPS
@@ -346,6 +354,7 @@ function frame(now) {
   const turnFactor = Math.max(P.lowSpeedTurn, Math.min(speed / 160, 1));
   const authority = drifting ? P.driftSteerBoost : 1;
   car.angle += steerSmooth * P.steer * turnFactor * authority * dt;
+  car.angle += STEER_WOBBLE * wobSlow * liveSteer * dt;   // лёгкий «увод» курса → круг живёт
 
   car.vx = fwd.x * vF + side.x * vS;
   car.vy = fwd.y * vF + side.y * vS;

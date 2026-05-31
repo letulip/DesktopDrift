@@ -94,9 +94,10 @@ unless noted. There are no modules; the file is loaded as a classic
   Key tunables: `grip` (lateral retention/slide), `selfAlign` (snaps heading to
   motion — lower = holds slide longer), `thrust`, `maxSpeed`, `steer`,
   `steerSmooth`, `driftSteerBoost`, `rollFriction`, `driftDrag`. Frame-rate feel
-  is governed by two globals above `frame()`: `PHYS_HZ` (reference rate for the
+  is governed by globals above `frame()`: `PHYS_HZ` (reference rate for the
   `dt`-power normalization — keeps the *average* feel equal across refresh rates)
-  and `GRIP_WOBBLE` (amplitude of the time-driven liveliness wobble). See Gotchas.
+  plus `GRIP_WOBBLE` / `STEER_WOBBLE` (amplitudes of the time-driven liveliness:
+  grip breathing and heading wander). See Gotchas.
 - **Scoring (combo bank/burn model):** Points accumulate into `comboPoints`
   during a drift (`slip × speed × dt × 0.0015 × mult`). The combo is **banked**
   into `score` only on a clean drift finish (`bankCombo`), and **burned** with no
@@ -198,10 +199,14 @@ unless noted. There are no modules; the file is loaded as a classic
     a function of elapsed seconds, it is identical at any refresh rate. It is
     gated by `cornering` (slip × speed), so straights and gentle driving stay
     clean and only hard slides breathe.
-  - **Knobs.** `GRIP_WOBBLE` = wobble amplitude (set `0` for a perfectly steady
-    circle — useful for A/B feel tests); `PHYS_HZ` = average grippiness / which
-    refresh rate's feel everyone gets. Both live just above `frame()` in
-    `js/game.js`.
+  - **Two-layer noise.** `wobSlow` (period ~3–8 s) drifts the radius lap-to-lap
+    — this is the main "diverging circles" effect; `wobFast` adds fine chassis
+    texture. The slow layer also lightly steers (`STEER_WOBBLE`) for a visible
+    wander, gated to slides only (no floor) so straights stay clean.
+  - **Knobs (all just above `frame()` in `js/game.js`).** `PHYS_HZ` = average
+    grippiness / which refresh rate's feel everyone gets. `GRIP_WOBBLE` = grip
+    breathing amplitude. `STEER_WOBBLE` = heading-wander amplitude (rad/s). Set
+    the two wobbles to `0` for a perfectly steady circle (A/B feel tests).
 - **Two `launch.json` configs with different cwd assumptions.**
   `../.claude/launch.json` (workspace root) passes `--directory DesktopDrift` and
   is meant to run from the workspace root; `DesktopDrift/.claude/launch.json`
