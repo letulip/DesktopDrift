@@ -66,32 +66,9 @@ for (let i = 0; i < N; i += 5) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Предметы из items/ — расставляем в апексах углов
+// Предметы из items/ — позиции взяты из tracks/config1setup.svg
+// Координаты конвертированы скриптом: setup(cx,cy) → game(x,y)
 // ─────────────────────────────────────────────────────────────────────────────
-
-// Расстояние до ближайшей точки центральной линии
-function distToCenter(px, py) {
-  let best = Infinity;
-  for (const c of center) {
-    const d = (px - c.x) ** 2 + (py - c.y) ** 2;
-    if (d < best) best = d;
-  }
-  return Math.sqrt(best);
-}
-
-// Вещи: файл, радиус коллизии, полудлина капсулы, тип для процедурного фоллбэка
-const ITEM_DEFS = [
-  { imgSrc: 'items/Cup.svg',                                       hl: 0,   r: 75,  kind: 'bowl'  },
-  { imgSrc: 'items/kitchen-board-kitchen-svgrepo-com.svg',          hl: 100, r: 55,  kind: 'board' },
-  { imgSrc: 'items/kitchen-knife-svgrepo-com.svg',                  hl: 130, r: 20,  kind: 'knife' },
-  { imgSrc: 'items/grater-svgrepo-com.svg',                         hl: 60,  r: 38,  kind: 'board' },
-  { imgSrc: 'items/stapler-svgrepo-com.svg',                        hl: 70,  r: 32,  kind: 'board' },
-  { imgSrc: 'items/telephone-svgrepo-com.svg',                      hl: 75,  r: 42,  kind: 'board' },
-  { imgSrc: 'items/mixer-furniture-and-household-svgrepo-com.svg',  hl: 0,   r: 72,  kind: 'bowl'  },
-  { imgSrc: 'items/notebook-svgrepo-com.svg',                       hl: 85,  r: 55,  kind: 'board' },
-  { imgSrc: 'items/spatula-svgrepo-com.svg',                        hl: 95,  r: 18,  kind: 'knife' },
-];
-
 export const props = [];
 function addProp(o) {
   o.hl = o.hl || 0;
@@ -100,63 +77,25 @@ function addProp(o) {
   props.push(o);
 }
 
-// Ищем острые углы в НЕСГЛАЖЕННОМ полигоне и ставим вещи по бисектрисе угла
-const origPoly = SVG_POLY.map(toGame);
-let itemIdx = 0;
+// x,y  — позиция в игровых координатах (из setup SVG)
+// ang  — угол поворота (rad)
+// hl   — полудлина капсульного коллайдера (0 = круглый)
+// r    — радиус коллайдера
+// kind — тип процедурного рендера (запасной, пока SVG не загрузилось)
+// imgSrc — путь к SVG-файлу предмета
+const PLACED_ITEMS = [
+  { x: -1211, y: -255, ang:  0.4, hl: 110, r: 25,  kind: 'knife', imgSrc: 'items/kitchen-knife-svgrepo-com.svg'              },
+  { x:  -831, y:    5, ang:  0.0, hl:   0, r: 120, kind: 'bowl',  imgSrc: 'items/mixer-furniture-and-household-svgrepo-com.svg'},
+  { x:  -491, y: -430, ang: -0.3, hl:  70, r: 32,  kind: 'board', imgSrc: 'items/stapler-svgrepo-com.svg'                    },
+  { x:  -285, y:  141, ang:  0.0, hl:   0, r: 130, kind: 'bowl',  imgSrc: 'items/Cup.svg'                                    },
+  { x:  -220, y:  621, ang:  0.5, hl:  55, r: 28,  kind: 'knife', imgSrc: 'items/spatula-svgrepo-com.svg'                    },
+  { x:  -200, y: -619, ang:  0.2, hl:  65, r: 40,  kind: 'board', imgSrc: 'items/grater-svgrepo-com.svg'                     },
+  { x:    39, y: -853, ang: -0.1, hl:  90, r: 55,  kind: 'board', imgSrc: 'items/notebook-svgrepo-com.svg'                   },
+  { x:   420, y: -500, ang:  0.6, hl:  75, r: 42,  kind: 'board', imgSrc: 'items/telephone-svgrepo-com.svg'                  },
+  { x:   884, y: -253, ang: -0.2, hl:   0, r: 42,  kind: 'bowl',  imgSrc: 'items/kitchen-board-kitchen-svgrepo-com.svg'      },
+];
 
-// Собираем все углы с их остротой и сортируем по убыванию (самые острые — первые)
-const corners = [];
-for (let i = 0; i < origPoly.length; i++) {
-  const v    = origPoly[i];
-  const prev = origPoly[(i - 1 + origPoly.length) % origPoly.length];
-  const next = origPoly[(i + 1) % origPoly.length];
-
-  const d1x = v.x - prev.x, d1y = v.y - prev.y;
-  const d2x = next.x - v.x, d2y = next.y - v.y;
-  const l1  = Math.hypot(d1x, d1y) || 1;
-  const l2  = Math.hypot(d2x, d2y) || 1;
-
-  const cross = (d1x / l1) * (d2y / l2) - (d1y / l1) * (d2x / l2);
-  const dot   = (d1x / l1) * (d2x / l2) + (d1y / l1) * (d2y / l2);
-  const angle = Math.atan2(Math.abs(cross), Math.max(0, dot)); // величина угла поворота
-
-  if (angle < 0.35) continue; // пропускаем слабые повороты
-
-  // Бисектриса угла: нормализованная сумма входящего и выходящего направлений
-  const bx  = d1x / l1 + d2x / l2, by = d1y / l1 + d2y / l2;
-  const bl  = Math.hypot(bx, by) || 1;
-  const nbx = bx / bl, nby = by / bl; // единичный вектор бисектрисы
-
-  corners.push({ v, nbx, nby, angle, cross, edgeAng: Math.atan2(d2y / l2, d2x / l2) });
-}
-corners.sort((a, b) => b.angle - a.angle); // острейшие углы первыми
-
-for (const { v, nbx, nby, cross, edgeAng } of corners) {
-  if (itemIdx >= ITEM_DEFS.length) break;
-
-  const def = ITEM_DEFS[itemIdx];
-  // Смещение: чуть глубже TRACK_HALF внутрь угла (бисектриса указывает «внутрь» поворота)
-  const offset = TRACK_HALF * 1.05 + def.r * 0.8;
-  const px = v.x + nbx * offset;
-  const py = v.y + nby * offset;
-
-  // Не ставим вещь прямо посередине трассы
-  const dtc = distToCenter(px, py);
-  if (dtc < TRACK_HALF * 0.55) continue; // слишком близко к осевой
-
-  // Ориентируем вещь вдоль выходящего ребра угла (перпендикулярно бисектрисе)
-  const ang = edgeAng + (cross < 0 ? Math.PI / 2 : -Math.PI / 2);
-
-  addProp({
-    x: px, y: py, ang,
-    hl:      def.hl,
-    r:       def.r,
-    kind:    def.kind,
-    imgSrc:  def.imgSrc,
-    c:       '#8a9aaa',
-  });
-  itemIdx++;
-}
+for (const o of PLACED_ITEMS) addProp({ ...o, c: '#8a9aaa' });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Чекпоинты: K точек равномерно по сглаженной центральной линии
