@@ -83,8 +83,8 @@ export function startGame(T, opts = {}) {
     c.vy = car.vy * 0.6 - (dy / d) * 80;
     c.spin = (Math.random() - 0.5) * 18;
     car.vx *= 0.96; car.vy *= 0.96;
-    S.score = Math.max(0, S.score - 200);
-    flash('cone!  -200', '#ffb14d');
+    S.score = Math.max(0, S.score - 100);
+    flash('Cone!  -100', '#ffb14d');
   }
 
   // ─── Ввод ─────────────────────────────────────────────────────────────────
@@ -248,12 +248,12 @@ export function startGame(T, opts = {}) {
       const sgn = vS > 50 ? 1 : (vS < -50 ? -1 : 0);
       if (sgn !== 0) {
         if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-          S.transitions++; S.multBuild += 0.3; flash('TRANSITION!  +mult', '#7fd4ff');
+          S.transitions++; S.multBuild += 0.3; flash('TRANSITION!', '#7fd4ff');
         }
         S.lastSlipSign = sgn;
       }
       if (S.nearMissCd <= 0 && nearMissCheck(CR)) {
-        S.nearMisses++; S.multBuild += 0.28; S.nearMissCd = 0.6; flash('NEAR MISS!  +mult', '#ffd36a');
+        S.nearMisses++; S.multBuild += 0.28; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
       }
       S.mult = Math.min(8, 1 + S.multBuild);
       S.comboPoints += slip * speed * dt * 0.0015 * S.mult;
