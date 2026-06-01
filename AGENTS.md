@@ -6,21 +6,34 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 ## Overview
 
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
-  (ES2020, no modules, no transpiler). Rendering via Canvas 2D
+  (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
 - **Pages (2):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Has a "Sandbox" tile linking to the game and a disabled "Time Attack"
     placeholder.
   - `sandbox.html` — the game page: markup only. All logic lives in the
-    external `js/game.js` (~730 lines), loaded via
-    `<script src="js/game.js"></script>` at the end of `<body>`.
+    external JS modules, loaded via
+    `<script type="module" src="js/game.js"></script>` at the end of `<body>`.
 - **File layout:** HTML, CSS and JS are split into separate files (no build
   step — plain `<link>`/`<script src>`):
   - `css/base.css` — shared `html`/`body` reset (both pages).
   - `css/menu.css` — menu styles (`index.html`).
   - `css/sandbox.css` — HUD styles + mobile media query (`sandbox.html`).
-  - `js/game.js` — the whole game engine.
+  - `js/config.js` — pure static data: `CFG`, `CARS` (with Path2D init),
+    `TABLE`, physics constants (`PHYS_HZ`, `GRIP_WOBBLE`, `STEER_WOBBLE`,
+    `NM_BAND`).
+  - `js/track.js` — track geometry generated at module load: centerline,
+    `outer`/`inner` edges, `cones`, `props`, `checkpoints`, `startPos`,
+    `startAngle`.
+  - `js/state.js` — all mutable game state: `car` object, `S` (lap/scoring/
+    physics state), `keys`, `pointers`.
+  - `js/render.js` — canvas setup, `resize()`, `draw()`, `drawMini()`.
+    Exports live bindings `W`/`H`/`DPR` updated by `resize()`.
+  - `js/game.js` — entry point: input handlers, physics, `frame()` loop.
+    Imports from all other modules; `sandbox.html` loads only this file.
+  - **Dependency order (no circular deps):**
+    `config.js → track.js → state.js → render.js → game.js`
 - **Relationship:** `index.html` → `sandbox.html` via `<a href="sandbox.html">`.
   In-game "☰ Menu" button navigates back with `location.href = 'index.html'`.
 - **Assets:** `bismark.svg`, `panda.svg` are **reference art only** — they are
@@ -31,12 +44,14 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 
 ## Setup
 
-- **Install dependencies:** None. There are no dependencies and no manifest
-  (`package.json` does not exist).
+- **Install dependencies:** None. There are no npm dependencies.
+  `package.json` exists only to declare `"type": "module"` so that
+  `node --check` accepts ES module syntax; it has no `dependencies` or
+  `devDependencies`.
 - **Env vars:** None. The project reads no environment variables and has no
   `.env` file.
-- **Local run:** Serve the folder over HTTP (Canvas + module-free JS work from
-  `file://` too, but use a server for parity). Default port is **8777**.
+- **Local run:** **Must be served over HTTP** — ES modules are blocked by
+  browsers on `file://` URLs (CORS restriction). Default port is **8777**.
   - From the workspace root (`Projects/Claude/`):
     `python3 -m http.server 8777 --directory DesktopDrift`
   - From inside `DesktopDrift/`:
@@ -55,21 +70,21 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | test      | — (none)                                                      | No test suite. See Testing. |
 | lint      | — (none)                                                      | No linter configured. |
 | typecheck | — (none)                                                      | Plain JS, no TypeScript. |
-| syntax check (de-facto) | `node --check js/game.js` | Used in practice to validate game-logic edits. |
+| syntax check (de-facto) | `node --check js/config.js js/track.js js/state.js js/render.js js/game.js` | Validates all ES modules. |
 
-De-facto syntax check used in this repo (now that the JS is a standalone
-file, no extraction is needed):
+De-facto syntax check used in this repo:
 
 ```bash
-node --check js/game.js && echo OK
+node --check js/config.js js/track.js js/state.js js/render.js js/game.js && echo OK
 ```
 
 ## Architecture
 
-Everything below refers to `js/game.js` (the game engine for `sandbox.html`)
-unless noted. There are no modules; the file is loaded as a classic
-`<script>` (not `type="module"`), so all state lives in top-level
-`let`/`const` globals and works from `file://` too.
+The game is split across five ES modules (see File layout above). All state
+is held in `js/state.js` (`S` object + `car`) so that `render.js` (reads)
+and `game.js` (writes) share the same mutable object references without
+circular imports. `sandbox.html` loads only `js/game.js` as
+`<script type="module">` — the browser resolves the rest via `import`.
 
 - **Entry / loop:** `requestAnimationFrame(frame)` drives `frame(now)`. Delta
   time `dt` is computed per frame and clamped to `0.05` s. `resize()` keeps the
@@ -116,10 +131,12 @@ unless noted. There are no modules; the file is loaded as a classic
 
 ## Code style
 
-- **Language:** Vanilla ES2020. No TypeScript, no modules (`import`/`export`),
-  no JSX. Game logic is one classic `<script src>` file (`js/game.js`); CSS is
-  in `css/*.css`. Keep it that way — do not switch to ES modules (it would break
-  `file://` use and the no-build setup).
+- **Language:** Vanilla ES2020 with native ES modules (`import`/`export`).
+  No TypeScript, no JSX. Game logic is split across `js/config.js`,
+  `js/track.js`, `js/state.js`, `js/render.js`, `js/game.js`; CSS is in
+  `css/*.css`. No bundler — the browser loads modules directly. **Do not
+  add circular dependencies** (the one-way chain `config → track → state →
+  render → game` must be preserved).
 - **Linter / formatter:** None configured. Match the existing style by hand.
 - **Indentation:** 2 spaces. Semicolons used. `const`/`let` (no `var`).
 - **Naming:** `camelCase` for variables/functions; `UPPER_SNAKE` /
@@ -140,10 +157,11 @@ unless noted. There are no modules; the file is loaded as a classic
   about this; do not claim coverage.
 - **Run all / one test:** N/A.
 - **Coverage threshold:** N/A.
-- **Current practice:** Validation is (1) the `node --check js/game.js` syntax
-  pass (see Commands), and (2) manual verification in a browser / preview —
-  drive the car, watch the HUD, exercise scoring and collisions. There is no
-  headless test harness committed.
+- **Current practice:** Validation is (1) the
+  `node --check js/config.js js/track.js js/state.js js/render.js js/game.js`
+  syntax pass (see Commands), and (2) manual verification in a browser /
+  preview — drive the car, watch the HUD, exercise scoring and collisions.
+  There is no headless test harness committed.
 
 ## Deployment
 
@@ -203,7 +221,7 @@ unless noted. There are no modules; the file is loaded as a classic
     — this is the main "diverging circles" effect; `wobFast` adds fine chassis
     texture. The slow layer also lightly steers (`STEER_WOBBLE`) for a visible
     wander, gated to slides only (no floor) so straights stay clean.
-  - **Knobs (all just above `frame()` in `js/game.js`).** `PHYS_HZ` = average
+  - **Knobs (exported constants in `js/config.js`).** `PHYS_HZ` = average
     grippiness / which refresh rate's feel everyone gets. `GRIP_WOBBLE` = grip
     breathing amplitude. `STEER_WOBBLE` = heading-wander amplitude (rad/s). Set
     the two wobbles to `0` for a perfectly steady circle (A/B feel tests).
@@ -212,10 +230,10 @@ unless noted. There are no modules; the file is loaded as a classic
   is meant to run from the workspace root; `DesktopDrift/.claude/launch.json`
   omits it and is meant to run from inside `DesktopDrift/`. Both use port 8777
   and name `desktopdrift`. Launching both at once will conflict on the port.
-- **The whole game is one file: `js/game.js` (~730 lines).** No modules means
-  everything is a global and ordering matters (the file runs top-to-bottom). It
-  is a standalone `.js`, so syntax-check it directly: `node --check js/game.js`
-  (see Commands).
+- **The game is five ES modules; `js/game.js` is the entry point (~285 lines).**
+  Imports are resolved by the browser at runtime — no bundling needed.
+  Syntax-check all five files together (see Commands):
+  `node --check js/config.js js/track.js js/state.js js/render.js js/game.js`.
 - **Car names & history.** In-code car names are `Bismark` (formerly
   "Mercedes W124") and `Panda` (formerly "Toyota AE86"). Reference-art files now
   match: `bismark.svg` and `panda.svg`. (Earlier revisions kept the old
@@ -239,9 +257,10 @@ unless noted. There are no modules; the file is loaded as a classic
   `docs: add AGENTS.md for AI coding agents`,
   `refactor: split HTML, CSS and JS into separate files`.
 - **Required checks:** Before committing code changes, run
-  `node --check js/game.js` and a manual browser smoke test. CI
-  (`static.yml`) only **deploys** on push to `main` — it runs no tests/lint, so
-  it will not catch a broken build. Validate locally first.
+  `node --check js/config.js js/track.js js/state.js js/render.js js/game.js`
+  and a manual browser smoke test (must be served over HTTP, not `file://`).
+  CI (`static.yml`) only **deploys** on push to `main` — it runs no tests/lint,
+  so it will not catch a broken build. Validate locally first.
 - **Review policy:** No branch protection or required reviewers configured;
   pushing/merging to `main` is unrestricted. Pushing to `main` triggers a live
   Pages deploy, so treat `main` as production.
