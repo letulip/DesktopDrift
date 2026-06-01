@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v1';
+const CACHE = 'desktop-drift-v2';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -20,6 +20,10 @@ const ASSETS = [
   'js/game.js',
   'icons/icon.svg',
   'icons/icon-maskable.svg',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-maskable-192.png',
+  'icons/icon-maskable-512.png',
 ].map(p => BASE + p);
 
 // Pre-cache all static assets on install
