@@ -1,10 +1,14 @@
-import { startPos, startAngle } from './track.js';
-
 // Машинка — объект, поля мутируются напрямую
-export const car = { x: startPos.x, y: startPos.y, angle: startAngle, vx: 0, vy: 0 };
+export const car = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
+
+// Инициализация стартовой позиции из данных трека
+export const initCar = ({ startPos, startAngle }) => {
+  car.x = startPos.x; car.y = startPos.y; car.angle = startAngle;
+  car.vx = 0; car.vy = 0;
+}
 
 // Весь мутабельный игровой стейт — в одном объекте S.
-// Оба модуля (game.js пишет, render.js читает) работают с одной ссылкой → нет проблемы ES-биндингов.
+// Оба модуля (game-engine.js пишет, render.js читает) работают с одной ссылкой → нет проблемы ES-биндингов.
 export const S = {
   carModel:      0,
   steerSmooth:   0,

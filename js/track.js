@@ -1,95 +1,114 @@
 import { TABLE } from './config.js';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Трасса на основе tracks/config1.svg
+// Вершины из SVG path (M/L/H/V/Z), viewBox 0 0 245 121
+// ─────────────────────────────────────────────────────────────────────────────
+const SVG_POLY = [
+  [82.52, 12],    [27.52, 13.5],  [8.02,  33],    [0.52,  69],
+  [12.52, 100.5], [30.52, 115],   [82.52, 115],   [93.52, 104],
+  [130.52, 33],   [145.02, 23],   [202.02, 23],   [217.52, 38.5],
+  [217.52, 62.5], [208.52, 87.5], [184.52, 93],   [150.52, 69],
+  [130.52, 81.5], [125.02, 100.5],[140.02, 120],  [184.52, 120],
+  [217.52, 109.5],[237.52, 87.5], [243.52, 51],   [231.52, 16.5],
+  [202.02, 0.5],  [102.52, 0.5],
+];
+
+const SVG_CX = 245 / 2, SVG_CY = 121 / 2;
+const SCALE  = 13; // игровых единиц на SVG-единицу
+
+function toGame([x, y]) {
+  return { x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE };
+}
+
+// Алгоритм Chaikin — угловое отсечение (1 проход)
+function chaikin(pts) {
+  const n = pts.length, r = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    r.push({ x: a.x * .75 + b.x * .25, y: a.y * .75 + b.y * .25 });
+    r.push({ x: a.x * .25 + b.x * .75, y: a.y * .25 + b.y * .75 });
+  }
+  return r;
+}
+
+// 4 прохода: 26 → 52 → 104 → 208 → 416 точек
+let smoothPoly = SVG_POLY.map(toGame);
+for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Центральная линия, внешний и внутренний края
+// ─────────────────────────────────────────────────────────────────────────────
 export const TRACK_HALF = 100;
-
-function centerAt(a) {
-  const R = 1100 + 215 * Math.sin(3 * a) + 170 * Math.sin(4 * a);
-  return { x: R * Math.cos(a) * 1.15, y: R * Math.sin(a) * 0.94 };
-}
-function tangentAt(a) {
-  const e = 0.001;
-  const p1 = centerAt(a - e), p2 = centerAt(a + e);
-  let tx = p2.x - p1.x, ty = p2.y - p1.y;
-  const len = Math.hypot(tx, ty) || 1;
-  return { x: tx / len, y: ty / len };
-}
-
-const SAMPLES = 300;
 export const center = [], outer = [], inner = [];
-for (let i = 0; i < SAMPLES; i++) {
-  const a = (i / SAMPLES) * Math.PI * 2;
-  const c = centerAt(a), t = tangentAt(a);
-  const nx = -t.y, ny = t.x;
+const N = smoothPoly.length;
+
+for (let i = 0; i < N; i++) {
+  const c    = smoothPoly[i];
+  const prev = smoothPoly[(i - 1 + N) % N];
+  const next = smoothPoly[(i + 1) % N];
+  const tx   = next.x - prev.x, ty = next.y - prev.y;
+  const len  = Math.hypot(tx, ty) || 1;
+  const nx   = -ty / len, ny = tx / len; // перпендикуляр (в сторону левого нормаля)
   center.push(c);
   outer.push({ x: c.x + nx * TRACK_HALF, y: c.y + ny * TRACK_HALF });
   inner.push({ x: c.x - nx * TRACK_HALF, y: c.y - ny * TRACK_HALF });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Конусы вдоль краёв
+// ─────────────────────────────────────────────────────────────────────────────
 export const CONE_R = 9;
-export const cones = [];
-for (let i = 0; i < SAMPLES; i += 5) {
+export const cones  = [];
+for (let i = 0; i < N; i += 5) {
   cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
   cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
 }
 
-// Кухонные объекты на столе
-function distToTrackPoint(x, y) {
-  let best = Infinity;
-  for (const c of center) { const dx = x - c.x, dy = y - c.y; const d = dx * dx + dy * dy; if (d < best) best = d; }
-  return Math.sqrt(best);
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Предметы из items/ — позиции взяты из tracks/config1setup.svg
+// Координаты конвертированы скриптом: setup(cx,cy) → game(x,y)
+// ─────────────────────────────────────────────────────────────────────────────
 export const props = [];
 function addProp(o) {
   o.hl = o.hl || 0;
-  o._cos = Math.cos(o.ang); o._sin = Math.sin(o.ang);
+  o._cos = Math.cos(o.ang);
+  o._sin = Math.sin(o.ang);
   props.push(o);
 }
-// 1) Круглая посуда в карманах трассы
-const DISHES = [
-  { kind: 'plate',  c: '#e6ebf0' },
-  { kind: 'bowl',   c: '#3a6ea5' },
-  { kind: 'saucer', c: '#ead9bf' },
-  { kind: 'plate',  c: '#f0c419' }
-];
-{
-  const rad = center.map(c => Math.hypot(c.x, c.y));
-  const apex = [];
-  for (let i = 0; i < SAMPLES; i++) {
-    const p = rad[(i - 1 + SAMPLES) % SAMPLES], n = rad[(i + 1) % SAMPLES];
-    if (rad[i] < p && rad[i] <= n) apex.push(i);
-  }
-  let di = 0;
-  for (const i of apex) {
-    const c = center[i], r = rad[i];
-    const dirx = c.x / r, diry = c.y / r;
-    const innerEdge = r - TRACK_HALF;
-    const objR = Math.max(110, Math.min(240, innerEdge * 0.33));
-    const cd = innerEdge - objR - 34;
-    if (cd < objR * 0.4) continue;
-    const d = DISHES[di++ % DISHES.length];
-    addProp({ x: dirx * cd, y: diry * cd, ang: Math.atan2(diry, dirx), hl: 0, r: objR, kind: d.kind, c: d.c });
-  }
-}
-// 2) Сервировка по углам стола
-const SETTING = [
-  { x: 1350,  y: -1000, ang: 0.5,  hl: 150, r: 120, kind: 'board', c: '#b07b46' },
-  { x: -1350, y: -1000, ang: -0.5, hl: 150, r: 22,  kind: 'knife', c: '#c8ccd2' },
-  { x: -1380, y: 1100,  ang: 0.6,  hl: 110, r: 52,  kind: 'spoon', c: '#c8ccd2' },
-  { x: 1430,  y: 1150,  ang: -0.4, hl: 120, r: 30,  kind: 'fork',  c: '#c8ccd2' }
-];
-for (const o of SETTING) {
-  if (Math.abs(o.x) + o.hl + o.r > TABLE.w / 2 - 60) continue;
-  if (Math.abs(o.y) + o.hl + o.r > TABLE.h / 2 - 60) continue;
-  if (distToTrackPoint(o.x, o.y) > TRACK_HALF + o.r + 40) addProp(o);
-}
 
-// Чекпоинты
+// x,y  — позиция в игровых координатах (из setup SVG)
+// ang  — угол поворота (rad)
+// hl   — полудлина капсульного коллайдера (0 = круглый)
+// r    — радиус коллайдера
+// kind — тип процедурного рендера (запасной, пока SVG не загрузилось)
+// imgSrc — путь к SVG-файлу предмета
+const PLACED_ITEMS = [
+  { x: -1211, y: -255, ang:  0.4, hl: 110, r: 25,  kind: 'knife', imgSrc: 'items/kitchen-knife-svgrepo-com.svg'              },
+  { x:  -831, y:    5, ang:  0.0, hl:   0, r: 120, kind: 'bowl',  imgSrc: 'items/mixer-furniture-and-household-svgrepo-com.svg'},
+  { x:  -491, y: -430, ang: -0.3, hl:  70, r: 32,  kind: 'board', imgSrc: 'items/stapler-svgrepo-com.svg'                    },
+  { x:  -285, y:  141, ang:  0.0, hl:   0, r: 130, kind: 'bowl',  imgSrc: 'items/Cup.svg'                                    },
+  { x:  -220, y:  621, ang:  0.5, hl:  55, r: 28,  kind: 'knife', imgSrc: 'items/spatula-svgrepo-com.svg'                    },
+  { x:  -200, y: -619, ang:  0.2, hl:  65, r: 40,  kind: 'board', imgSrc: 'items/grater-svgrepo-com.svg'                     },
+  { x:    39, y: -853, ang: -0.1, hl:  90, r: 55,  kind: 'board', imgSrc: 'items/notebook-svgrepo-com.svg'                   },
+  { x:   420, y: -500, ang:  0.6, hl:  75, r: 42,  kind: 'board', imgSrc: 'items/telephone-svgrepo-com.svg'                  },
+  { x:   884, y: -253, ang: -0.2, hl:   0, r: 42,  kind: 'bowl',  imgSrc: 'items/kitchen-board-kitchen-svgrepo-com.svg'      },
+];
+
+for (const o of PLACED_ITEMS) addProp({ ...o, c: '#8a9aaa' });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Чекпоинты: K точек равномерно по сглаженной центральной линии
+// ─────────────────────────────────────────────────────────────────────────────
 export const K = 8, CP_R = TRACK_HALF + 70;
 export const checkpoints = [];
-for (let i = 0; i < K; i++) checkpoints.push(centerAt((i / K) * Math.PI * 2));
+for (let i = 0; i < K; i++) {
+  checkpoints.push(center[Math.floor((i / K) * N)]);
+}
 
-// Стартовая позиция
-const _start = centerAt(0), _startT = tangentAt(0);
-export const startPos   = { x: _start.x, y: _start.y };
-export const startAngle = Math.atan2(_startT.y, _startT.x);
+// ─────────────────────────────────────────────────────────────────────────────
+// Стартовая позиция и направление
+// ─────────────────────────────────────────────────────────────────────────────
+const _c0 = center[0], _c1 = center[1];
+export const startPos   = { x: _c0.x, y: _c0.y };
+export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);

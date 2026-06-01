@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Desktop Drift — Sandbox</title>
+<title>Desktop Drift — Time Attack</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <meta name="theme-color" content="#111318">
@@ -41,12 +41,12 @@
 <div id="combo"></div>
 <div id="flash"></div>
 <div id="count"></div>
-<div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Hit a cone — penalty!</div>
+<div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Dodge the obstacles!</div>
 
 <script type="module">
-  import * as T from './js/track-oval.js';
+  import * as T from './js/track.js';
   import { startGame } from './js/game-engine.js';
-  startGame(T);
+  startGame(T, { initItems: true });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>

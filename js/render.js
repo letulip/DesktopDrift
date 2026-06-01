@@ -1,5 +1,4 @@
 import { CARS, TABLE } from './config.js';
-import { center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle } from './track.js';
 import { car, S } from './state.js';
 
 // --- Canvas ---
@@ -18,16 +17,34 @@ export function resize() {
 }
 window.addEventListener('resize', resize); resize();
 
-// Мини-карта: трансформация мир → окошко (вычисляется один раз при загрузке)
-const _pad = 12;
-let _ex = 0, _ey = 0;
-for (const o of outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
-const _ms = Math.min((miniEl.width - _pad * 2) / (2 * _ex), (miniEl.height - _pad * 2) / (2 * _ey));
-const MINI = {
-  s:  _ms,
-  X: x => miniEl.width  / 2 + x * _ms,
-  Y: y => miniEl.height / 2 + y * _ms,
-};
+// --- Данные трека (устанавливаются через initRender) ---
+let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
+let MINI = null;
+
+// Вызывается из game-engine.js перед стартом игры
+export function initRender(T) {
+  center     = T.center;
+  outer      = T.outer;
+  inner      = T.inner;
+  cones      = T.cones;
+  props      = T.props;
+  checkpoints = T.checkpoints;
+  CP_R       = T.CP_R;
+  TRACK_HALF = T.TRACK_HALF;
+  CONE_R     = T.CONE_R;
+  startAngle = T.startAngle;
+
+  // Мини-карта: трансформация мир → окошко
+  const _pad = 12;
+  let _ex = 0, _ey = 0;
+  for (const o of outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
+  const _ms = Math.min((miniEl.width - _pad * 2) / (2 * _ex), (miniEl.height - _pad * 2) / (2 * _ey));
+  MINI = {
+    s:  _ms,
+    X: x => miniEl.width  / 2 + x * _ms,
+    Y: y => miniEl.height / 2 + y * _ms,
+  };
+}
 
 // --- Вспомогательные примитивы ---
 function polyPath(pts) {
@@ -83,6 +100,17 @@ function drawCar(M) {
   rrect(-hl * 0.9,  hw * 0.30, hl * 0.06, hw * 0.42, 2); ctx.fill();
 }
 
+// Предзагрузка SVG-изображений для предметов (вызывается из game-engine.js один раз при старте)
+export function initItems(propList) {
+  for (const o of propList) {
+    if (!o.imgSrc) continue;
+    const img = new Image();
+    img.onload  = () => { o.img = img; };
+    img.onerror = () => { /* используем процедурный рендер как запасной вариант */ };
+    img.src = o.imgSrc;
+  }
+}
+
 // Кухонный объект на столе
 function drawProp(o) {
   ctx.save();
@@ -94,6 +122,16 @@ function drawProp(o) {
     ctx.beginPath(); ctx.ellipse(6, 8, o.r * 1.03, o.r * 0.97, 0, 0, Math.PI * 2); ctx.fill();
   }
   ctx.rotate(o.ang);
+
+  // SVG-изображение из items/ (если загружено)
+  if (o.img) {
+    const fw = o.hl > 0 ? (o.hl + o.r) * 2 : o.r * 2;
+    const fh = o.r * 2;
+    ctx.drawImage(o.img, -fw / 2, -fh / 2, fw, fh);
+    ctx.restore();
+    return;
+  }
+
   if (o.kind === 'plate' || o.kind === 'saucer') {
     ctx.fillStyle = o.c; ctx.beginPath(); ctx.arc(0, 0, o.r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 4;
