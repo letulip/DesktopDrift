@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- background -->
+  <rect width="512" height="512" fill="#111318"/>
+  <!-- track ring -->
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#1b2f1e" stroke-width="58"/>
+  <!-- car: top-down, pointing right, rotated for dynamism -->
+  <g transform="translate(256,256) rotate(-20)">
+    <!-- body -->
+    <rect x="-64" y="-29" width="128" height="58" rx="20" fill="#474d56"/>
+    <!-- windshield -->
+    <rect x="-10" y="-21" width="40" height="42" rx="7" fill="#5a91b2"/>
+    <!-- hood (front) -->
+    <rect x="32" y="-20" width="32" height="40" rx="13" fill="#3c4148"/>
+    <!-- trunk (rear) -->
+    <rect x="-64" y="-20" width="36" height="40" rx="11" fill="#3c4148"/>
+    <!-- wheels -->
+    <rect x="-78" y="-43" width="26" height="17" rx="5" fill="#181818"/>
+    <rect x="-78" y="26" width="26" height="17" rx="5" fill="#181818"/>
+    <rect x="52" y="-43" width="26" height="17" rx="5" fill="#181818"/>
+    <rect x="52" y="26" width="26" height="17" rx="5" fill="#181818"/>
+  </g>
+</svg>

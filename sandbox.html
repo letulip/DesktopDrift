@@ -4,6 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Desktop Drift — Sandbox</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<meta name="theme-color" content="#111318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Desktop Drift">
 <link rel="stylesheet" href="css/base.css" />
 <link rel="stylesheet" href="css/sandbox.css" />
 </head>
@@ -38,5 +44,6 @@
 <div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Hit a cone — penalty!</div>
 
 <script type="module" src="js/game.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>
 </html>
