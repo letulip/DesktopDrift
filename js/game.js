@@ -1,7 +1,7 @@
 import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND } from './config.js';
 import { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R } from './track.js';
 import { car, S, keys, pointers } from './state.js';
-import { canvas, W, draw } from './render.js';
+import { canvas, W, draw, initItems } from './render.js';
 
 // --- Вспомогательные функции игровой логики ---
 
@@ -103,6 +103,9 @@ bodyColor.addEventListener('input', e => { CARS[S.carModel].body = e.target.valu
 addEventListener('keydown', e => { if (e.key === 'c' || e.key === 'C') setModel(S.carModel + 1); });
 document.getElementById('menuBtn').addEventListener('click', e => { e.preventDefault(); location.href = 'index.html'; });
 setModel(0);
+
+// Загружаем SVG-изображения предметов в фоне (3 сек обратного отсчёта хватает)
+initItems(props);
 
 // --- Физика ---
 let last = performance.now();

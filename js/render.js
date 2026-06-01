@@ -83,6 +83,17 @@ function drawCar(M) {
   rrect(-hl * 0.9,  hw * 0.30, hl * 0.06, hw * 0.42, 2); ctx.fill();
 }
 
+// Предзагрузка SVG-изображений для предметов (вызывается из game.js один раз при старте)
+export function initItems(propList) {
+  for (const o of propList) {
+    if (!o.imgSrc) continue;
+    const img = new Image();
+    img.onload  = () => { o.img = img; };
+    img.onerror = () => { /* используем процедурный рендер как запасной вариант */ };
+    img.src = o.imgSrc;
+  }
+}
+
 // Кухонный объект на столе
 function drawProp(o) {
   ctx.save();
@@ -94,6 +105,16 @@ function drawProp(o) {
     ctx.beginPath(); ctx.ellipse(6, 8, o.r * 1.03, o.r * 0.97, 0, 0, Math.PI * 2); ctx.fill();
   }
   ctx.rotate(o.ang);
+
+  // SVG-изображение из items/ (если загружено)
+  if (o.img) {
+    const fw = o.hl > 0 ? (o.hl + o.r) * 2 : o.r * 2;
+    const fh = o.r * 2;
+    ctx.drawImage(o.img, -fw / 2, -fh / 2, fw, fh);
+    ctx.restore();
+    return;
+  }
+
   if (o.kind === 'plate' || o.kind === 'saucer') {
     ctx.fillStyle = o.c; ctx.beginPath(); ctx.arc(0, 0, o.r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 4;
