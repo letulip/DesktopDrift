@@ -2,7 +2,7 @@
 export const car = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
 
 // Инициализация стартовой позиции из данных трека
-export function initCar({ startPos, startAngle }) {
+export const initCar = ({ startPos, startAngle }) => {
   car.x = startPos.x; car.y = startPos.y; car.angle = startAngle;
   car.vx = 0; car.vy = 0;
 }
