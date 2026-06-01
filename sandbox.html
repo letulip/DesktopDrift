@@ -43,7 +43,11 @@
 <div id="count"></div>
 <div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Hit a cone — penalty!</div>
 
-<script type="module" src="js/game-sandbox.js"></script>
+<script type="module">
+  import * as T from './js/track-oval.js';
+  import { startGame } from './js/game-engine.js';
+  startGame(T);
+</script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>
 </html>
