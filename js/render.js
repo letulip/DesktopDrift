@@ -124,10 +124,19 @@ function drawProp(o) {
   ctx.rotate(o.ang);
 
   // SVG-изображение из items/ (если загружено)
+  // Портретные SVG (height > width) сохранены вертикально — длинная ось = Y в файле.
+  // Капсульный коллайдер ориентирован горизонтально (длинная ось = X после ctx.rotate).
+  // Поворот π/2 + swap fw/fh совмещают визуал с физикой для портретных SVG.
+  // Ландшафтные SVG (width >= height) рисуются напрямую — длинная ось уже горизонтальна.
   if (o.img) {
     const fw = o.hl > 0 ? (o.hl + o.r) * 2 : o.r * 2;
     const fh = o.r * 2;
-    ctx.drawImage(o.img, -fw / 2, -fh / 2, fw, fh);
+    if (o.img.naturalHeight > o.img.naturalWidth) {
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(o.img, -fh / 2, -fw / 2, fh, fw);
+    } else {
+      ctx.drawImage(o.img, -fw / 2, -fh / 2, fw, fh);
+    }
     ctx.restore();
     return;
   }

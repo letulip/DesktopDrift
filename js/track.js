@@ -1,4 +1,14 @@
 import { TABLE } from './config.js';
+import {
+  ITEM_KNIFE_1, ITEM_KNIFE_2,
+  ITEM_PLATE_YELLOW, ITEM_STAPLER,
+  ITEM_CUP,
+  ITEM_FORK_1,
+  ITEM_CUTTER, ITEM_PENCIL, ITEM_PENCIL_PLUS,
+  ITEM_NOTEBOOK,
+  ITEM_CLIPBOARD,
+  ITEM_COMPASS_1,
+} from './items.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Трасса на основе tracks/config1.svg
@@ -77,25 +87,42 @@ function addProp(o) {
   props.push(o);
 }
 
-// x,y  — позиция в игровых координатах (из setup SVG)
-// ang  — угол поворота (rad)
-// hl   — полудлина капсульного коллайдера (0 = круглый)
-// r    — радиус коллайдера
-// kind — тип процедурного рендера (запасной, пока SVG не загрузилось)
-// imgSrc — путь к SVG-файлу предмета
+// x,y — позиция в игровых координатах (из tracks/config1setup.svg)
+// ang — угол поворота (rad), выбран по направлению трека в данной точке
+// Физика и imgSrc берутся из js/items.js
+// ang: 0 = длинная ось горизонтально; π/2 ≈ 1.57 = вертикально.
+// Углы выбраны параллельно направлению трека в каждой точке.
 const PLACED_ITEMS = [
-  { x: -1211, y: -255, ang:  0.4, hl: 110, r: 25,  kind: 'knife', imgSrc: 'items/kitchen-knife-svgrepo-com.svg'              },
-  { x:  -831, y:    5, ang:  0.0, hl:   0, r: 120, kind: 'bowl',  imgSrc: 'items/mixer-furniture-and-household-svgrepo-com.svg'},
-  { x:  -491, y: -430, ang: -0.3, hl:  70, r: 32,  kind: 'board', imgSrc: 'items/stapler-svgrepo-com.svg'                    },
-  { x:  -285, y:  141, ang:  0.0, hl:   0, r: 130, kind: 'bowl',  imgSrc: 'items/Cup.svg'                                    },
-  { x:  -220, y:  621, ang:  0.5, hl:  55, r: 28,  kind: 'knife', imgSrc: 'items/spatula-svgrepo-com.svg'                    },
-  { x:  -200, y: -619, ang:  0.2, hl:  65, r: 40,  kind: 'board', imgSrc: 'items/grater-svgrepo-com.svg'                     },
-  { x:    39, y: -853, ang: -0.1, hl:  90, r: 55,  kind: 'board', imgSrc: 'items/notebook-svgrepo-com.svg'                   },
-  { x:   420, y: -500, ang:  0.6, hl:  75, r: 42,  kind: 'board', imgSrc: 'items/telephone-svgrepo-com.svg'                  },
-  { x:   884, y: -253, ang: -0.2, hl:   0, r: 42,  kind: 'bowl',  imgSrc: 'items/kitchen-board-kitchen-svgrepo-com.svg'      },
+  // ── Крупные предметы снаружи трека ───────────────────────────────────────
+  // Левый внешний изгиб, трек идёт на север — нож вдоль стенки
+  { ...ITEM_KNIFE_1,      x: -1211, y:  -255, ang:  1.3  },
+  // Широкий левый карман — тарелка (круглая, угол не важен)
+  { ...ITEM_PLATE_YELLOW, x:  -831, y:     5, ang:  0    },
+  // Верхний левый угол — степлер наискосок
+  { ...ITEM_STAPLER,      x:  -491, y:  -430, ang: -0.5  },
+  // Левый центр — чашка (круглая)
+  { ...ITEM_CUP,          x:  -285, y:   141, ang:  0    },
+  // Нижняя прямая — вилка вдоль трека (горизонталь)
+  { ...ITEM_FORK_1,       x:  -220, y:   621, ang:  0.15 },
+  // Верхняя внутренняя дуга — канцелярский нож вдоль горизонтали
+  { ...ITEM_CUTTER,       x:  -200, y:  -619, ang:  0.2  },
+  // Самый верх карты — блокнот горизонтально
+  { ...ITEM_NOTEBOOK,     x:    39, y:  -853, ang:  0.1  },
+  // Правый верх — pencil+knife по диагонали
+  { ...ITEM_PENCIL_PLUS,  x:   420, y:  -500, ang: -0.6  },
+  // Правый карман — клипборд лежит внутри острова правого кольца (E–W)
+  { ...ITEM_CLIPBOARD,    x:   680, y:    80, ang:  0.15 },
+
+  // ── Тонкие предметы в узких участках трека ───────────────────────────────
+  // Внутренняя вертикальная прямая (x≈104) — карандаш вдоль секции
+  { ...ITEM_PENCIL,       x:   155, y:   250, ang:  1.55 },
+  // S-изгиб внутренней части — нож по касательной к повороту
+  { ...ITEM_KNIFE_2,      x:   130, y:  -380, ang:  1.45 },
+  // Нижняя вертикальная прямая (внутренняя S) — циркуль вдоль секции
+  { ...ITEM_COMPASS_1,    x:    50, y:  -480, ang:  1.45 },
 ];
 
-for (const o of PLACED_ITEMS) addProp({ ...o, c: '#8a9aaa' });
+for (const o of PLACED_ITEMS) addProp({ ...o });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Чекпоинты: K точек равномерно по сглаженной центральной линии
