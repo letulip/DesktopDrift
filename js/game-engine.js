@@ -96,10 +96,15 @@ export function startGame(T, opts = {}) {
   }
   addEventListener('keydown', e => { keys[e.key] = true; });
   addEventListener('keyup',   e => { keys[e.key] = false; });
-  canvas.addEventListener('pointerdown',   e => { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); });
-  canvas.addEventListener('pointermove',   e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } });
+  // passive: false + preventDefault() — не даёт iOS запустить выделение текста
+  // при долгом нажатии во время игры
+  canvas.addEventListener('pointerdown',   e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); }, { passive: false });
+  canvas.addEventListener('pointermove',   e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } }, { passive: false });
   canvas.addEventListener('pointerup',     e => { pointers.delete(e.pointerId); updatePointerSteer(); });
   canvas.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); updatePointerSteer(); });
+  // Блокируем контекстное меню и выделение текста по всему документу
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
 
   // ─── UI ───────────────────────────────────────────────────────────────────
 

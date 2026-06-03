@@ -1,2 +1,8 @@
 /* Общий сброс для всех страниц Desktop Drift */
-html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0907; touch-action: none; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #0b0907;
+  touch-action: none;          /* запрет scroll/zoom */
+  user-select: none;           /* запрет выделения текста */
+  -webkit-user-select: none;   /* Safari / iOS */
+  -webkit-touch-callout: none; /* запрет callout-меню при долгом нажатии (iOS) */
+}
