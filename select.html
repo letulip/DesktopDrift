@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Desktop Drift — Garage</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="theme-color" content="#111318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <style>
+    #garage {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: radial-gradient(120% 120% at 50% 0%, #2a2622 0%, #14110f 55%, #0b0907 100%);
+      font: 14px/1.4 -apple-system, system-ui, sans-serif; color: #fff;
+      gap: 18px; padding: 24px 20px; box-sizing: border-box;
+    }
+    #mode-title {
+      margin: 0;
+      font: 800 clamp(26px, 7vw, 44px) -apple-system, system-ui, sans-serif;
+      letter-spacing: 1px;
+      background: linear-gradient(180deg, #fff 0%, #ffb14d 130%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    #garage h2 { margin: 0; font: 600 16px -apple-system, system-ui, sans-serif; opacity: .6; }
+    #cars { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .car-card {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 14px; border-radius: 16px;
+      background: rgba(255,255,255,.05); border: 2px solid rgba(255,255,255,.12);
+      cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .car-card.sel { border-color: #ffb14d; background: rgba(255,177,77,.08); }
+    .car-card canvas {
+      display: block;
+      /* logical size: width CSS-controlled, height follows aspect ratio */
+      width: min(200px, 38vw);
+      aspect-ratio: 220 / 82;
+    }
+    .car-name { font: 600 14px -apple-system, system-ui, sans-serif; letter-spacing: .2px; }
+    #color-row {
+      display: flex; align-items: center; gap: 10px;
+      font: 14px -apple-system, system-ui, sans-serif; color: rgba(255,255,255,.65);
+    }
+    #bodyColor {
+      width: 40px; height: 28px;
+      border: 1px solid rgba(255,255,255,.18); border-radius: 7px;
+      cursor: pointer; padding: 2px; background: none;
+    }
+    #raceBtn {
+      padding: 14px 48px;
+      background: rgba(255,177,77,.18); border: 1px solid rgba(255,177,77,.4);
+      color: #ffb14d; font: 700 17px -apple-system, system-ui, sans-serif;
+      border-radius: 14px; cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    #raceBtn:hover { background: rgba(255,177,77,.28); border-color: rgba(255,177,77,.7); }
+    #backLink {
+      color: rgba(255,255,255,.35);
+      font: 13px -apple-system, system-ui, sans-serif;
+      text-decoration: none; transition: color .15s;
+    }
+    #backLink:hover { color: rgba(255,255,255,.6); }
+  </style>
+</head>
+<body>
+<div id="garage">
+  <p id="mode-title"></p>
+  <h2>Choose your car</h2>
+  <div id="cars"></div>
+  <div id="color-row">
+    <label for="bodyColor">Body colour</label>
+    <input type="color" id="bodyColor">
+  </div>
+  <button id="raceBtn">Race! 🏁</button>
+  <a id="backLink" href="index.html">← Back to menu</a>
+</div>
+
+<script type="module">
+  import { CARS } from './js/config.js';
+
+  const params = new URLSearchParams(location.search);
+  const mode   = params.get('mode') || 'sandbox';
+
+  document.getElementById('mode-title').textContent =
+    mode === 'timeattack' ? 'Time Attack' : 'Sandbox';
+
+  // Restore last selection from previous race
+  let cfg = { carIndex: 0, bodyColor: null };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem('carConfig') || '{}')); } catch {}
+  cfg.carIndex = Math.max(0, Math.min(cfg.carIndex ?? 0, CARS.length - 1));
+
+  let sel = cfg.carIndex;
+  // Apply saved body colour to the car object so drawPreview picks it up
+  if (cfg.bodyColor) CARS[sel].body = cfg.bodyColor;
+
+  const colorInput = document.getElementById('bodyColor');
+  colorInput.value  = CARS[sel].body;
+
+  // ── Car preview canvas drawing ───────────────────────────────────────────────
+  // Uses the same Path2D data that the game renderer uses — no duplication.
+  const CANVAS_W = 220, CANVAS_H = 82;
+
+  const drawPreview = (cvs, M) => {
+    const ctx = cvs.getContext('2d');
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    const pad = 6;
+    const sc  = Math.min((CANVAS_W - pad * 2) / M.vw, (CANVAS_H - pad * 2) / M.vh);
+    ctx.save();
+    ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
+    // flip:true mirrors the SVG so the nose points right (same as in-game)
+    ctx.scale(M.flip ? -sc : sc, sc);
+    ctx.translate(-M.vw / 2, -M.vh / 2);
+    ctx.fillStyle = M.body;
+    ctx.fill(M._p2d);
+    if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
+    ctx.lineJoin   = 'round';
+    ctx.lineWidth  = 5;
+    ctx.strokeStyle = M.stroke;
+    ctx.stroke(M._p2d);
+    if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
+    ctx.restore();
+  };
+
+  // ── Build car cards ──────────────────────────────────────────────────────────
+  const carsEl = document.getElementById('cars');
+
+  const cards = CARS.map((M, i) => {
+    const card = document.createElement('div');
+    card.className = 'car-card' + (i === sel ? ' sel' : '');
+
+    const cvs = document.createElement('canvas');
+    cvs.width  = CANVAS_W;
+    cvs.height = CANVAS_H;
+    card.appendChild(cvs);
+
+    const nm = document.createElement('div');
+    nm.className   = 'car-name';
+    nm.textContent = M.name;
+    card.appendChild(nm);
+
+    card.addEventListener('click', () => selectCar(i));
+    carsEl.appendChild(card);
+    return { card, cvs };
+  });
+
+  const selectCar = (i) => {
+    sel = i;
+    cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
+    colorInput.value = CARS[i].body;
+  };
+
+  colorInput.addEventListener('input', e => {
+    CARS[sel].body = e.target.value;
+    drawPreview(cards[sel].cvs, CARS[sel]);
+  });
+
+  document.getElementById('raceBtn').addEventListener('click', () => {
+    localStorage.setItem('carConfig', JSON.stringify({
+      carIndex:  sel,
+      bodyColor: CARS[sel].body,
+    }));
+    location.href = mode === 'timeattack' ? 'timeattack.html' : 'sandbox.html';
+  });
+
+  // Initial render
+  CARS.forEach((M, i) => drawPreview(cards[i].cvs, M));
+</script>
+
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>

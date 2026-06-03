@@ -136,7 +136,11 @@ export const startGame = (T, opts = {}) => {
       onCancel: () => { if (!wasAlreadyPaused) pause.resume(); },
     });
   });
-  setModel(0);
+  // Read car/colour chosen in the garage (select.html); fall back to defaults
+  let savedCfg = { carIndex: 0, bodyColor: null };
+  try { Object.assign(savedCfg, JSON.parse(localStorage.getItem('carConfig') || '{}')); } catch {}
+  setModel(savedCfg.carIndex || 0);
+  if (savedCfg.bodyColor) { CARS[S.carModel].body = savedCfg.bodyColor; bodyColor.value = savedCfg.bodyColor; }
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
   // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
