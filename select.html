@@ -214,10 +214,11 @@
       ctx.globalAlpha = 0.65;
       ctx.fillStyle   = neonColor;
 
+      const ei_p = M.vw * 0.02;  // отступ от торцов пути
       ctx.beginPath();
-      ctx.rect(0,           gy, s1p, glowH);  // конец 1
-      ctx.rect(s1p + gpp,   gy, s2p, glowH);  // между мостами
-      ctx.rect(M.vw - s3p,  gy, s3p, glowH);  // конец 2
+      ctx.rect(ei_p,         gy, s1p - ei_p, glowH);  // конец 1 (не доходит до края)
+      ctx.rect(s1p + gpp,    gy, s2p,        glowH);  // между мостами
+      ctx.rect(M.vw - s3p,   gy, s3p - ei_p, glowH);  // конец 2 (не доходит до края)
       ctx.fill();
 
       ctx.globalAlpha = 1;

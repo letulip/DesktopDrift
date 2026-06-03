@@ -248,7 +248,10 @@ export const draw = (speed) => {
   ctx.save();
   ctx.translate(car.x, car.y); ctx.rotate(car.angle);
   const M = CARS[S.carModel];
-  ctx.fillStyle = 'rgba(0,0,0,.35)'; rrect(-M.len / 2 + 2, -M.wid / 2 + 3, M.len, M.wid, M.wid * 0.7); ctx.fill();
+  // тень машинки — убираем при активном неоне (нелогично совмещать)
+  if (!M.neonColor) {
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; rrect(-M.len / 2 + 2, -M.wid / 2 + 3, M.len, M.wid, M.wid * 0.7); ctx.fill();
+  }
 
   const wlen = M.len * 0.16, wwid = Math.max(4, M.wid * 0.20);
   const reveal = Math.abs(S.steerSmooth), wheelAng = S.steerSmooth * 0.5;
@@ -280,10 +283,11 @@ export const draw = (speed) => {
     const s1 = M.len * 0.03, s2 = M.len * 0.58, s3 = M.len * 0.08;
     const gp = M.len * 0.155;  // ширина зазора на каждое колесо
 
+    const ei = M.len * 0.02;  // отступ от торцов — блок не доходит до края машины
     ctx.beginPath();
-    ctx.rect(hl - s1,            ghy, s1, gH);  // нос
-    ctx.rect(hl - s1 - gp - s2, ghy, s2, gH);  // между мостами (основная)
-    ctx.rect(-hl,                ghy, s3, gH);  // корма
+    ctx.rect(hl - s1,           ghy, s1 - ei, gH);  // нос (не доходит до носа)
+    ctx.rect(hl - s1 - gp - s2, ghy, s2,      gH);  // между мостами (основная)
+    ctx.rect(-hl + ei,          ghy, s3 - ei,  gH);  // корма (не доходит до кормы)
     ctx.fill();
 
     ctx.restore();
