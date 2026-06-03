@@ -9,7 +9,7 @@ const VERSION = 1;
 const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh' },
-  garage:       { carIndex: 0, bodyColor: null },
+  garage:       { carIndex: 0, bodyColor: null, neonColor: null },
   records:      {},        // { [trackId]: { [mode]: { bestLap, bestScore } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
 });

@@ -79,10 +79,12 @@ Turns the tech demo into a game and fixes what bugs us now.
 - [ ] **Records** — best lap + best score per (track, mode), stored via `store`.
 - [ ] **Results screen** after a run ("NEW RECORD!", lap/score summary).
 - [ ] **Speed units** km/h ⟷ mph — a setting, converted only at display time (default km/h).
-- [ ] **Custom colour palette (replaces the native `<input type="color">`).** The native
-      picker is inconsistent and renders differently on phone vs desktop. Replace it with a
-      curated swatch grid (custom DOM + CSS, identical everywhere). Start with ~8–12
-      hand-picked body colours; named colour schemes can come later.
+- [x] **Custom colour palette (replaces the native `<input type="color">`).**
+      20-colour body swatch grid (`PALETTE` in `palette.js`) + 10-colour neon
+      underglow palette (`NEON_PALETTE`). Neon renders as 3 segments between wheel
+      arches via `ctx.shadowBlur`; suppresses the black drop-shadow. Stored in
+      `garage.bodyColor` / `garage.neonColor`. Phase 2 liveries extend `palette.js`
+      with a `LIVERIES` array.
 - [ ] **Track previews** on the selection screen — generalize `drawMini` into
       `renderTrackThumb(canvas, track)`. Cheap (the rendering already exists); start with the
       two existing tracks, gets richer once the track registry lands.

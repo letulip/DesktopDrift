@@ -51,12 +51,17 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `achievements()` (live objects — mutate then call `save()`), and `save()`.
     Versioned schema (`VERSION = 1`, key `'desktop-drift'`); bumping `VERSION`
     requires a migration block in `_ensure()`.
+  - `js/palette.js` — curated colour palettes. Exports `PALETTE` (20 body colours,
+    `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
+    Imported only by `select.html`. Designed to grow: Phase 2 liveries will add
+    a `LIVERIES` array with `{ name, body, stroke, details }` entries here.
   - `js/game-engine.js` — sole entry point for both game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
     `opts.initItems` is true. All physics/input/scoring logic lives here.
-    On init reads `garage()` from `store.js` to apply the chosen car model and
-    body colour.
+    On init reads `garage()` from `store.js` to apply the chosen car model,
+    body colour, and neon colour (`CARS[S.carModel].neonColor`).
+    When `neonColor` is set, the black drop-shadow under the car is suppressed.
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
     pause, resume }`. Styled via `css/sandbox.css`.
@@ -68,7 +73,8 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
     `game-engine.js` → (`pause.js` / `confirm-exit.js`).
     HTML inline module scripts are the outer shell.
-    `select.html` imports `config.js` + `store.js` (car previews + persistence).
+    `select.html` imports `config.js` + `palette.js` + `store.js`
+    (car previews + colour palette + persistence).
 
 ## Setup
 
@@ -91,7 +97,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
-| syntax check | `node --check js/store.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/store.js js/palette.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
 
@@ -177,7 +183,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v12`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v16`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
@@ -254,7 +260,7 @@ pure logic in the same change.
   test locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `test/foundation`.
+  `main` when ready. Currently active: `feat/color-palette`.
 
 ## Safety (DO NOT SHORTEN)
 
@@ -291,8 +297,16 @@ pure logic in the same change.
   its `props` array is empty. `startGame(T)` (no `initItems` option) is correct.
 - **All persistence goes through `js/store.js`** — no module touches `localStorage`
   directly. Key: `'desktop-drift'`, versioned schema (V1). Garage slice holds
-  `{ carIndex, bodyColor }`; written by `select.html` on "Race!", read by
-  `game-engine.js` on init. Future slices: `records`, `settings`, `achievements`.
+  `{ carIndex, bodyColor, neonColor }`; written by `select.html` on "Race!", read
+  by `game-engine.js` on init. Future slices: `records`, `settings`, `achievements`.
+- **Neon render.js details:** three segments (3 % nose | 15.5 % gap | 58 % body |
+  15.5 % gap | 8 % tail), each inset 2 % from the car tips so the coloured fill
+  doesn't peek out from under the body. `ctx.shadowBlur = 22` creates the glow.
+  Black drop-shadow is suppressed when `M.neonColor` is set.
+- **`overflow: hidden` + `max-height` animation (neon palette):** `#neon-palette-wrap`
+  uses `box-sizing: border-box` + `padding: 8px 10px` so that at `max-height: 0`
+  the entire box (padding included) collapses to 0, and at `max-height: 100px` the
+  8 px breathing room prevents `box-shadow` rings on neon swatches from being clipped.
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.
