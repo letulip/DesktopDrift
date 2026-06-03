@@ -29,6 +29,10 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 - **YAGNI (You Aren't Gonna Need It)** Features or functionality should only be added when they are strictly required, rather than when you anticipate needing them in the future. This prevents code bloat and ensures you focus purely on current, validated requirements.
 - **Separation of Concerns (SoC)** A computer program should be divided into distinct sections, where each section addresses a separate, specific concern or business rule. This prevents the creation of tangled, interdependent codebases.
 
+## JS rules
+
+- all functions should be arrow functions
+
 ## Before each git push
 
 Update agents with actual structure and nuances.

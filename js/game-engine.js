@@ -7,7 +7,7 @@ import { createConfirmExit } from './confirm-exit.js';
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
 // opts.initItems — true, если у трека есть SVG-пропсы для предзагрузки
-export function startGame(T, opts = {}) {
+export const startGame = (T, opts = {}) => {
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R } = T;
 
   initRender(T);
@@ -16,33 +16,37 @@ export function startGame(T, opts = {}) {
 
   // ─── Вспомогательные функции ───────────────────────────────────────────────
 
-  function flash(msg, color) { S.flashMsg = msg; S.flashColor = color || '#fff'; S.flashT = 0.9; }
+  const flash = (msg, color) => {
+    S.flashMsg = msg;
+    S.flashColor = color || '#fff';
+    S.flashT = 0.9;
+  };
 
-  function resetCombo() {
+  const resetCombo = () => {
     S.comboPoints = 0; S.mult = 1; S.driftTime = 0;
     S.transitions = 0; S.lastSlipSign = 0; S.multBuild = 0; S.nearMisses = 0;
-  }
+  };
 
-  function bankCombo() {
+  const bankCombo = () => {
     if (S.comboPoints < 1) { resetCombo(); return; }
     S.score += Math.round(S.comboPoints);
     flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
     resetCombo();
-  }
+  };
 
-  function burnCombo(reason) {
+  const burnCombo = (reason) => {
     if (S.comboPoints >= 1) flash(reason + '  combo ' + Math.round(S.comboPoints) + ' lost', '#ff6a6a');
     resetCombo();
     S.crashCd = 0.5; S.driftGrace = 1;
   }
 
-  function distToTrack() {
+  const distToTrack = () => {
     let best = Infinity;
     for (const c of center) { const dx = car.x - c.x, dy = car.y - c.y; const d = dx * dx + dy * dy; if (d < best) best = d; }
     return Math.sqrt(best);
   }
 
-  function nearMissCheck(CR) {
+  const nearMissCheck = (CR) => {
     const speed = Math.hypot(car.vx, car.vy);
     if (speed < 140) return false;
     if (TABLE.shape === 'round') {
@@ -74,7 +78,7 @@ export function startGame(T, opts = {}) {
     return false;
   }
 
-  function hitConeAt(c, px, py, r) {
+  const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
     const dx = px - c.x, dy = py - c.y;
     const rr = r + CONE_R;
@@ -91,11 +95,11 @@ export function startGame(T, opts = {}) {
 
   // ─── Ввод ─────────────────────────────────────────────────────────────────
 
-  function updatePointerSteer() {
+  const updatePointerSteer = () => {
     let s = 0;
     for (const x of pointers.values()) s += (x < W / 2 ? -1 : 1);
     S.steerInput = Math.sign(s);
-  }
+  };
   addEventListener('keydown', e => { keys[e.key] = true; });
   addEventListener('keyup',   e => { keys[e.key] = false; });
   // passive: false + preventDefault() — не даёт iOS запустить выделение текста
@@ -112,11 +116,11 @@ export function startGame(T, opts = {}) {
 
   const carBtn    = document.getElementById('carBtn');
   const bodyColor = document.getElementById('bodyColor');
-  function setModel(i) {
+  const setModel = (i) => {
     S.carModel = (i + CARS.length) % CARS.length;
     carBtn.textContent = '🚗 ' + CARS[S.carModel].name;
     bodyColor.value = CARS[S.carModel].body;
-  }
+  };
   carBtn.addEventListener('click', e => { e.preventDefault(); setModel(S.carModel + 1); });
   bodyColor.addEventListener('input', e => { CARS[S.carModel].body = e.target.value; });
   addEventListener('keydown', e => { if (e.key === 'c' || e.key === 'C') setModel(S.carModel + 1); });
@@ -144,7 +148,7 @@ export function startGame(T, opts = {}) {
   // ─── Физика ───────────────────────────────────────────────────────────────
 
   let last = performance.now();
-  function frame(now) {
+  const frame = (now) => {
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 

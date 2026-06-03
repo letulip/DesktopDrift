@@ -2,11 +2,11 @@ import { TABLE } from './config.js';
 
 export const TRACK_HALF = 100;
 
-function centerAt(a) {
+const centerAt = (a) => {
   const R = 1100 + 215 * Math.sin(3 * a) + 170 * Math.sin(4 * a);
   return { x: R * Math.cos(a) * 1.15, y: R * Math.sin(a) * 0.94 };
-}
-function tangentAt(a) {
+};
+const tangentAt = (a) => {
   const e = 0.001;
   const p1 = centerAt(a - e), p2 = centerAt(a + e);
   let tx = p2.x - p1.x, ty = p2.y - p1.y;
@@ -34,13 +34,13 @@ for (let i = 0; i < SAMPLES; i += 5) {
 }
 
 // Кухонные объекты на столе
-function distToTrackPoint(x, y) {
+const distToTrackPoint = (x, y) => {
   let best = Infinity;
   for (const c of center) { const dx = x - c.x, dy = y - c.y; const d = dx * dx + dy * dy; if (d < best) best = d; }
   return Math.sqrt(best);
 }
 export const props = [];
-function addProp(o) {
+const addProp = (o) => {
   o.hl = o.hl || 0;
   o._cos = Math.cos(o.ang); o._sin = Math.sin(o.ang);
   props.push(o);

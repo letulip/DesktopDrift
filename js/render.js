@@ -8,7 +8,7 @@ const miniEl = document.getElementById('mini');
 const mctx   = miniEl.getContext('2d');
 
 export let W, H, DPR;
-export function resize() {
+export const resize = () => {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
@@ -22,7 +22,7 @@ let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, s
 let MINI = null;
 
 // Вызывается из game-engine.js перед стартом игры
-export function initRender(T) {
+export const initRender = (T) => {
   center     = T.center;
   outer      = T.outer;
   inner      = T.inner;
@@ -47,12 +47,12 @@ export function initRender(T) {
 }
 
 // --- Вспомогательные примитивы ---
-function polyPath(pts) {
+const polyPath = (pts) => {
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
   ctx.closePath();
-}
-function rrect(x, y, w, h, r) {
+};
+const rrect = (x, y, w, h, r) => {
   r = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -62,7 +62,7 @@ function rrect(x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function capPath(hl, r) {
+const capPath = (hl, r) => {
   ctx.beginPath();
   ctx.moveTo(-hl, -r);
   ctx.lineTo(hl, -r);
@@ -73,7 +73,7 @@ function capPath(hl, r) {
 }
 
 // Машинка вид сверху (нос по +X)
-function drawCar(M) {
+const drawCar = (M) => {
   if (M.path) {
     const s = M.len / M.vw;
     ctx.save();
@@ -101,7 +101,7 @@ function drawCar(M) {
 }
 
 // Предзагрузка SVG-изображений для предметов (вызывается из game-engine.js один раз при старте)
-export function initItems(propList) {
+export const initItems = (propList) => {
   for (const o of propList) {
     if (!o.imgSrc) continue;
     const img = new Image();
@@ -112,7 +112,7 @@ export function initItems(propList) {
 }
 
 // Кухонный объект на столе
-function drawProp(o) {
+const drawProp = (o) => {
   ctx.save();
   ctx.translate(o.x, o.y);
   ctx.fillStyle = 'rgba(0,0,0,.3)';
@@ -178,7 +178,7 @@ function drawProp(o) {
 }
 
 // --- Основной рендер ---
-export function draw(speed) {
+export const draw = (speed) => {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   const camOffY = H * 0.10;
@@ -289,7 +289,7 @@ export function draw(speed) {
   drawMini();
 }
 
-export function drawMini() {
+export const drawMini = () => {
   mctx.clearRect(0, 0, miniEl.width, miniEl.height);
   mctx.lineJoin = mctx.lineCap = 'round';
   mctx.strokeStyle = 'rgba(255,255,255,.22)';

@@ -6,7 +6,7 @@
 // Стили — в css/sandbox.css (#confirmExitOverlay).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function createConfirmExit() {
+export const createConfirmExit = () => {
   const overlay = document.createElement('div');
   overlay.id = 'confirmExitOverlay';
   overlay.innerHTML = `
@@ -22,12 +22,12 @@ export function createConfirmExit() {
 
   let pendingCancel = null, pendingExit = null;
 
-  function hide() {
+  const hide = () => {
     overlay.classList.remove('show');
     pendingCancel = pendingExit = null;
   }
 
-  function show({ onExit, onCancel } = {}) {
+  const show = ({ onExit, onCancel } = {}) => {
     pendingCancel = onCancel || null;
     pendingExit  = onExit  || null;
     overlay.classList.add('show');
