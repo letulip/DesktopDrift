@@ -58,7 +58,10 @@ self.addEventListener('fetch', e => {
       if (cached) return cached;
       return fetch(e.request).then(resp => {
         if (resp.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+          // Клонируем сразу — до любых await/then, пока тело ещё не начали читать.
+          // Иначе к моменту разрешения caches.open() resp уже потреблён браузером.
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
       });
