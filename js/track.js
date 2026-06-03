@@ -1,4 +1,3 @@
-import { TABLE } from './config.js';
 import {
   ITEM_KNIFE_1, ITEM_KNIFE_2,
   ITEM_PLATE_YELLOW, ITEM_STAPLER,
@@ -9,6 +8,7 @@ import {
   ITEM_CLIPBOARD,
   ITEM_COMPASS_1,
 } from './items.js';
+import { ITEM_TIRE_COIN } from './collectibles.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Трасса на основе tracks/config1.svg
@@ -139,3 +139,11 @@ for (let i = 0; i < K; i++) {
 const _c0 = center[0], _c1 = center[1];
 export const startPos   = { x: _c0.x, y: _c0.y };
 export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Собираемые предметы (монетки) — позиции можно расставить вручную или с помощью трека-конфига
+// ─────────────────────────────────────────────────────────────────────────────
+export const collectibles = [
+  { ...ITEM_TIRE_COIN, x: 500, y: -200, collected: false }
+  // more coins around the track on the surface
+];
