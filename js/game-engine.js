@@ -1,6 +1,7 @@
 import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
+import { createPause } from './pause.js';
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
@@ -121,12 +122,23 @@ export function startGame(T, opts = {}) {
   document.getElementById('menuBtn').addEventListener('click', e => { e.preventDefault(); location.href = 'index.html'; });
   setModel(0);
 
+  // ─── Пауза (изолированный компонент) ────────────────────────────────────────
+  // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
+  // чтобы машина не дёрнулась на возобновлении.
+  const pause = createPause({
+    onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
+  });
+
   // ─── Физика ───────────────────────────────────────────────────────────────
 
   let last = performance.now();
   function frame(now) {
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
+
+    // Заморозка: ничего не считаем и не перерисовываем — последний кадр остаётся
+    // на canvas, оверлей его затемняет. last уже обновлён → нет скачка dt.
+    if (pause.isPaused()) { requestAnimationFrame(frame); return; }
 
     if (S.startCd > 0) {
       S.startCd -= dt;
@@ -274,8 +286,8 @@ export function startGame(T, opts = {}) {
 
     if (slip > 40 && speed > 60) {
       const rx = car.x - fwd.x * 12, ry = car.y - fwd.y * 12;
-      S.skids.push({ x: rx + side.x * 7, y: ry + side.y * 7, a: Math.min(slip / 200, .6) });
-      S.skids.push({ x: rx - side.x * 7, y: ry - side.y * 7, a: Math.min(slip / 200, .6) });
+      S.skids.push({ x: rx + side.x * 12, y: ry + side.y * 12, a: Math.min(slip / 200, .6) });
+      S.skids.push({ x: rx - side.x * 12, y: ry - side.y * 12, a: Math.min(slip / 200, .6) });
       if (S.skids.length > 1500) S.skids.splice(0, 2);
     }
 
