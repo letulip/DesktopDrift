@@ -40,6 +40,42 @@ canvas { display: block; }
   background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: 10px; pointer-events: auto;
 }
 
+/* --- Кнопка паузы (самодостаточный компонент, DOM создаёт js/pause.js) --- */
+/* Позиция задаётся ТОЛЬКО здесь — меняй top/left, чтобы перемещать кнопку.   */
+/* Сверху-центр, чуть ниже строки контролов, вне зон руления.                  */
+#pauseBtn {
+  position: fixed;
+  top: 132px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;                 /* выше оверлея, чтобы оставаться кликабельной  */
+  pointer-events: auto;
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 38px;
+  background: rgba(0,0,0,.4); color: #fff;
+  border: none; border-radius: 10px;
+  font: 18px -apple-system, system-ui, sans-serif; line-height: 1;
+  cursor: pointer;
+}
+#pauseBtn:active { background: rgba(0,0,0,.6); }
+
+/* --- Оверлей паузы --- */
+#pauseOverlay {
+  position: fixed; inset: 0; z-index: 30;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  background: rgba(8,10,14,.66);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  color: #fff; pointer-events: auto; cursor: pointer;
+}
+#pauseOverlay.show { display: flex; }
+#pauseOverlay .title {
+  font: 800 64px -apple-system, system-ui, sans-serif;
+  letter-spacing: 3px; text-shadow: 0 4px 18px rgba(0,0,0,.85);
+}
+#pauseOverlay .sub {
+  font: 600 18px -apple-system, system-ui, sans-serif; opacity: .8;
+}
+
 /* --- Мобильная раскладка HUD --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }
@@ -50,4 +86,5 @@ canvas { display: block; }
   /* компактнее левый столбик, чтобы поместился счёт справа */
   #timePanel { width: 120px; padding: 6px 9px; }
   #mini { width: 120px; height: 103px; }
+  #pauseOverlay .title { font-size: 48px; }
 }
