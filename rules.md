@@ -33,6 +33,23 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 
 - all functions should be arrow functions
 
+## Testing
+
+**Every new piece of pure logic ships with a test. Every phase ends green.**
+
+- Runner is Node's built-in `node --test` + `node:assert/strict` — zero deps, no
+  build, in keeping with the pure-static stack. Run with `npm test`.
+- **Test the testable.** Pure logic (store, data tables, track geometry, the future
+  collision validator) gets unit tests. Canvas / DOM / the game loop (`render.js`,
+  `game-engine.js`, `pause.js`, `confirm-exit.js`) can't run in Node — those stay on
+  the manual browser smoke test documented in AGENTS.md.
+- **Grow tests with the code.** New logic → new/updated tests in the same change. A bug
+  fix → a test that would have caught it. Don't let coverage rot behind features.
+- Node runs each `tests/*.test.js` file in its own process, so module-level caches
+  (e.g. store.js's `_s`) don't leak between scenarios — split conflicting setups into
+  separate files rather than fighting the cache.
+
 ## Before each git push
 
-Update agents with actual structure and nuances.
+- Run `npm test` — it must be green.
+- Update agents with actual structure and nuances.

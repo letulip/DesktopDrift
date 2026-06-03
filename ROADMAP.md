@@ -44,6 +44,19 @@ Decisions that hold the whole thing together — settle these as they come up, d
    `emit(event, data)` + listener list (~10 lines, not a framework). Achievements, bonuses,
    ghost car and (later) sound subscribe as separate modules instead of bloating the engine.
    **Not before it is actually needed.**
+5. **Tests guard every phase — `tests/` + `npm test`.** Pure logic (store, data tables,
+   track geometry, the collision validator) ships with unit tests written in Node's
+   built-in runner (`node --test`, zero deps). Canvas/DOM/game-loop code stays on the
+   manual browser smoke test. Tests grow with the code so each new phase proves it broke
+   nothing. See **AGENTS.md → Testing** and **rules.md → Testing**.
+
+## Definition of done (every phase)
+
+A phase is only "done" when:
+- New pure logic has unit tests, and `npm test` is **green**.
+- `node --check` passes on all JS.
+- A manual browser smoke test of the touched flows passes.
+- AGENTS.md / CLAUDE.md reflect any new files, modules, or gotchas.
 
 ---
 
@@ -51,9 +64,13 @@ Decisions that hold the whole thing together — settle these as they come up, d
 
 The boring layer everything else stands on. No flashy output, highest leverage.
 
-- [ ] `js/store.js` — versioned save/load using the schema above.
-- [ ] Migrate the existing `carConfig` into `store` (the `garage` slice).
+- [x] `js/store.js` — versioned save/load using the schema above. *(unit-tested: defaults,
+      save/load, version-mismatch reset — `tests/store*.test.js`)*
+- [x] Migrate the existing `carConfig` into `store` (the `garage` slice). Written by
+      `select.html`, read by `game-engine.js`.
+- [x] **Test foundation** — `tests/` + `npm test` (`node --test`), store covered.
 - [ ] `settings` slice + a minimal settings panel (entry point from the menu).
+      *(Schema slice exists; the panel UI is deferred to Phase 1 alongside speed-units.)*
 
 ## Phase 1 — Personal progress & garage polish
 
