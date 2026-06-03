@@ -52,4 +52,5 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 ## Before each git push
 
 - Run `npm test` — it must be green.
+- Update roadmap with current state.
 - Update agents with actual structure and nuances.

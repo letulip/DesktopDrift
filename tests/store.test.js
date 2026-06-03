@@ -21,6 +21,7 @@ test('defaults: garage', () => {
   const g = garage();
   assert.equal(g.carIndex, 0);
   assert.equal(g.bodyColor, null);
+  assert.equal(g.neonColor, null);
 });
 
 test('defaults: settings / records / achievements', () => {
@@ -37,11 +38,13 @@ test('mutate live object + save() persists correct JSON shape', () => {
   const g = garage();
   g.carIndex  = 2;
   g.bodyColor = '#ff0000';
+  g.neonColor = '#39FF14';
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
   assert.equal(raw.version, 1);
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.bodyColor, '#ff0000');
+  assert.equal(raw.garage.neonColor, '#39FF14');
   assert.deepEqual(raw.settings, { units: 'kmh' });
 });

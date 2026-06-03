@@ -19,7 +19,7 @@
       align-items: center; justify-content: center;
       background: radial-gradient(120% 120% at 50% 0%, #2a2622 0%, #14110f 55%, #0b0907 100%);
       font: 14px/1.4 -apple-system, system-ui, sans-serif; color: #fff;
-      gap: 18px; padding: 24px 20px; box-sizing: border-box;
+      gap: 16px; padding: 20px; box-sizing: border-box;
     }
     #mode-title {
       margin: 0;
@@ -48,25 +48,24 @@
     .car-name { font: 600 14px -apple-system, system-ui, sans-serif; letter-spacing: .2px; }
 
     /* ── Colour palette ─────────────────────────────────────────────────────── */
-    #palette-wrap {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    .palette-section {
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
     }
-    #palette-label {
-      font: 600 12px -apple-system, system-ui, sans-serif;
-      letter-spacing: .5px; text-transform: uppercase;
-      color: rgba(255,255,255,.4);
+    .palette-label {
+      font: 600 11px -apple-system, system-ui, sans-serif;
+      letter-spacing: .6px; text-transform: uppercase;
+      color: rgba(255,255,255,.38);
     }
-    #palette {
+    .swatch-grid {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
-      gap: 7px;
-      /* max-width caps at 320px on desktop; on narrow phones swatches shrink gracefully */
-      width: min(320px, calc(100vw - 48px));
+      gap: 6px;
+      width: min(300px, calc(100vw - 48px));
     }
     .swatch {
       width: 100%; aspect-ratio: 1; border-radius: 50%;
       cursor: pointer;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
       transition: transform .1s;
       outline: none;
     }
@@ -75,14 +74,48 @@
       box-shadow:
         0 0 0 2.5px #ffb14d,
         0 0 0 4.5px rgba(255,177,77,.25),
-        inset 0 1px 2px rgba(0,0,0,.35);
+        inset 0 1px 2px rgba(0,0,0,.4);
       transform: scale(1.1);
     }
-    #color-name {
-      font: 500 13px -apple-system, system-ui, sans-serif;
-      letter-spacing: .3px;
-      color: rgba(255,255,255,.55);
-      min-height: 16px;
+    .swatch-name {
+      font: 500 12px -apple-system, system-ui, sans-serif;
+      letter-spacing: .3px; color: rgba(255,255,255,.5);
+      min-height: 15px;
+    }
+
+    /* ── Neon toggle ────────────────────────────────────────────────────────── */
+    #neon-section { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+    #neon-btn {
+      --nc: #39FF14;
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.45);
+      font: 600 13px -apple-system, system-ui, sans-serif;
+      letter-spacing: .4px; cursor: pointer;
+      transition: border-color .2s, color .2s, box-shadow .2s, text-shadow .2s;
+    }
+    #neon-btn.active {
+      border-color: var(--nc);
+      color: var(--nc);
+      text-shadow: 0 0 6px var(--nc);
+      box-shadow: 0 0 14px var(--nc);
+    }
+    #neon-palette-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      overflow: hidden;
+      max-height: 0; opacity: 0;
+      transition: max-height .25s ease, opacity .2s ease;
+    }
+    #neon-palette-wrap.open { max-height: 80px; opacity: 1; }
+
+    /* neon swatches use coloured ring instead of amber */
+    #neon-palette .swatch.sel {
+      box-shadow:
+        0 0 0 2.5px var(--ring, #39FF14),
+        0 0 8px var(--ring, #39FF14),
+        inset 0 1px 2px rgba(0,0,0,.4);
     }
 
     #raceBtn {
@@ -111,10 +144,20 @@
   <h2>Choose your car</h2>
   <div id="cars"></div>
 
-  <div id="palette-wrap">
-    <div id="palette-label">Body colour</div>
-    <div id="palette"></div>
-    <div id="color-name"></div>
+  <!-- Body colour -->
+  <div class="palette-section">
+    <div class="palette-label">Body colour</div>
+    <div id="body-palette" class="swatch-grid"></div>
+    <div id="body-name" class="swatch-name"></div>
+  </div>
+
+  <!-- Neon underglow -->
+  <div id="neon-section">
+    <button id="neon-btn">✦ Neon</button>
+    <div id="neon-palette-wrap">
+      <div id="neon-palette" class="swatch-grid"></div>
+      <div id="neon-name" class="swatch-name"></div>
+    </div>
   </div>
 
   <button id="raceBtn">Race! 🏁</button>
@@ -123,7 +166,7 @@
 
 <script type="module">
   import { CARS } from './js/config.js';
-  import { PALETTE } from './js/palette.js';
+  import { PALETTE, NEON_PALETTE } from './js/palette.js';
   import { garage, save } from './js/store.js';
 
   const params = new URLSearchParams(location.search);
@@ -132,17 +175,23 @@
   document.getElementById('mode-title').textContent =
     mode === 'timeattack' ? 'Time Attack' : 'Sandbox';
 
-  // ── Restore last choice from store ──────────────────────────────────────────
+  // ── Restore from store ───────────────────────────────────────────────────────
   const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
 
   let sel = g.carIndex;
   if (g.bodyColor) CARS[sel].body = g.bodyColor;
 
-  // ── Car preview canvas drawing ───────────────────────────────────────────────
+  // Neon state — global preference (not per-car).
+  let neonEnabled = !!g.neonColor;
+  let selNeon     = g.neonColor
+    ? Math.max(0, NEON_PALETTE.findIndex(p => p.hex === g.neonColor))
+    : 0;
+
+  // ── Car preview canvas ───────────────────────────────────────────────────────
   const CANVAS_W = 220, CANVAS_H = 82;
 
-  const drawPreview = (cvs, M) => {
+  const drawPreview = (cvs, M, neonColor = null) => {
     const ctx = cvs.getContext('2d');
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     const pad = 6;
@@ -151,6 +200,17 @@
     ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
     ctx.scale(M.flip ? -sc : sc, sc);
     ctx.translate(-M.vw / 2, -M.vh / 2);
+    // Neon glow — drawn before the body so it appears under the car
+    if (neonColor) {
+      ctx.shadowColor = neonColor;
+      ctx.shadowBlur  = 18;
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle   = neonColor;
+      ctx.fill(M._p2d);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur  = 0;
+      ctx.shadowColor = 'transparent';
+    }
     ctx.fillStyle = M.body;
     ctx.fill(M._p2d);
     if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
@@ -161,6 +221,9 @@
     if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
     ctx.restore();
   };
+
+  const redrawSelected = () =>
+    drawPreview(cards[sel].cvs, CARS[sel], neonEnabled ? NEON_PALETTE[selNeon].hex : null);
 
   // ── Car cards ────────────────────────────────────────────────────────────────
   const carsEl = document.getElementById('cars');
@@ -184,59 +247,101 @@
     return { card, cvs };
   });
 
-  // ── Colour palette ───────────────────────────────────────────────────────────
-  const paletteEl  = document.getElementById('palette');
-  const colorName  = document.getElementById('color-name');
-
-  // Find which palette index matches the current body colour (or -1 if none).
-  const findSwatch = hex => PALETTE.findIndex(p => p.hex.toLowerCase() === hex.toLowerCase());
-
-  let selSwatch = findSwatch(CARS[sel].body);
-
-  const swatchEls = PALETTE.map((entry, idx) => {
-    const el = document.createElement('div');
-    el.className = 'swatch' + (idx === selSwatch ? ' sel' : '');
-    el.style.background = entry.hex;
-    el.title = entry.name;
-    el.addEventListener('click', () => applySwatch(idx));
-    paletteEl.appendChild(el);
-    return el;
-  });
-
-  const applySwatch = (idx) => {
-    const entry = PALETTE[idx];
-    CARS[sel].body = entry.hex;
-    selSwatch = idx;
-    swatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
-    colorName.textContent = entry.name;
-    drawPreview(cards[sel].cvs, CARS[sel]);
-  };
-
-  // Show the name of the initial selection (if any).
-  colorName.textContent = selSwatch >= 0 ? PALETTE[selSwatch].name : '';
-
-  // ── Car selection ────────────────────────────────────────────────────────────
   const selectCar = (i) => {
     sel = i;
     cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
-    // Sync palette highlight to this car's current body colour.
-    const match = findSwatch(CARS[i].body);
-    selSwatch = match;
-    swatchEls.forEach((el, j) => el.classList.toggle('sel', j === match));
-    colorName.textContent = match >= 0 ? PALETTE[match].name : '';
+    // Sync body palette highlight to this car's current body colour.
+    const match = PALETTE.findIndex(p => p.hex === CARS[i].body);
+    selBody = match;
+    bodySwatchEls.forEach((el, j) => el.classList.toggle('sel', j === match));
+    bodyName.textContent = match >= 0 ? PALETTE[match].name : '';
+    redrawSelected();
   };
+
+  // ── Body colour palette ──────────────────────────────────────────────────────
+  const bodyPaletteEl = document.getElementById('body-palette');
+  const bodyName      = document.getElementById('body-name');
+
+  const findBody = hex => PALETTE.findIndex(p => p.hex.toLowerCase() === hex.toLowerCase());
+  let selBody = findBody(CARS[sel].body);
+
+  const bodySwatchEls = PALETTE.map((entry, idx) => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (idx === selBody ? ' sel' : '');
+    el.style.background = entry.hex;
+    el.title = entry.name;
+    el.addEventListener('click', () => applyBody(idx));
+    bodyPaletteEl.appendChild(el);
+    return el;
+  });
+
+  const applyBody = (idx) => {
+    const entry = PALETTE[idx];
+    CARS[sel].body = entry.hex;
+    selBody = idx;
+    bodySwatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
+    bodyName.textContent = entry.name;
+    redrawSelected();
+  };
+
+  bodyName.textContent = selBody >= 0 ? PALETTE[selBody].name : '';
+
+  // ── Neon underglow ───────────────────────────────────────────────────────────
+  const neonBtn        = document.getElementById('neon-btn');
+  const neonPaletteWrap = document.getElementById('neon-palette-wrap');
+  const neonPaletteEl  = document.getElementById('neon-palette');
+  const neonName       = document.getElementById('neon-name');
+
+  const updateNeonBtn = () => {
+    const nc = NEON_PALETTE[selNeon].hex;
+    neonBtn.style.setProperty('--nc', nc);
+    neonBtn.classList.toggle('active', neonEnabled);
+    neonPaletteWrap.classList.toggle('open', neonEnabled);
+    // Update neon swatch ring colour to match selection
+    neonPaletteEl.style.setProperty('--ring', nc);
+  };
+
+  const neonSwatchEls = NEON_PALETTE.map((entry, idx) => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (idx === selNeon ? ' sel' : '');
+    el.style.background = entry.hex;
+    el.title = entry.name;
+    el.addEventListener('click', () => applyNeon(idx));
+    neonPaletteEl.appendChild(el);
+    return el;
+  });
+
+  const applyNeon = (idx) => {
+    selNeon = idx;
+    neonSwatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
+    neonName.textContent = NEON_PALETTE[idx].name;
+    updateNeonBtn();
+    redrawSelected();
+  };
+
+  neonBtn.addEventListener('click', () => {
+    neonEnabled = !neonEnabled;
+    updateNeonBtn();
+    redrawSelected();
+  });
+
+  // Init neon UI state
+  neonName.textContent = NEON_PALETTE[selNeon].name;
+  updateNeonBtn();
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
     const g = garage();
     g.carIndex  = sel;
     g.bodyColor = CARS[sel].body;
+    g.neonColor = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
     save();
     location.href = mode === 'timeattack' ? 'timeattack.html' : 'sandbox.html';
   });
 
   // ── Initial render ───────────────────────────────────────────────────────────
-  CARS.forEach((M, i) => drawPreview(cards[i].cvs, M));
+  const initNeon = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
+  CARS.forEach((M, i) => drawPreview(cards[i].cvs, M, i === sel ? initNeon : null));
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

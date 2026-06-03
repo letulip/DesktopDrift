@@ -263,6 +263,24 @@ export const draw = (speed) => {
       ctx.restore();
     }
   }
+  // неоновое свечение — рисуем до корпуса, чтобы оно было под машиной
+  if (M.neonColor) {
+    ctx.save();
+    ctx.shadowColor = M.neonColor;
+    ctx.shadowBlur  = 22;
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle   = M.neonColor;
+    if (M.path) {
+      const s = M.len / M.vw;
+      ctx.scale(M.flip ? -s : s, s);
+      ctx.translate(-M.vw / 2, -M.vh / 2);
+      ctx.fill(M._p2d);
+    } else {
+      const hl = M.len / 2, hw = M.wid / 2;
+      rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
+    }
+    ctx.restore();
+  }
   drawCar(M);
   ctx.restore();
   ctx.restore();

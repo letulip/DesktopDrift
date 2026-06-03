@@ -132,6 +132,7 @@ export const startGame = (T, opts = {}) => {
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
   if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
+  CARS[S.carModel].neonColor = g.neonColor || null;
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
   // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
