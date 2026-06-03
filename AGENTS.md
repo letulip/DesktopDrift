@@ -155,10 +155,37 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v7`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v8`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML, CSS, JS, and icon files. Does NOT cache
 individual SVG item assets (fetched lazily by the browser).
+
+## Development rules
+
+> Full text: **`rules.md`** (adapted from Andrej Karpathy's CLAUDE.md).
+
+### Think before coding
+- State assumptions explicitly. If uncertain, ask — don't guess silently.
+- If multiple interpretations exist, surface them and let the human decide.
+- If a simpler approach exists, say so and push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### Simplicity first (YAGNI / KISS)
+- Write the minimum code that solves the problem. Nothing speculative.
+- No features beyond what was asked. No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- If the result is 200 lines and it could be 50 — rewrite it.
+
+### Core principles
+- **KISS** — as simple as possible, never simpler.
+- **DRY** — every piece of logic has a single, unambiguous home.
+- **YAGNI** — add a feature only when it is actually needed.
+- **SoC** — each module/function addresses one concern (e.g. `pause.js` owns
+  its own DOM, state, and key binding — nothing else touches it).
+
+### Before every git push
+Update `AGENTS.md` (and `CLAUDE.md`) to reflect the actual file structure,
+new modules, changed constants, and any gotchas discovered during the work.
 
 ## Code style
 
@@ -170,7 +197,7 @@ individual SVG item assets (fetched lazily by the browser).
 - **Comments:** In-code comments are in **Russian**. Keep new comments
   consistent with surrounding code.
 - **No circular deps:** The one-way chain must be preserved:
-  `config → items → track* → state/render → game-engine → [HTML inline script]`
+  `config → items → track* → state/render → game-engine → pause → [HTML inline script]`
 - **Do not add npm packages** or a bundler without explicit instruction.
 
 ## Testing
