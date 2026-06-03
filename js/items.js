@@ -13,6 +13,10 @@ export const ITEM_CUP = {
   c: '#ffffff' 
 };
 
+// --- Мелкие объекты ---
+// Крышечка от колы (~3 см, круглая)
+export const ITEM_COLA_CAP = { hl: 0, r: 18, kind: 'plate', c: '#ff9999', imgSrc: 'items/cola.svg' };
+
 // ==========================================
 // 📚 КУХНЯ И СВЯЗАННОЕ (Масштаб 1:64)
 // ==========================================
@@ -41,6 +45,52 @@ export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc:
 
 // --- Большая вилка для мяса (~32.5 см, капсула 380x40) ---
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
+
+// ==========================================
+// 🍳 КУХНЯ И ТЕХНИКА (Масштаб 1:64)
+// ==========================================
+
+// --- Крупная техника и предметы ---
+
+// Стационарный телефон (~20x20 см)
+// Огромный квадратный предмет. Используем широкую короткую капсулу.
+export const ITEM_PHONE     = { hl: 30, r: 100, kind: 'board', c: '#f0ce35', imgSrc: 'items/phone1-ready.svg' };
+
+// Ручной миксер (~18x25 см с венчиками)
+export const ITEM_MIXER     = { hl: 40, r: 105, kind: 'board', c: '#e3e5e6', imgSrc: 'items/mixer2-ready.svg' };
+
+// Пульверизатор (Бутылка средства) (~10x25 см)
+export const ITEM_SPRAY     = { hl: 87, r: 58,  kind: 'board', c: '#a4d3ee', imgSrc: 'items/washer-ready.svg' };
+
+// Сковорода с яичницей (~45 см с ручкой, диаметр сковороды ~28 см)
+// ВНИМАНИЕ: Используем круг, описывающий всё.
+// r: 260 покрывает всю сковороду с ручкой.
+export const ITEM_PAN_EGG   = { hl: 0,  r: 260, kind: 'bowl',  c: '#385253', imgSrc: 'items/pan1-ready.svg' };
+
+
+// --- Наборы посуды (Сборные SVG) ---
+
+// Набор: Тарелка + Нож + Вилка (~30x30 см)
+// Используем круглый коллайдер, так как предметы лежат квадратом.
+export const ITEM_SET_1     = { hl: 0,  r: 175, kind: 'plate', c: '#faf5d4', imgSrc: 'items/cutlery-set1-ready.svg' };
+export const ITEM_SET_2     = { hl: 0,  r: 175, kind: 'plate', c: '#faf5d4', imgSrc: 'items/cutlery-set2-ready.svg' };
+
+
+// --- Кухонная утварь (ВНИМАНИЕ: Нарисованы под углом!) ---
+// Для этих предметов расчеты даны для ГОРИЗОНТАЛЬНОГО коллайдера.
+// При добавлении на трассу их нужно будет повернуть: ang: -0.78 (или перерисовать SVG).
+
+// Открывалка для консервов (~18x5 см)
+export const ITEM_OPENER    = { hl: 76, r: 29,  kind: 'knife', c: '#9c5c56', imgSrc: 'items/opener-ready.svg' };
+
+// Кухонный топорик (Тесак) (~30x9 см)
+export const ITEM_CLEAVER   = { hl: 122, r: 52, kind: 'knife', c: '#c8ccce', imgSrc: 'items/cook-knife-ready.svg' };
+
+// Лопатка сплошная (~30x8 см)
+export const ITEM_SPATULA_1 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', imgSrc: 'items/spatula1-ready.svg' };
+
+// Лопатка с прорезями (~30x8 см)
+export const ITEM_SPATULA_2 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', imgSrc: 'items/spatula2-ready.svg' };
 
 // ==========================================
 // 📚 КАНЦЕЛЯРИЯ И РАБОЧИЙ СТОЛ (Масштаб 1:64)

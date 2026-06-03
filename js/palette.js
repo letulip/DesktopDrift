@@ -41,5 +41,5 @@ export const NEON_PALETTE = [
   { hex: '#3D5AFE', name: 'Blu'     },  // electric indigo
   { hex: '#BF00FF', name: 'Viola'   },  // electric purple
   { hex: '#FF00FF', name: 'Magenta' },  // neon magenta (классика)
-  { hex: '#FF6EC7', name: 'Rosa'    },  // neon pink
+  { hex: '#FFFFFF', name: 'Snow'    },  // neon white
 ];
