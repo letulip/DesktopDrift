@@ -105,10 +105,12 @@
     #neon-palette-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       overflow: hidden;
+      box-sizing: border-box;  /* max-height covers padding — content hidden at 0 */
+      padding: 8px 10px;       /* breathing room so swatch ring/glow isn't clipped */
       max-height: 0; opacity: 0;
       transition: max-height .25s ease, opacity .2s ease;
     }
-    #neon-palette-wrap.open { max-height: 80px; opacity: 1; }
+    #neon-palette-wrap.open { max-height: 100px; opacity: 1; }
 
     /* neon swatches use coloured ring instead of amber */
     #neon-palette .swatch.sel {
