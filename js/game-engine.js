@@ -286,8 +286,8 @@ export function startGame(T, opts = {}) {
 
     if (slip > 40 && speed > 60) {
       const rx = car.x - fwd.x * 12, ry = car.y - fwd.y * 12;
-      S.skids.push({ x: rx + side.x * 7, y: ry + side.y * 7, a: Math.min(slip / 200, .6) });
-      S.skids.push({ x: rx - side.x * 7, y: ry - side.y * 7, a: Math.min(slip / 200, .6) });
+      S.skids.push({ x: rx + side.x * 12, y: ry + side.y * 12, a: Math.min(slip / 200, .6) });
+      S.skids.push({ x: rx - side.x * 12, y: ry - side.y * 12, a: Math.min(slip / 200, .6) });
       if (S.skids.length > 1500) S.skids.splice(0, 2);
     }
 

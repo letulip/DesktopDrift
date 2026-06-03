@@ -45,7 +45,8 @@ canvas { display: block; }
 /* Сверху-центр, чуть ниже строки контролов, вне зон руления.                  */
 #pauseBtn {
   position: fixed;
-  top: 132px; left: 50%;
+  top: 30%;
+  left: 50%;
   transform: translateX(-50%);
   z-index: 40;                 /* выше оверлея, чтобы оставаться кликабельной  */
   pointer-events: auto;
@@ -87,4 +88,5 @@ canvas { display: block; }
   #timePanel { width: 120px; padding: 6px 9px; }
   #mini { width: 120px; height: 103px; }
   #pauseOverlay .title { font-size: 48px; }
+  #pauseBtn { top: 150px; }
 }
