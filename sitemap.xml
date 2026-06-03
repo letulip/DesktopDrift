@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Main menu — primary landing page -->
+  <url>
+    <loc>https://letulip.github.io/DesktopDrift/</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Game modes -->
+  <url>
+    <loc>https://letulip.github.io/DesktopDrift/sandbox.html</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://letulip.github.io/DesktopDrift/timeattack.html</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Support page -->
+  <url>
+    <loc>https://letulip.github.io/DesktopDrift/donate.html</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- select.html is a transitional garage screen (reached only from menu),
+       intentionally omitted from the sitemap. -->
+
+</urlset>
