@@ -114,33 +114,24 @@ export const startGame = (T, opts = {}) => {
 
   // ─── UI ───────────────────────────────────────────────────────────────────
 
-  const carBtn    = document.getElementById('carBtn');
-  const bodyColor = document.getElementById('bodyColor');
-  const setModel = (i) => {
-    S.carModel = (i + CARS.length) % CARS.length;
-    carBtn.textContent = '🚗 ' + CARS[S.carModel].name;
-    bodyColor.value = CARS[S.carModel].body;
-  };
-  carBtn.addEventListener('click', e => { e.preventDefault(); setModel(S.carModel + 1); });
-  bodyColor.addEventListener('input', e => { CARS[S.carModel].body = e.target.value; });
-  addEventListener('keydown', e => { if (e.key === 'c' || e.key === 'C') setModel(S.carModel + 1); });
   // Кнопка «Меню» — сначала спрашиваем подтверждение, чтобы не выбросить игрока
   // в меню случайным нажатием. Игра встаёт на паузу на время диалога.
   const confirmExit = createConfirmExit();
   document.getElementById('menuBtn').addEventListener('click', e => {
     e.preventDefault();
     const wasAlreadyPaused = pause.isPaused();
-    pause.pause();                       // замораживаем пока диалог открыт
+    pause.pause();
     confirmExit.show({
       onExit:   () => { location.href = 'index.html'; },
       onCancel: () => { if (!wasAlreadyPaused) pause.resume(); },
     });
   });
-  // Read car/colour chosen in the garage (select.html); fall back to defaults
+
+  // Машинка и цвет выбраны на экране гаража (select.html), читаем из localStorage
   let savedCfg = { carIndex: 0, bodyColor: null };
   try { Object.assign(savedCfg, JSON.parse(localStorage.getItem('carConfig') || '{}')); } catch {}
-  setModel(savedCfg.carIndex || 0);
-  if (savedCfg.bodyColor) { CARS[S.carModel].body = savedCfg.bodyColor; bodyColor.value = savedCfg.bodyColor; }
+  S.carModel = Math.max(0, Math.min(savedCfg.carIndex || 0, CARS.length - 1));
+  if (savedCfg.bodyColor) CARS[S.carModel].body = savedCfg.bodyColor;
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
   // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
