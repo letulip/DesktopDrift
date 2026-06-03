@@ -22,6 +22,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Inline `<script type="module">` imports `track.js` and calls
     `startGame(T, { initItems: true })`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
+- **SEO files (root):**
+  - `robots.txt` — allows all bots; points to `sitemap.xml`.
+  - `sitemap.xml` — lists indexable pages (`index.html`, `sandbox.html`,
+    `timeattack.html`, `donate.html`). `select.html` is omitted (transitional
+    screen, has `noindex`). Update `<lastmod>` when content changes.
 - **File layout:**
   - `css/base.css` — shared `html`/`body` reset.
   - `css/menu.css` — menu styles (`index.html`).
@@ -183,7 +188,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v16`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v17`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
@@ -217,6 +222,19 @@ Run `npm test` (must be green) + the `node --check` syntax pass. Update `AGENTS.
 (and `CLAUDE.md`) to reflect the actual file structure, new modules, changed
 constants, and any gotchas discovered during the work. Add/extend tests for any new
 pure logic in the same change.
+
+### Adding a new HTML page (SEO checklist)
+Every new public-facing page must include in `<head>`:
+1. `<title>` — descriptive, ideally "Desktop Drift — [Page Purpose]"
+2. `<meta name="description" content="...">` — 1–2 sentence summary (≤ 160 chars)
+3. `<link rel="canonical" href="https://letulip.github.io/DesktopDrift/page.html">`
+4. If it's a transitional/app screen (not a real landing page): add
+   `<meta name="robots" content="noindex, follow">` and omit it from `sitemap.xml`.
+
+After adding the page:
+- Add it to `sitemap.xml` (if indexable) with today's `<lastmod>` date.
+- Add it to the `ASSETS` array in `sw.js` and bump the cache version.
+- Add it to the AGENTS.md **Pages** list.
 
 ## Code style
 
