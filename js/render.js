@@ -272,17 +272,18 @@ export const draw = (speed) => {
     ctx.globalAlpha = 0.65;
     ctx.fillStyle   = M.neonColor;
 
-    const hl      = M.len / 2;
-    const carWid  = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
-    const gH      = carWid * 0.55;
-    const ghy     = -gH / 2;
-    const axle    = M.len * 0.30;   // мост от центра
-    const halfWhl = M.len * 0.08;   // полудлина колеса
+    const hl     = M.len / 2;
+    const carWid = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
+    const gH     = carWid * 0.70;
+    const ghy    = -gH / 2;
+    // секции: 3% нос | 15.5% колесо | 58% между мостами | 15.5% колесо | 8% корма
+    const s1 = M.len * 0.03, s2 = M.len * 0.58, s3 = M.len * 0.08;
+    const gp = M.len * 0.155;  // ширина зазора на каждое колесо
 
     ctx.beginPath();
-    ctx.rect( axle + halfWhl,   ghy, hl - axle - halfWhl,  gH);  // нос → передний мост
-    ctx.rect(-(axle - halfWhl), ghy, 2 * (axle - halfWhl), gH);  // между мостами (основная)
-    ctx.rect(-hl,               ghy, hl - axle - halfWhl,  gH);  // задний мост → корма
+    ctx.rect(hl - s1,            ghy, s1, gH);  // нос
+    ctx.rect(hl - s1 - gp - s2, ghy, s2, gH);  // между мостами (основная)
+    ctx.rect(-hl,                ghy, s3, gH);  // корма
     ctx.fill();
 
     ctx.restore();

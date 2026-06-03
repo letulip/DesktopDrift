@@ -201,12 +201,13 @@
     ctx.scale(M.flip ? -sc : sc, sc);
     ctx.translate(-M.vw / 2, -M.vh / 2);
     // Neon glow — три секции: нос→передний мост | между мостами | задний мост→корма.
+    // 3% конец | 15.5% колесо | 58% между мостами | 15.5% колесо | 8% конец
     // Рисуем в path-координатах (после scale+translate), до корпуса машины.
     if (neonColor) {
-      const glowH = M.vh * 0.55;
+      const glowH = M.vh * 0.70;
       const gy    = (M.vh - glowH) / 2;
-      const axPx  = M.vw * 0.20;   // расстояние от конца до оси моста
-      const hwPx  = M.vw * 0.08;   // полудлина колеса
+      const s1p = M.vw * 0.03, s2p = M.vw * 0.58, s3p = M.vw * 0.08;
+      const gpp = M.vw * 0.155;  // зазор на колесо
 
       ctx.shadowColor = neonColor;
       ctx.shadowBlur  = 18;
@@ -214,9 +215,9 @@
       ctx.fillStyle   = neonColor;
 
       ctx.beginPath();
-      ctx.rect(0,                  gy, axPx - hwPx,             glowH);  // конец 1 (нос/корма)
-      ctx.rect(axPx + hwPx,        gy, M.vw - 2*(axPx + hwPx), glowH);  // между мостами
-      ctx.rect(M.vw - axPx + hwPx, gy, axPx - hwPx,            glowH);  // конец 2
+      ctx.rect(0,           gy, s1p, glowH);  // конец 1
+      ctx.rect(s1p + gpp,   gy, s2p, glowH);  // между мостами
+      ctx.rect(M.vw - s3p,  gy, s3p, glowH);  // конец 2
       ctx.fill();
 
       ctx.globalAlpha = 1;
