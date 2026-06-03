@@ -3,3 +3,5 @@
 
 # Claude local settings (keep launch.json shared, ignore machine-local overrides)
 .claude/settings.local.json
+
+items/raw
