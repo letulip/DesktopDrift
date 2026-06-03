@@ -77,6 +77,46 @@ canvas { display: block; }
   font: 600 18px -apple-system, system-ui, sans-serif; opacity: .8;
 }
 
+/* --- Диалог подтверждения выхода (js/confirm-exit.js) --- */
+/* z-index 50 — выше кнопки паузы (40) и оверлея паузы (30)  */
+#confirmExitOverlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(8,10,14,.78);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+#confirmExitOverlay.show { display: flex; }
+#confirmBox {
+  background: rgba(22,18,14,.97);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 20px; padding: 28px 28px 24px;
+  text-align: center; width: min(300px, 88vw);
+}
+#confirmTitle {
+  font: 700 20px -apple-system, system-ui, sans-serif;
+  color: #fff; margin: 0 0 22px; letter-spacing: .3px;
+}
+#confirmBtns {
+  display: flex; flex-direction: column; gap: 10px;
+}
+/* «Продолжить» — основное действие, акцентный цвет */
+#confirmCancelBtn {
+  padding: 13px 0; width: 100%; border-radius: 12px;
+  background: rgba(255,177,77,.18); border: 1px solid rgba(255,177,77,.4);
+  color: #ffb14d; font: 600 15px -apple-system, system-ui, sans-serif;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+#confirmCancelBtn:hover { background: rgba(255,177,77,.28); border-color: rgba(255,177,77,.7); }
+/* «Выйти» — деструктивное действие, приглушённый цвет */
+#confirmExitBtn {
+  padding: 13px 0; width: 100%; border-radius: 12px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
+  color: rgba(255,255,255,.6); font: 600 15px -apple-system, system-ui, sans-serif;
+  cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+}
+#confirmExitBtn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
+
 /* --- Мобильная раскладка HUD --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }

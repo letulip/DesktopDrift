@@ -9,7 +9,7 @@
 // Убрать компонент → удали один вызов createPause() в game-engine.js.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function createPause({ onChange } = {}) {
+export const createPause = ({ onChange } = {}) => {
   let paused = false;
 
   // ── Кнопка (плавающая, позиция задаётся в CSS) ──
@@ -27,20 +27,20 @@ export function createPause({ onChange } = {}) {
   document.body.appendChild(btn);
   document.body.appendChild(overlay);
 
-  function render() {
+  const render = () => {
     btn.textContent = paused ? '▶' : '⏸'; // ▶ на паузе / ⏸ в игре
     btn.classList.toggle('paused', paused);
     overlay.classList.toggle('show', paused);
   }
 
-  function set(v) {
+  const set = (v) => {
     v = !!v;
     if (v === paused) return;
     paused = v;
     render();
     if (onChange) onChange(paused);
   }
-  function toggle() { set(!paused); }
+  const toggle = () => { set(!paused); }
 
   // ── События ──
   btn.addEventListener('click',     e => { e.preventDefault(); toggle(); });

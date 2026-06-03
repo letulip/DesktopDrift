@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v9';
+const CACHE = 'desktop-drift-v10';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -21,6 +21,7 @@ const ASSETS = [
   'js/track-oval.js',
   'js/game-engine.js',
   'js/pause.js',
+  'js/confirm-exit.js',
   'js/state.js',
   'js/render.js',
   'icons/icon.svg',
@@ -57,7 +58,10 @@ self.addEventListener('fetch', e => {
       if (cached) return cached;
       return fetch(e.request).then(resp => {
         if (resp.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+          // Клонируем сразу — до любых await/then, пока тело ещё не начали читать.
+          // Иначе к моменту разрешения caches.open() resp уже потреблён браузером.
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
       });

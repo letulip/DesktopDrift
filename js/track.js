@@ -27,12 +27,12 @@ const SVG_POLY = [
 const SVG_CX = 245 / 2, SVG_CY = 121 / 2;
 const SCALE  = 13; // игровых единиц на SVG-единицу
 
-function toGame([x, y]) {
+const toGame = ([x, y]) => {
   return { x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE };
 }
 
 // Алгоритм Chaikin — угловое отсечение (1 проход)
-function chaikin(pts) {
+const chaikin = (pts) => {
   const n = pts.length, r = [];
   for (let i = 0; i < n; i++) {
     const a = pts[i], b = pts[(i + 1) % n];
@@ -80,7 +80,7 @@ for (let i = 0; i < N; i += 5) {
 // Координаты конвертированы скриптом: setup(cx,cy) → game(x,y)
 // ─────────────────────────────────────────────────────────────────────────────
 export const props = [];
-function addProp(o) {
+const addProp = (o) => {
   o.hl = o.hl || 0;
   o._cos = Math.cos(o.ang);
   o._sin = Math.sin(o.ang);
