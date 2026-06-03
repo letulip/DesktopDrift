@@ -2,6 +2,7 @@ import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND } from './conf
 import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
+import { createConfirmExit } from './confirm-exit.js';
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
@@ -119,7 +120,18 @@ export function startGame(T, opts = {}) {
   carBtn.addEventListener('click', e => { e.preventDefault(); setModel(S.carModel + 1); });
   bodyColor.addEventListener('input', e => { CARS[S.carModel].body = e.target.value; });
   addEventListener('keydown', e => { if (e.key === 'c' || e.key === 'C') setModel(S.carModel + 1); });
-  document.getElementById('menuBtn').addEventListener('click', e => { e.preventDefault(); location.href = 'index.html'; });
+  // Кнопка «Меню» — сначала спрашиваем подтверждение, чтобы не выбросить игрока
+  // в меню случайным нажатием. Игра встаёт на паузу на время диалога.
+  const confirmExit = createConfirmExit();
+  document.getElementById('menuBtn').addEventListener('click', e => {
+    e.preventDefault();
+    const wasAlreadyPaused = pause.isPaused();
+    pause.pause();                       // замораживаем пока диалог открыт
+    confirmExit.show({
+      onExit:   () => { location.href = 'index.html'; },
+      onCancel: () => { if (!wasAlreadyPaused) pause.resume(); },
+    });
+  });
   setModel(0);
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
