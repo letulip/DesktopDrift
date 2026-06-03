@@ -263,22 +263,28 @@ export const draw = (speed) => {
       ctx.restore();
     }
   }
-  // неоновое свечение — рисуем до корпуса, чтобы оно было под машиной
+  // неоновое свечение — рисуем до корпуса, чтобы оно было под машиной.
+  // Три секции: нос→передний мост | между мостами | задний мост→корма
   if (M.neonColor) {
     ctx.save();
     ctx.shadowColor = M.neonColor;
     ctx.shadowBlur  = 22;
     ctx.globalAlpha = 0.65;
     ctx.fillStyle   = M.neonColor;
-    if (M.path) {
-      const s = M.len / M.vw;
-      ctx.scale(M.flip ? -s : s, s);
-      ctx.translate(-M.vw / 2, -M.vh / 2);
-      ctx.fill(M._p2d);
-    } else {
-      const hl = M.len / 2, hw = M.wid / 2;
-      rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
-    }
+
+    const hl      = M.len / 2;
+    const carWid  = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
+    const gH      = carWid * 0.55;
+    const ghy     = -gH / 2;
+    const axle    = M.len * 0.30;   // мост от центра
+    const halfWhl = M.len * 0.08;   // полудлина колеса
+
+    ctx.beginPath();
+    ctx.rect( axle + halfWhl,   ghy, hl - axle - halfWhl,  gH);  // нос → передний мост
+    ctx.rect(-(axle - halfWhl), ghy, 2 * (axle - halfWhl), gH);  // между мостами (основная)
+    ctx.rect(-hl,               ghy, hl - axle - halfWhl,  gH);  // задний мост → корма
+    ctx.fill();
+
     ctx.restore();
   }
   drawCar(M);

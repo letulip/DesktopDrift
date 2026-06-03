@@ -200,13 +200,25 @@
     ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
     ctx.scale(M.flip ? -sc : sc, sc);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    // Neon glow — drawn before the body so it appears under the car
+    // Neon glow — три секции: нос→передний мост | между мостами | задний мост→корма.
+    // Рисуем в path-координатах (после scale+translate), до корпуса машины.
     if (neonColor) {
+      const glowH = M.vh * 0.55;
+      const gy    = (M.vh - glowH) / 2;
+      const axPx  = M.vw * 0.20;   // расстояние от конца до оси моста
+      const hwPx  = M.vw * 0.08;   // полудлина колеса
+
       ctx.shadowColor = neonColor;
       ctx.shadowBlur  = 18;
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.65;
       ctx.fillStyle   = neonColor;
-      ctx.fill(M._p2d);
+
+      ctx.beginPath();
+      ctx.rect(0,                  gy, axPx - hwPx,             glowH);  // конец 1 (нос/корма)
+      ctx.rect(axPx + hwPx,        gy, M.vw - 2*(axPx + hwPx), glowH);  // между мостами
+      ctx.rect(M.vw - axPx + hwPx, gy, axPx - hwPx,            glowH);  // конец 2
+      ctx.fill();
+
       ctx.globalAlpha = 1;
       ctx.shadowBlur  = 0;
       ctx.shadowColor = 'transparent';
