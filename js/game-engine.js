@@ -3,6 +3,7 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
+import { garage } from './store.js';
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
@@ -127,11 +128,10 @@ export const startGame = (T, opts = {}) => {
     });
   });
 
-  // Машинка и цвет выбраны на экране гаража (select.html), читаем из localStorage
-  let savedCfg = { carIndex: 0, bodyColor: null };
-  try { Object.assign(savedCfg, JSON.parse(localStorage.getItem('carConfig') || '{}')); } catch {}
-  S.carModel = Math.max(0, Math.min(savedCfg.carIndex || 0, CARS.length - 1));
-  if (savedCfg.bodyColor) CARS[S.carModel].body = savedCfg.bodyColor;
+  // Машинка и цвет выбраны на экране гаража (select.html), читаем из store
+  const g = garage();
+  S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
+  if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
   // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,

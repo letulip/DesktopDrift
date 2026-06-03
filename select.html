@@ -84,6 +84,7 @@
 
 <script type="module">
   import { CARS } from './js/config.js';
+  import { garage, save } from './js/store.js';
 
   const params = new URLSearchParams(location.search);
   const mode   = params.get('mode') || 'sandbox';
@@ -91,14 +92,13 @@
   document.getElementById('mode-title').textContent =
     mode === 'timeattack' ? 'Time Attack' : 'Sandbox';
 
-  // Restore last selection from previous race
-  let cfg = { carIndex: 0, bodyColor: null };
-  try { Object.assign(cfg, JSON.parse(localStorage.getItem('carConfig') || '{}')); } catch {}
-  cfg.carIndex = Math.max(0, Math.min(cfg.carIndex ?? 0, CARS.length - 1));
+  // Восстанавливаем последний выбор из store
+  const g  = garage();
+  g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
 
-  let sel = cfg.carIndex;
-  // Apply saved body colour to the car object so drawPreview picks it up
-  if (cfg.bodyColor) CARS[sel].body = cfg.bodyColor;
+  let sel = g.carIndex;
+  // Применяем сохранённый цвет кузова к объекту машины, чтобы drawPreview учёл его
+  if (g.bodyColor) CARS[sel].body = g.bodyColor;
 
   const colorInput = document.getElementById('bodyColor');
   colorInput.value  = CARS[sel].body;
@@ -162,10 +162,10 @@
   });
 
   document.getElementById('raceBtn').addEventListener('click', () => {
-    localStorage.setItem('carConfig', JSON.stringify({
-      carIndex:  sel,
-      bodyColor: CARS[sel].body,
-    }));
+    const g = garage();
+    g.carIndex  = sel;
+    g.bodyColor = CARS[sel].body;
+    save();
     location.href = mode === 'timeattack' ? 'timeattack.html' : 'sandbox.html';
   });
 

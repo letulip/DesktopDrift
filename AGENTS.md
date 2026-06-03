@@ -46,12 +46,17 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+  - `js/store.js` — **single persistence layer**. All `localStorage` access goes
+    through this module only. Exports `garage()`, `records()`, `settings()`,
+    `achievements()` (live objects — mutate then call `save()`), and `save()`.
+    Versioned schema (`VERSION = 1`, key `'desktop-drift'`); bumping `VERSION`
+    requires a migration block in `_ensure()`.
   - `js/game-engine.js` — sole entry point for both game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
     `opts.initItems` is true. All physics/input/scoring logic lives here.
-    On init reads `carConfig` from `localStorage` (set by `select.html`) to
-    apply the chosen car model and body colour.
+    On init reads `garage()` from `store.js` to apply the chosen car model and
+    body colour.
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
     pause, resume }`. Styled via `css/sandbox.css`.
@@ -59,10 +64,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `#confirmExitOverlay` DOM. Returns `{ show({ onExit, onCancel }), hide }`.
     Called by `game-engine.js` when the Menu button is tapped.
   - **Dependency order (no circular deps):**
+    `store.js` (no imports) →
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
     `game-engine.js` → (`pause.js` / `confirm-exit.js`).
     HTML inline module scripts are the outer shell.
-    `select.html` imports only `config.js` (car previews).
+    `select.html` imports `config.js` + `store.js` (car previews + persistence).
 
 ## Setup
 
@@ -85,7 +91,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | — (none) | No test suite. |
-| syntax check | `node --check js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/store.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
 
@@ -171,11 +177,11 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v11`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v12`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
-CSS, JS, and icon files. Does NOT cache individual SVG item assets (fetched
-lazily by the browser).
+CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
+item assets (fetched lazily by the browser).
 
 ## Development rules
 
@@ -267,9 +273,10 @@ new modules, changed constants, and any gotchas discovered during the work.
   sideways — update `drawProp` or save the asset in portrait orientation.
 - **Sandbox mode has no items.** `track-oval.js` does not import `items.js` and
   its `props` array is empty. `startGame(T)` (no `initItems` option) is correct.
-- **Car config persists via `localStorage`** (`key: 'carConfig'`, value:
-  `{ carIndex, bodyColor }`). Written by `select.html` on "Race!", read by
-  `game-engine.js` on init. Defaults to car 0 / default body colour if absent.
+- **All persistence goes through `js/store.js`** — no module touches `localStorage`
+  directly. Key: `'desktop-drift'`, versioned schema (V1). Garage slice holds
+  `{ carIndex, bodyColor }`; written by `select.html` on "Race!", read by
+  `game-engine.js` on init. Future slices: `records`, `settings`, `achievements`.
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.

@@ -14,7 +14,7 @@ python3 -m http.server 8777   # serve from inside DesktopDrift/
 ## Syntax check (run before every commit)
 
 ```bash
-node --check js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK
+node --check js/store.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK
 ```
 
 ## Branch policy
