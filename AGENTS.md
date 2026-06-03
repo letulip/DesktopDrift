@@ -8,16 +8,20 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (3):**
+- **Pages (5):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
-    Has a "Sandbox" tile linking to `sandbox.html` and a "Time Attack" tile
-    linking to `timeattack.html`.
+    Tiles now link to `select.html?mode=sandbox` / `select.html?mode=timeattack`.
+  - `select.html` — **garage / car-selection screen** shown between menu and game.
+    Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
+    Player picks car model and body colour, saves `{ carIndex, bodyColor }` to
+    `localStorage` and navigates to the target game page.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
   - `timeattack.html` — lap-timed mode on the config1 (SVG-derived) track.
     Inline `<script type="module">` imports `track.js` and calls
     `startGame(T, { initItems: true })`.
+  - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **File layout:**
   - `css/base.css` — shared `html`/`body` reset.
   - `css/menu.css` — menu styles (`index.html`).
@@ -46,9 +50,19 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
     `opts.initItems` is true. All physics/input/scoring logic lives here.
+    On init reads `carConfig` from `localStorage` (set by `select.html`) to
+    apply the chosen car model and body colour.
+  - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
+    `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
+    pause, resume }`. Styled via `css/sandbox.css`.
+  - `js/confirm-exit.js` — self-contained exit-confirmation dialog. Creates
+    `#confirmExitOverlay` DOM. Returns `{ show({ onExit, onCancel }), hide }`.
+    Called by `game-engine.js` when the Menu button is tapped.
   - **Dependency order (no circular deps):**
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
-    `game-engine.js`. HTML inline module scripts are the outer shell.
+    `game-engine.js` → (`pause.js` / `confirm-exit.js`).
+    HTML inline module scripts are the outer shell.
+    `select.html` imports only `config.js` (car previews).
 
 ## Setup
 
@@ -71,7 +85,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | — (none) | No test suite. |
-| syntax check | `node --check js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
 
@@ -135,8 +149,10 @@ axis maps to the capsule long axis.
   breathing via `GRIP_WOBBLE` + `STEER_WOBBLE` (see Gotchas).
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
   Banked on clean drift end; burned on crash/off-track. Cones = flat −200.
-- **HUD:** DOM overlay (`#hud`). Elements: `#timePanel`, `#mini`, score,
-  `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
+- **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
+  score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
+  Car/colour controls are **not** in the game HUD — selection lives entirely on
+  `select.html` (saved to `localStorage`, read by `game-engine.js` on init).
 
 ### Rendering (`render.js`)
 
@@ -155,10 +171,11 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v8`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v11`**. Bump this
 string whenever static assets change (forces all clients to re-download).
-ASSETS list includes all HTML, CSS, JS, and icon files. Does NOT cache
-individual SVG item assets (fetched lazily by the browser).
+ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
+CSS, JS, and icon files. Does NOT cache individual SVG item assets (fetched
+lazily by the browser).
 
 ## Development rules
 
@@ -215,7 +232,7 @@ new modules, changed constants, and any gotchas discovered during the work.
   on push to `main`. No build step, no lint/test in CI — validate locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `feat/track-config1`.
+  `main` when ready. Currently active: `feat/car-selection`.
 
 ## Safety (DO NOT SHORTEN)
 
@@ -250,8 +267,9 @@ new modules, changed constants, and any gotchas discovered during the work.
   sideways — update `drawProp` or save the asset in portrait orientation.
 - **Sandbox mode has no items.** `track-oval.js` does not import `items.js` and
   its `props` array is empty. `startGame(T)` (no `initItems` option) is correct.
-- **No persistence.** Car choice and colour reset on every reload (no
-  `localStorage`).
+- **Car config persists via `localStorage`** (`key: 'carConfig'`, value:
+  `{ carIndex, bodyColor }`). Written by `select.html` on "Race!", read by
+  `game-engine.js` on init. Defaults to car 0 / default body colour if absent.
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.
