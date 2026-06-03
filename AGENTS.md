@@ -51,6 +51,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `achievements()` (live objects — mutate then call `save()`), and `save()`.
     Versioned schema (`VERSION = 1`, key `'desktop-drift'`); bumping `VERSION`
     requires a migration block in `_ensure()`.
+  - `js/palette.js` — curated body-colour palette. Exports `PALETTE` — 20
+    `{ hex, name }` entries. Imported only by `select.html`. Designed to grow:
+    Phase 2 liveries will add a `LIVERIES` array with `{ name, body, stroke,
+    details }` entries to this same file without touching car geometry.
   - `js/game-engine.js` — sole entry point for both game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
@@ -68,7 +72,8 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
     `game-engine.js` → (`pause.js` / `confirm-exit.js`).
     HTML inline module scripts are the outer shell.
-    `select.html` imports `config.js` + `store.js` (car previews + persistence).
+    `select.html` imports `config.js` + `palette.js` + `store.js`
+    (car previews + colour palette + persistence).
 
 ## Setup
 
@@ -91,7 +96,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
-| syntax check | `node --check js/store.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/store.js js/palette.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
 
@@ -254,7 +259,7 @@ pure logic in the same change.
   test locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `test/foundation`.
+  `main` when ready. Currently active: `feat/color-palette`.
 
 ## Safety (DO NOT SHORTEN)
 

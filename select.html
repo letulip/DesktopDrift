@@ -42,20 +42,49 @@
     .car-card.sel { border-color: #ffb14d; background: rgba(255,177,77,.08); }
     .car-card canvas {
       display: block;
-      /* logical size: width CSS-controlled, height follows aspect ratio */
       width: min(200px, 38vw);
       aspect-ratio: 220 / 82;
     }
     .car-name { font: 600 14px -apple-system, system-ui, sans-serif; letter-spacing: .2px; }
-    #color-row {
-      display: flex; align-items: center; gap: 10px;
-      font: 14px -apple-system, system-ui, sans-serif; color: rgba(255,255,255,.65);
+
+    /* ── Colour palette ─────────────────────────────────────────────────────── */
+    #palette-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
-    #bodyColor {
-      width: 40px; height: 28px;
-      border: 1px solid rgba(255,255,255,.18); border-radius: 7px;
-      cursor: pointer; padding: 2px; background: none;
+    #palette-label {
+      font: 600 12px -apple-system, system-ui, sans-serif;
+      letter-spacing: .5px; text-transform: uppercase;
+      color: rgba(255,255,255,.4);
     }
+    #palette {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px;
+      /* max-width caps at 320px on desktop; on narrow phones swatches shrink gracefully */
+      width: min(320px, calc(100vw - 48px));
+    }
+    .swatch {
+      width: 100%; aspect-ratio: 1; border-radius: 50%;
+      cursor: pointer;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+      transition: transform .1s;
+      outline: none;
+    }
+    .swatch:hover { transform: scale(1.18); }
+    .swatch.sel {
+      box-shadow:
+        0 0 0 2.5px #ffb14d,
+        0 0 0 4.5px rgba(255,177,77,.25),
+        inset 0 1px 2px rgba(0,0,0,.35);
+      transform: scale(1.1);
+    }
+    #color-name {
+      font: 500 13px -apple-system, system-ui, sans-serif;
+      letter-spacing: .3px;
+      color: rgba(255,255,255,.55);
+      min-height: 16px;
+    }
+
     #raceBtn {
       padding: 14px 48px;
       background: rgba(255,177,77,.18); border: 1px solid rgba(255,177,77,.4);
@@ -72,10 +101,7 @@
     #backLink:hover { color: rgba(255,255,255,.6); }
 
     @media (min-width: 480px) {
-      .car-card {
-        max-width: none;
-        box-sizing: content-box;
-      }
+      .car-card { max-width: none; box-sizing: content-box; }
     }
   </style>
 </head>
@@ -84,16 +110,20 @@
   <p id="mode-title"></p>
   <h2>Choose your car</h2>
   <div id="cars"></div>
-  <div id="color-row">
-    <label for="bodyColor">Body colour</label>
-    <input type="color" id="bodyColor">
+
+  <div id="palette-wrap">
+    <div id="palette-label">Body colour</div>
+    <div id="palette"></div>
+    <div id="color-name"></div>
   </div>
+
   <button id="raceBtn">Race! 🏁</button>
   <a id="backLink" href="index.html">← Back to menu</a>
 </div>
 
 <script type="module">
   import { CARS } from './js/config.js';
+  import { PALETTE } from './js/palette.js';
   import { garage, save } from './js/store.js';
 
   const params = new URLSearchParams(location.search);
@@ -102,19 +132,14 @@
   document.getElementById('mode-title').textContent =
     mode === 'timeattack' ? 'Time Attack' : 'Sandbox';
 
-  // Восстанавливаем последний выбор из store
-  const g  = garage();
+  // ── Restore last choice from store ──────────────────────────────────────────
+  const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
 
   let sel = g.carIndex;
-  // Применяем сохранённый цвет кузова к объекту машины, чтобы drawPreview учёл его
   if (g.bodyColor) CARS[sel].body = g.bodyColor;
 
-  const colorInput = document.getElementById('bodyColor');
-  colorInput.value  = CARS[sel].body;
-
   // ── Car preview canvas drawing ───────────────────────────────────────────────
-  // Uses the same Path2D data that the game renderer uses — no duplication.
   const CANVAS_W = 220, CANVAS_H = 82;
 
   const drawPreview = (cvs, M) => {
@@ -124,7 +149,6 @@
     const sc  = Math.min((CANVAS_W - pad * 2) / M.vw, (CANVAS_H - pad * 2) / M.vh);
     ctx.save();
     ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
-    // flip:true mirrors the SVG so the nose points right (same as in-game)
     ctx.scale(M.flip ? -sc : sc, sc);
     ctx.translate(-M.vw / 2, -M.vh / 2);
     ctx.fillStyle = M.body;
@@ -138,7 +162,7 @@
     ctx.restore();
   };
 
-  // ── Build car cards ──────────────────────────────────────────────────────────
+  // ── Car cards ────────────────────────────────────────────────────────────────
   const carsEl = document.getElementById('cars');
 
   const cards = CARS.map((M, i) => {
@@ -160,17 +184,49 @@
     return { card, cvs };
   });
 
+  // ── Colour palette ───────────────────────────────────────────────────────────
+  const paletteEl  = document.getElementById('palette');
+  const colorName  = document.getElementById('color-name');
+
+  // Find which palette index matches the current body colour (or -1 if none).
+  const findSwatch = hex => PALETTE.findIndex(p => p.hex.toLowerCase() === hex.toLowerCase());
+
+  let selSwatch = findSwatch(CARS[sel].body);
+
+  const swatchEls = PALETTE.map((entry, idx) => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (idx === selSwatch ? ' sel' : '');
+    el.style.background = entry.hex;
+    el.title = entry.name;
+    el.addEventListener('click', () => applySwatch(idx));
+    paletteEl.appendChild(el);
+    return el;
+  });
+
+  const applySwatch = (idx) => {
+    const entry = PALETTE[idx];
+    CARS[sel].body = entry.hex;
+    selSwatch = idx;
+    swatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
+    colorName.textContent = entry.name;
+    drawPreview(cards[sel].cvs, CARS[sel]);
+  };
+
+  // Show the name of the initial selection (if any).
+  colorName.textContent = selSwatch >= 0 ? PALETTE[selSwatch].name : '';
+
+  // ── Car selection ────────────────────────────────────────────────────────────
   const selectCar = (i) => {
     sel = i;
     cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
-    colorInput.value = CARS[i].body;
+    // Sync palette highlight to this car's current body colour.
+    const match = findSwatch(CARS[i].body);
+    selSwatch = match;
+    swatchEls.forEach((el, j) => el.classList.toggle('sel', j === match));
+    colorName.textContent = match >= 0 ? PALETTE[match].name : '';
   };
 
-  colorInput.addEventListener('input', e => {
-    CARS[sel].body = e.target.value;
-    drawPreview(cards[sel].cvs, CARS[sel]);
-  });
-
+  // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
     const g = garage();
     g.carIndex  = sel;
@@ -179,7 +235,7 @@
     location.href = mode === 'timeattack' ? 'timeattack.html' : 'sandbox.html';
   });
 
-  // Initial render
+  // ── Initial render ───────────────────────────────────────────────────────────
   CARS.forEach((M, i) => drawPreview(cards[i].cvs, M));
 </script>
 
