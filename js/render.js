@@ -182,11 +182,16 @@ export function draw(speed) {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   const camOffY = H * 0.10;
-  ctx.translate(W / 2 - car.x, H / 2 + camOffY - car.y);
+  // На узких экранах (мобиль) отодвигаем камеру — показываем больше трассы.
+  // Менять только это число: 0.65 = видно в ~1.5× больше, 1.0 = без масштабирования.
+  const ZOOM = W < 640 ? 0.65 : 1.0;
+  ctx.translate(W / 2, H / 2 + camOffY);
+  ctx.scale(ZOOM, ZOOM);
+  ctx.translate(-car.x, -car.y);
 
-  // пол
+  // пол — покрываем весь видимый мировой прямоугольник с небольшим запасом
   ctx.fillStyle = '#0f0b08';
-  ctx.fillRect(car.x - W / 2, car.y - H / 2 - camOffY, W, H);
+  ctx.fillRect(car.x - W / (2 * ZOOM), car.y - (H / 2 + camOffY) / ZOOM, W / ZOOM, H / ZOOM);
 
   // стол
   ctx.fillStyle = '#2e241a';
