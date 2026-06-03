@@ -31,11 +31,14 @@
     #garage h2 { margin: 0; font: 600 16px -apple-system, system-ui, sans-serif; opacity: .6; }
     #cars { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
     .car-card {
+      max-width: 170px;
+      box-sizing: border-box;
       display: flex; flex-direction: column; align-items: center; gap: 10px;
       padding: 14px; border-radius: 16px;
       background: rgba(255,255,255,.05); border: 2px solid rgba(255,255,255,.12);
       cursor: pointer; transition: border-color .15s, background .15s;
     }
+    .car-card:hover { border-color: #ffb14d; }
     .car-card.sel { border-color: #ffb14d; background: rgba(255,177,77,.08); }
     .car-card canvas {
       display: block;
@@ -67,6 +70,13 @@
       text-decoration: none; transition: color .15s;
     }
     #backLink:hover { color: rgba(255,255,255,.6); }
+
+    @media (min-width: 480px) {
+      .car-card {
+        max-width: none;
+        box-sizing: content-box;
+      }
+    }
   </style>
 </head>
 <body>
