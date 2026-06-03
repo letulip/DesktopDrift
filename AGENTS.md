@@ -90,7 +90,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | install | — (none) | No dependencies. |
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
-| test | — (none) | No test suite. |
+| test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
 | syntax check | `node --check js/store.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
@@ -207,8 +207,10 @@ item assets (fetched lazily by the browser).
   its own DOM, state, and key binding — nothing else touches it).
 
 ### Before every git push
-Update `AGENTS.md` (and `CLAUDE.md`) to reflect the actual file structure,
-new modules, changed constants, and any gotchas discovered during the work.
+Run `npm test` (must be green) + the `node --check` syntax pass. Update `AGENTS.md`
+(and `CLAUDE.md`) to reflect the actual file structure, new modules, changed
+constants, and any gotchas discovered during the work. Add/extend tests for any new
+pure logic in the same change.
 
 ## Code style
 
@@ -225,27 +227,41 @@ new modules, changed constants, and any gotchas discovered during the work.
 
 ## Testing
 
-- **Framework:** None. Zero automated tests.
-- **Validation:** (1) `node --check` syntax pass on all JS files (see Commands).
-  (2) Manual browser smoke test: `index.html` → both game modes, drive the car,
-  check HUD, scoring, collisions, items visible and not fully blocking track.
+- **Runner:** Node's built-in `node --test` + `node:assert/strict` (zero deps, no
+  build — fits the pure-static stack). Run with `npm test`. Tests live in `tests/`,
+  one `*.test.js` file per concern.
+- **What gets unit-tested:** pure logic only — `store.js` (defaults, save/load,
+  version-mismatch reset), and as they land: data tables in `config.js`, track
+  geometry, the future collision validator.
+- **What stays manual:** anything needing Canvas2D / Path2D / DOM / `requestAnimationFrame`
+  — `render.js`, `game-engine.js`, `pause.js`, `confirm-exit.js`. These can't run in
+  Node, so they ride the browser smoke test below.
+- **Manual smoke test:** `index.html` → both game modes via `select.html`, pick car +
+  colour, drive, check HUD, scoring, collisions, items visible and not fully blocking
+  track, pause + back-to-menu confirm.
+- **Process isolation:** `node --test` runs each `tests/*.test.js` in its own process,
+  so module-level caches (`store.js`'s `_s`) don't leak between files. Conflicting
+  setups (fresh-defaults vs. load-existing) live in **separate files** for that reason.
+- **Discipline:** new pure logic ships with tests in the same change; a bug fix ships
+  with a test that would have caught it. `npm test` must be green before every commit.
 
 ## Deployment
 
 - **Branch → environment:** `main` → GitHub Pages (`github-pages` environment).
   No staging branch.
 - **CI/CD:** GitHub Actions `.github/workflows/static.yml` — deploys whole repo
-  on push to `main`. No build step, no lint/test in CI — validate locally first.
+  on push to `main`. No build step, no lint/test in CI — run `npm test` + smoke
+  test locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `feat/car-selection`.
+  `main` when ready. Currently active: `test/foundation`.
 
 ## Safety (DO NOT SHORTEN)
 
 - **Never commit secrets, `.env`, or API keys.**
 - **Never change a production database without a backup.** (No DB exists.)
-- **Never deploy without a successful local build/validation.** "Build" = the
-  `node --check` syntax pass plus a manual in-browser smoke test.
+- **Never deploy without a successful local build/validation.** "Build" = green
+  `npm test` plus the `node --check` syntax pass plus a manual in-browser smoke test.
 - **Never force-push to `main`/`master`.**
 - **Never delete migrations or rewrite git history.**
 - **Run pre-flight checks before destructive operations** (file deletes, bulk
@@ -286,6 +302,6 @@ new modules, changed constants, and any gotchas discovered during the work.
 - **Remote:** `git@github.com:letulip/DesktopDrift.git`. Default branch `main`.
 - **Format:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`,
   `chore:`). Scope optional (e.g. `fix(items):`, `feat(track):`).
-- **Required before commit:** `node --check` pass (see Commands) + manual
-  browser smoke test served over HTTP.
+- **Required before commit:** `npm test` green + `node --check` pass (see Commands)
+  + manual browser smoke test served over HTTP.
 - **Pushing to `main` = live production deploy.** Treat accordingly.
