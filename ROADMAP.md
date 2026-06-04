@@ -88,6 +88,9 @@ Turns the tech demo into a game and fixes what bugs us now.
       arches via `ctx.shadowBlur`; suppresses the black drop-shadow. Stored in
       `garage.bodyColor` / `garage.neonColor`. Phase 2 liveries extend `palette.js`
       with a `LIVERIES` array.
+- [x] **Car stat bars** on the garage screen. Three 10-cell indicators per card:
+      spd (amber, abs. 0–15 km/h), hdl (ice-blue, steer+lowSpeedTurn composite),
+      acc (mint-green, thrust). Maxima intentionally exceed current cars — mod headroom.
 - [ ] **Track previews** on the selection screen — generalize `drawMini` into
       `renderTrackThumb(canvas, track)`. Cheap (the rendering already exists); start with the
       two existing tracks, gets richer once the track registry lands.

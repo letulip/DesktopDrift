@@ -62,8 +62,9 @@
       flex: 1; height: 5px; border-radius: 1px;
       background: rgba(255,255,255,.1);
     }
-    .stat-cell.spd { background: rgba(255,177,77,.82); }   /* amber — speed */
-    .stat-cell.hdl { background: rgba(90,210,255,.75); }   /* ice blue — handling */
+    .stat-cell.spd { background: rgba(255,177,77,.82); }   /* amber      — speed      */
+    .stat-cell.hdl { background: rgba(90,210,255,.75); }   /* ice blue   — handling   */
+    .stat-cell.acc { background: rgba(120,220,120,.82); }  /* mint green — acc        */
 
     /* ── Colour palette ─────────────────────────────────────────────────────── */
     .palette-section {
@@ -210,9 +211,10 @@
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
   // Масштаб намеренно выше текущих значений — оставляем запас для модификаций.
-  const SPEED_MAX_KMH = 15;    // 10 клеток = 15 км/ч (физический предел 1:64-модели)
-  const STEER_MAX     = 5.0;   // макс. steer с учётом будущих апгрейдов
-  const LOWTURN_MAX   = 0.5;   // макс. lowSpeedTurn с учётом будущих апгрейдов
+  const SPEED_MAX_KMH  = 15;   // 10 клеток = 15 км/ч (физический предел 1:64-модели)
+  const STEER_MAX      = 5.0;  // макс. steer с учётом будущих апгрейдов
+  const LOWTURN_MAX    = 0.5;  // макс. lowSpeedTurn с учётом будущих апгрейдов
+  const THRUST_MAX     = 900;  // макс. thrust с учётом будущих апгрейдов
 
   const speedRating = (d) =>
     Math.min(10, Math.round(d.maxSpeed * GU_TO_KMH / SPEED_MAX_KMH * 10));
@@ -221,6 +223,9 @@
     Math.min(10, Math.round(
       (d.steer / STEER_MAX * 0.7 + d.lowSpeedTurn / LOWTURN_MAX * 0.3) * 10
     ));
+
+  const accRating = (d) =>
+    Math.min(10, Math.round(d.thrust / THRUST_MAX * 10));
 
   const makeStatRow = (label, n, cls) => {
     const row = document.createElement('div');
@@ -305,6 +310,7 @@
     stats.className = 'car-stats';
     stats.appendChild(makeStatRow('spd', speedRating(M._drive),    'spd'));
     stats.appendChild(makeStatRow('hdl', handlingRating(M._drive), 'hdl'));
+    stats.appendChild(makeStatRow('acc', accRating(M._drive),      'acc'));
     card.appendChild(stats);
 
     const nm = document.createElement('div');

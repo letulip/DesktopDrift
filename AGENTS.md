@@ -13,8 +13,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Tiles now link to `select.html?mode=sandbox` / `select.html?mode=timeattack`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
-    Player picks car model and body colour, saves `{ carIndex, bodyColor }` to
-    `localStorage` and navigates to the target game page.
+    Each card shows three 10-cell stat bars: **spd** (amber, absolute 0–15 km/h),
+    **hdl** (ice-blue, weighted steer+lowSpeedTurn composite), **acc** (mint-green,
+    thrust). Scale maxima (`SPEED_MAX_KMH=15`, `STEER_MAX=5`, `LOWTURN_MAX=0.5`,
+    `THRUST_MAX=900`) are intentionally above current car values — headroom for mods.
+    Player picks car + body colour + neon, saves `{ carIndex, bodyColor, neonColor }`
+    to `localStorage` and navigates to the target game page.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
@@ -193,7 +197,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v18`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v20`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
