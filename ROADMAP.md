@@ -69,8 +69,11 @@ The boring layer everything else stands on. No flashy output, highest leverage.
 - [x] Migrate the existing `carConfig` into `store` (the `garage` slice). Written by
       `select.html`, read by `game-engine.js`.
 - [x] **Test foundation** — `tests/` + `npm test` (`node --test`), store covered.
-- [ ] `settings` slice + a minimal settings panel (entry point from the menu).
-      *(Schema slice exists; the panel UI is deferred to Phase 1 alongside speed-units.)*
+- [x] `settings` slice + minimal settings panel (`settings.html`). Speed units
+      km/h ↔ mph, saved via `store.js`. ⚙ link on the menu. Conversion applied in
+      `game-engine.js` at game start (`speedFactor`); `#spdUnit` label updated.
+- [x] **Speed units km/h ↔ mph** — setting in Phase 0 settings panel; applied in
+      game HUD without touching `render.js`.
 
 ## Phase 1 — Personal progress & garage polish
 
@@ -78,7 +81,7 @@ Turns the tech demo into a game and fixes what bugs us now.
 
 - [ ] **Records** — best lap + best score per (track, mode), stored via `store`.
 - [ ] **Results screen** after a run ("NEW RECORD!", lap/score summary).
-- [ ] **Speed units** km/h ⟷ mph — a setting, converted only at display time (default km/h).
+- [x] **Speed units** km/h ⟷ mph — done in Phase 0 settings panel (see above).
 - [x] **Custom colour palette (replaces the native `<input type="color">`).**
       20-colour body swatch grid (`PALETTE` in `palette.js`) + 10-colour neon
       underglow palette (`NEON_PALETTE`). Neon renders as 3 segments between wheel

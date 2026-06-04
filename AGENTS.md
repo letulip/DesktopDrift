@@ -21,6 +21,8 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   - `timeattack.html` — lap-timed mode on the config1 (SVG-derived) track.
     Inline `<script type="module">` imports `track.js` and calls
     `startGame(T, { initItems: true })`.
+  - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
+    auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **SEO files (root):**
   - `robots.txt` — allows all bots; points to `sitemap.xml`.
@@ -66,6 +68,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `opts.initItems` is true. All physics/input/scoring logic lives here.
     On init reads `garage()` from `store.js` to apply the chosen car model,
     body colour, and neon colour (`CARS[S.carModel].neonColor`).
+    Also reads `settings().units` once to compute `speedFactor` (1 for km/h,
+    0.621371 for mph) and sets `#spdUnit` label. Speed passed to `draw()` is
+    already converted — `render.js` just rounds and displays it.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
@@ -188,7 +193,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v17`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v18`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
@@ -278,7 +283,7 @@ After adding the page:
   test locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `feat/color-palette`.
+  `main` when ready. Currently active: `feat/settings`.
 
 ## Safety (DO NOT SHORTEN)
 
