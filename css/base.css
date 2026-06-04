@@ -21,6 +21,10 @@
   --bg-raise:  #2a2622;   /* приподнятый */
   --bg-vignette: radial-gradient(120% 120% at 50% 0%,
                  var(--bg-raise) 0%, var(--bg-mid) 55%, var(--bg-deep) 100%);
+  /* Тонкое зерно (feTurbulence в data-URI) — глубина без растровых ассетов. */
+  --grain: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.8'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='saturate'%20values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type='linear'%20slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Полный фон экранов = зерно поверх виньетки. */
+  --bg-screen: var(--grain), var(--bg-vignette);
 
   /* Акцент — янтарь (единственный сигнатурный цвет) */
   --accent:      #ffb14d;
