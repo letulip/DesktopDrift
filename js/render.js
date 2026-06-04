@@ -33,6 +33,8 @@ export const initRender = (T) => {
   TRACK_HALF = T.TRACK_HALF;
   CONE_R     = T.CONE_R;
   startAngle = T.startAngle;
+  // Трек может переопределить размер стола (TABLE из config.js — объект, мутируем на месте)
+  if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
 
   // Мини-карта: трансформация мир → окошко
   const _pad = 12;
