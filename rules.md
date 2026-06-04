@@ -50,6 +50,20 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
   (e.g. store.js's `_s`) don't leak between scenarios — split conflicting setups into
   separate files rather than fighting the cache.
 
+## Design
+
+For any UI / visual work, follow **DESIGN.md** (distinctive, production-grade,
+non-generic aesthetics). Adapt its principles to this project's hard constraints —
+they win when they conflict:
+
+- **No new dependencies, offline-first.** Web fonts/icons must be self-hosted
+  (file in repo + added to `sw.js` ASSETS), never fetched from a CDN. No build step.
+- **60 fps canvas.** Decorative effects must not touch the game render loop's budget.
+- **One cohesive direction.** The project's aesthetic is a *warm, dark, kitchen-table*
+  theme with a single amber accent (`#ffb14d`). Extend it; don't fork it.
+- **Tokens over literals.** Shared colours/fonts live as CSS variables in `:root`
+  (see AGENTS.md → Design language), not hardcoded per element.
+
 ## Before each git push
 
 - Run `npm test` — it must be green.

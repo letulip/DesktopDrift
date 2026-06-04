@@ -262,6 +262,28 @@ After adding the page:
   `config → items → track* → state/render → game-engine → pause → [HTML inline script]`
 - **Do not add npm packages** or a bundler without explicit instruction.
 
+## Design language
+
+Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). Concrete project
+tokens below — keep all UI within them; extend, don't fork.
+
+- **Theme:** warm, dark *kitchen-table* world. Deep brown-blacks, single amber accent.
+- **Palette (current):**
+  - Backgrounds: `#0b0907` (deepest) · `#14110f` · `#2a2622` (warm dark browns).
+  - Primary accent: **`#ffb14d`** (amber / honey) — the one signature colour.
+  - Highlights: combo gold `#ffd34d`; cone orange `#ff7a1a` (canvas).
+  - Stat bars: spd amber · hdl ice-blue `rgba(90,210,255)` · acc mint `rgba(120,220,120)`.
+  - Neon palette: `NEON_PALETTE` in `palette.js` (player-chosen underglow).
+  - Text: `#fff` on dark; dim via `opacity`, not separate greys.
+- **Typography:** system stack `-apple-system, system-ui, sans-serif`. (A distinctive
+  self-hosted display font is a candidate per DESIGN.md — see ROADMAP, not yet done.)
+- **Backgrounds:** radial-gradient vignettes (`radial-gradient(120% 120% at 50% 0%, …)`).
+- **Shape & motion:** rounded corners (10–16px panels), `.12–.15s` ease transitions,
+  amber glow on hover/active. PWA `theme-color` is `#111318`.
+- **Constraints:** see rules.md → Design (no CDN fonts; self-host + cache; 60 fps).
+- **Known debt:** colours are hardcoded across CSS/HTML (40+ literals, no `:root`
+  variables yet). A token layer is the natural first design-system step.
+
 ## Testing
 
 - **Runner:** Node's built-in `node --test` + `node:assert/strict` (zero deps, no
