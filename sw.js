@@ -26,6 +26,7 @@ const ASSETS = [
   'css/select.css',
   'css/settings.css',
   'css/donate.css',
+  'fonts/unbounded-800-latin.woff2',
   'js/store.js',
   'js/config.js',
   'js/palette.js',

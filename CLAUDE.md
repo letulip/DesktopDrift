@@ -3,6 +3,7 @@
 This project is a pure client-side HTML5 Canvas arcade drift-racing game.
 Full architecture and conventions are documented in **AGENTS.md**.
 Development rules and coding principles are in **rules.md**.
+UI/visual work follows **DESIGN.md** (see AGENTS.md → Design language for tokens).
 
 ## Quick-start
 

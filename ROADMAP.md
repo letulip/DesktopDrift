@@ -49,6 +49,9 @@ Decisions that hold the whole thing together — settle these as they come up, d
    built-in runner (`node --test`, zero deps). Canvas/DOM/game-loop code stays on the
    manual browser smoke test. Tests grow with the code so each new phase proves it broke
    nothing. See **AGENTS.md → Testing** and **rules.md → Testing**.
+6. **Design system — `DESIGN.md` + CSS tokens.** UI follows DESIGN.md within the
+   project's constraints. All colour/typography/shape/motion lives as `:root` variables
+   in `css/base.css`; no hardcoded literals. See **AGENTS.md → Design language**.
 
 ## Definition of done (every phase)
 
@@ -91,6 +94,9 @@ Turns the tech demo into a game and fixes what bugs us now.
 - [x] **Car stat bars** on the garage screen. Three 10-cell indicators per card:
       spd (amber, abs. 0–15 km/h), hdl (ice-blue, steer+lowSpeedTurn composite),
       acc (mint-green, thrust). Maxima intentionally exceed current cars — mod headroom.
+- [x] **Design system pass** (spine #6). CSS token layer (`:root` in `base.css`),
+      self-hosted display font (Unbounded 800), warm `theme-color`, film grain on
+      menu/garage/settings, staggered menu entrance. See AGENTS.md → Design language.
 - [ ] **Track previews** on the selection screen — generalize `drawMini` into
       `renderTrackThumb(canvas, track)`. Cheap (the rendering already exists); start with the
       two existing tracks, gets richer once the track registry lands.

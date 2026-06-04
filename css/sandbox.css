@@ -2,30 +2,30 @@
 canvas { display: block; }
 #hud {
   position: fixed; top: 12px; left: 12px; right: 12px;
-  font: 14px/1.4 -apple-system, system-ui, sans-serif;
-  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  font: 14px/1.4 var(--font-body);
+  color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,.7);
   pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start;
 }
 #combo {
   position: fixed; top: 64px; left: 0; right: 0; text-align: center;
-  font: 700 28px -apple-system, system-ui, sans-serif; color: #ffd34d;
+  font: 800 28px var(--font-display); letter-spacing: .5px; color: var(--accent-gold);
   text-shadow: 0 2px 6px rgba(0,0,0,.8); pointer-events: none; opacity: 0;
 }
 #flash {
   position: fixed; top: 110px; left: 0; right: 0; text-align: center;
-  font: 700 22px -apple-system, system-ui, sans-serif; pointer-events: none; opacity: 0;
+  font: 800 22px var(--font-display); letter-spacing: .5px; pointer-events: none; opacity: 0;
 }
 #count {
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-  font: 800 104px -apple-system, system-ui, sans-serif; color: #fff;
+  font: 800 104px var(--font-display); color: var(--ink);
   text-shadow: 0 4px 18px rgba(0,0,0,.85); pointer-events: none; opacity: 0;
 }
 #hint {
   position: fixed; bottom: 14px; left: 0; right: 0; text-align: center;
-  font: 13px -apple-system, system-ui, sans-serif; color: #fff; opacity: .55;
+  font: 13px var(--font-body); color: var(--ink); opacity: .55;
   pointer-events: none;
 }
-.panel { background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: 10px; }
+.panel { background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); }
 #timePanel  { width: 156px; box-sizing: border-box; font-variant-numeric: tabular-nums; }
 #timePanel span { font-variant-numeric: tabular-nums; }
 #scorePanel { width: 156px; box-sizing: border-box; font-variant-numeric: tabular-nums; text-align: right; }
@@ -36,16 +36,16 @@ canvas { display: block; }
 #hud-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 #controls  { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
 #spdUnit   { font-size: .85em; opacity: .7; }
-#mini { background: rgba(0,0,0,.4); border-radius: 10px; display: block; width: 156px; height: 134px; }
+#mini { background: rgba(0,0,0,.4); border-radius: var(--r-panel); display: block; width: 156px; height: 134px; }
 .big { font-size: 18px; font-weight: 700; }
 .dim { opacity: .7; }
 #lapCounter {
-  font-weight: 800; font-size: 30px; color: #fff; letter-spacing: 1px;
-  line-height: 1; padding-right: 2px; font-variant-numeric: tabular-nums;
+  font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--ink);
+  letter-spacing: .5px; line-height: 1; padding-right: 2px; font-variant-numeric: tabular-nums;
 }
 #menuBtn {
-  border: none; color: #fff; font: inherit; cursor: pointer;
-  background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: 10px; pointer-events: auto;
+  border: none; color: var(--ink); font: inherit; cursor: pointer;
+  background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); pointer-events: auto;
 }
 
 /* --- Кнопка паузы (самодостаточный компонент, DOM создаёт js/pause.js) --- */
@@ -60,9 +60,9 @@ canvas { display: block; }
   pointer-events: auto;
   display: flex; align-items: center; justify-content: center;
   width: 46px; height: 38px;
-  background: rgba(0,0,0,.4); color: #fff;
-  border: none; border-radius: 10px;
-  font: 18px -apple-system, system-ui, sans-serif; line-height: 1;
+  background: rgba(0,0,0,.4); color: var(--ink);
+  border: none; border-radius: var(--r-panel);
+  font: 18px var(--font-body); line-height: 1;
   cursor: pointer;
 }
 #pauseBtn:active { background: rgba(0,0,0,.6); }
@@ -78,11 +78,11 @@ canvas { display: block; }
 }
 #pauseOverlay.show { display: flex; }
 #pauseOverlay .title {
-  font: 800 64px -apple-system, system-ui, sans-serif;
-  letter-spacing: 3px; text-shadow: 0 4px 18px rgba(0,0,0,.85);
+  font: 800 56px var(--font-display);
+  letter-spacing: 1px; text-shadow: 0 4px 18px rgba(0,0,0,.85);
 }
 #pauseOverlay .sub {
-  font: 600 18px -apple-system, system-ui, sans-serif; opacity: .8;
+  font: 600 18px var(--font-body); opacity: .8;
 }
 
 /* --- Диалог подтверждения выхода (js/confirm-exit.js) --- */
@@ -102,8 +102,8 @@ canvas { display: block; }
   text-align: center; width: min(300px, 88vw);
 }
 #confirmTitle {
-  font: 700 20px -apple-system, system-ui, sans-serif;
-  color: #fff; margin: 0 0 22px; letter-spacing: .3px;
+  font: 800 19px var(--font-display);
+  color: var(--ink); margin: 0 0 22px; letter-spacing: .3px;
 }
 #confirmBtns {
   display: flex; flex-direction: column; gap: 10px;
@@ -111,17 +111,17 @@ canvas { display: block; }
 /* «Продолжить» — основное действие, акцентный цвет */
 #confirmCancelBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;
-  background: rgba(255,177,77,.18); border: 1px solid rgba(255,177,77,.4);
-  color: #ffb14d; font: 600 15px -apple-system, system-ui, sans-serif;
-  cursor: pointer; transition: background .15s, border-color .15s;
+  background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
+  color: var(--accent); font: 600 15px var(--font-body);
+  cursor: pointer; transition: background var(--ease), border-color var(--ease);
 }
-#confirmCancelBtn:hover { background: rgba(255,177,77,.28); border-color: rgba(255,177,77,.7); }
+#confirmCancelBtn:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
 /* «Выйти» — деструктивное действие, приглушённый цвет */
 #confirmExitBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
-  color: rgba(255,255,255,.6); font: 600 15px -apple-system, system-ui, sans-serif;
-  cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+  color: rgba(255,255,255,.6); font: 600 15px var(--font-body);
+  cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
 #confirmExitBtn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
 
