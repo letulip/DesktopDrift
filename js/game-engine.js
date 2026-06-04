@@ -1,4 +1,4 @@
-import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND } from './config.js';
+import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
@@ -134,9 +134,10 @@ export const startGame = (T, opts = {}) => {
   if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
   CARS[S.carModel].neonColor = g.neonColor || null;
 
-  // Единицы скорости: читаем один раз при старте — в игре не меняются
+  // Единицы скорости: читаем один раз при старте — в игре не меняются.
+  // Пересчёт: game units/s → км/ч (GU_TO_KMH) или мили/ч (× 0.621371).
   const isMph = settings().units === 'mph';
-  const speedFactor = isMph ? 0.621371 : 1;
+  const toDisplaySpeed = (s) => s * GU_TO_KMH * (isMph ? 0.621371 : 1);
   const spdUnitEl = document.getElementById('spdUnit');
   if (spdUnitEl) spdUnitEl.textContent = isMph ? 'mph' : 'km/h';
 
@@ -325,7 +326,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.flashT > 0) S.flashT -= dt;
-    draw(speed * speedFactor);
+    draw(toDisplaySpeed(speed));
     requestAnimationFrame(frame);
   }
 
