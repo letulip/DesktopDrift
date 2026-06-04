@@ -49,6 +49,22 @@
     }
     .car-name { font: 600 14px -apple-system, system-ui, sans-serif; letter-spacing: .2px; }
 
+    /* ── Stat bars ──────────────────────────────────────────────────────────── */
+    .car-stats { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .stat-row { display: flex; align-items: center; gap: 5px; }
+    .stat-lbl {
+      font: 700 8px -apple-system, system-ui, sans-serif;
+      letter-spacing: .5px; text-transform: uppercase;
+      color: rgba(255,255,255,.28); width: 18px; flex-shrink: 0; text-align: right;
+    }
+    .stat-bar { display: flex; gap: 2px; flex: 1; }
+    .stat-cell {
+      flex: 1; height: 5px; border-radius: 1px;
+      background: rgba(255,255,255,.1);
+    }
+    .stat-cell.spd { background: rgba(255,177,77,.82); }   /* amber — speed */
+    .stat-cell.hdl { background: rgba(90,210,255,.75); }   /* ice blue — handling */
+
     /* ── Colour palette ─────────────────────────────────────────────────────── */
     .palette-section {
       display: flex; flex-direction: column; align-items: center; gap: 7px;
@@ -169,7 +185,7 @@
 </div>
 
 <script type="module">
-  import { CARS } from './js/config.js';
+  import { CARS, GU_TO_KMH } from './js/config.js';
   import { PALETTE, NEON_PALETTE } from './js/palette.js';
   import { garage, save } from './js/store.js';
 
@@ -191,6 +207,36 @@
   let selNeon     = g.neonColor
     ? Math.max(0, NEON_PALETTE.findIndex(p => p.hex === g.neonColor))
     : 0;
+
+  // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
+  // Масштаб намеренно выше текущих значений — оставляем запас для модификаций.
+  const SPEED_MAX_KMH = 15;    // 10 клеток = 15 км/ч (физический предел 1:64-модели)
+  const STEER_MAX     = 5.0;   // макс. steer с учётом будущих апгрейдов
+  const LOWTURN_MAX   = 0.5;   // макс. lowSpeedTurn с учётом будущих апгрейдов
+
+  const speedRating = (d) =>
+    Math.min(10, Math.round(d.maxSpeed * GU_TO_KMH / SPEED_MAX_KMH * 10));
+
+  const handlingRating = (d) =>
+    Math.min(10, Math.round(
+      (d.steer / STEER_MAX * 0.7 + d.lowSpeedTurn / LOWTURN_MAX * 0.3) * 10
+    ));
+
+  const makeStatRow = (label, n, cls) => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'stat-lbl'; lbl.textContent = label;
+    const bar = document.createElement('div');
+    bar.className = 'stat-bar';
+    for (let i = 0; i < 10; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'stat-cell' + (i < n ? ' ' + cls : '');
+      bar.appendChild(cell);
+    }
+    row.appendChild(lbl); row.appendChild(bar);
+    return row;
+  };
 
   // ── Car preview canvas ───────────────────────────────────────────────────────
   const CANVAS_W = 220, CANVAS_H = 82;
@@ -254,6 +300,12 @@
     cvs.width  = CANVAS_W;
     cvs.height = CANVAS_H;
     card.appendChild(cvs);
+
+    const stats = document.createElement('div');
+    stats.className = 'car-stats';
+    stats.appendChild(makeStatRow('spd', speedRating(M._drive),    'spd'));
+    stats.appendChild(makeStatRow('hdl', handlingRating(M._drive), 'hdl'));
+    card.appendChild(stats);
 
     const nm = document.createElement('div');
     nm.className   = 'car-name';
