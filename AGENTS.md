@@ -8,7 +8,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (5):**
+- **Pages (6):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Tiles now link to `select.html?mode=sandbox` / `select.html?mode=timeattack`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
@@ -34,10 +34,13 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `timeattack.html`, `donate.html`). `select.html` is omitted (transitional
     screen, has `noindex`). Update `<lastmod>` when content changes.
 - **File layout:**
-  - `css/base.css` — shared `html`/`body` reset.
-  - `css/menu.css` — menu styles (`index.html`).
+  - `css/base.css` — shared reset **+ design tokens** (`:root` vars) **+ `@font-face`**
+    for the display font. Loaded by every page first (defines all `var(--…)`).
+  - `css/menu.css` — menu styles + the staggered entrance animation
+    (`index.html`, also loaded by `select`/`settings`/`donate`).
   - `css/sandbox.css` — HUD styles + mobile media query (shared by both game
     pages).
+  - `fonts/unbounded-800-latin.woff2` — self-hosted display font (Unbounded 800, OFL).
   - `js/config.js` — pure static data: `CFG`, `CARS` (with Path2D init),
     `TABLE`, physics constants (`PHYS_HZ`, `GRIP_WOBBLE`, `STEER_WOBBLE`,
     `NM_BAND`).
@@ -201,7 +204,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v22`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v23`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
@@ -264,25 +267,31 @@ After adding the page:
 
 ## Design language
 
-Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). Concrete project
-tokens below — keep all UI within them; extend, don't fork.
+Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live in
+`css/base.css` `:root` — **use `var(--token)`, never hardcode** colours/fonts.
 
 - **Theme:** warm, dark *kitchen-table* world. Deep brown-blacks, single amber accent.
-- **Palette (current):**
-  - Backgrounds: `#0b0907` (deepest) · `#14110f` · `#2a2622` (warm dark browns).
-  - Primary accent: **`#ffb14d`** (amber / honey) — the one signature colour.
-  - Highlights: combo gold `#ffd34d`; cone orange `#ff7a1a` (canvas).
-  - Stat bars: spd amber · hdl ice-blue `rgba(90,210,255)` · acc mint `rgba(120,220,120)`.
-  - Neon palette: `NEON_PALETTE` in `palette.js` (player-chosen underglow).
-  - Text: `#fff` on dark; dim via `opacity`, not separate greys.
-- **Typography:** system stack `-apple-system, system-ui, sans-serif`. (A distinctive
-  self-hosted display font is a candidate per DESIGN.md — see ROADMAP, not yet done.)
-- **Backgrounds:** radial-gradient vignettes (`radial-gradient(120% 120% at 50% 0%, …)`).
-- **Shape & motion:** rounded corners (10–16px panels), `.12–.15s` ease transitions,
-  amber glow on hover/active. PWA `theme-color` is `#111318`.
+- **Tokens (`css/base.css`):**
+  - Backgrounds: `--bg-deep` `#0b0907` · `--bg-mid` `#14110f` · `--bg-raise` `#2a2622`.
+    `--bg-vignette` (radial), `--grain` (feTurbulence noise), `--bg-screen`
+    (grain over vignette — used by menu/garage/settings).
+  - Accent: `--accent` `#ffb14d` (the one signature colour) · `--accent-gold` `#ffd34d`.
+    Soft variants `--accent-tint` / `--accent-line` / `--accent-glow`;
+    `--accent-text` (logo/heading gradient).
+  - Surfaces: `--surface` / `--surface-line` (neutral panels & cards).
+  - Stat bars: `--stat-spd` (amber) · `--stat-hdl` (ice-blue) · `--stat-acc` (mint).
+  - Shape/motion: `--r-panel` 10px · `--r-card` 16px · `--ease` .14s.
+  - Text: `--ink` `#fff`; dim via `opacity`, not separate greys.
+  - Canvas-only colours (cone `#ff7a1a`, skids) stay JS literals in `render.js`.
+  - Neon underglow: `NEON_PALETTE` in `palette.js` (player-chosen).
+- **Typography:** `--font-display` = **Unbounded 800** (self-hosted
+  `fonts/unbounded-800-latin.woff2`, OFL, in SW cache) for logo/headings/tile titles/
+  arcade HUD moments. `--font-body` = system stack for everything else.
+- **Texture & depth:** subtle film grain on menu/garage/settings via `--bg-screen`.
+- **Motion:** staggered `riseIn` entrance on the menu (`menu.css`, `fill-mode:
+  backwards`, gated by `prefers-reduced-motion`); `--ease` hover/active transitions.
+- **PWA `theme-color`:** `#14110f` (warm), on every page.
 - **Constraints:** see rules.md → Design (no CDN fonts; self-host + cache; 60 fps).
-- **Known debt:** colours are hardcoded across CSS/HTML (40+ literals, no `:root`
-  variables yet). A token layer is the natural first design-system step.
 
 ## Testing
 
