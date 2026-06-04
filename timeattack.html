@@ -18,7 +18,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="hud">
-  <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+  <div id="hud-left">
     <div class="panel" id="timePanel">
       <div>lap: <span class="big" id="lap">0.00</span> s</div>
       <div class="dim">last: <span id="last">—</span></div>
@@ -26,14 +26,14 @@
     </div>
     <canvas id="mini" width="156" height="134"></canvas>
   </div>
-  <div id="controls" style="display:flex; gap:8px; align-items:center; pointer-events:auto;">
+  <div id="controls">
     <button id="menuBtn" title="back to menu">☰ Menu</button>
   </div>
-  <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+  <div id="hud-right">
     <div class="panel" id="scorePanel">
       <div>score: <span class="big" id="score">0</span></div>
       <div class="dim" id="lapScores"></div>
-      <div class="dim">speed: <span id="spd">0.0</span> <span id="spdUnit" style="font-size:.85em;opacity:.7"></span></div>
+      <div class="dim">speed: <span id="spd">0.0</span> <span id="spdUnit"></span></div>
     </div>
     <div id="lapCounter"><span id="lapNum">1</span>/-</div>
   </div>

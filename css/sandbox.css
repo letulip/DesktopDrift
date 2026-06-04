@@ -30,6 +30,12 @@ canvas { display: block; }
 #timePanel span { font-variant-numeric: tabular-nums; }
 #scorePanel { width: 156px; box-sizing: border-box; font-variant-numeric: tabular-nums; text-align: right; }
 #spd { font-size: 16px; font-weight: 700; opacity: 1; }
+
+/* HUD layout columns (были инлайновые style= на безымянных div-ах) */
+#hud-left  { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+#hud-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+#controls  { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+#spdUnit   { font-size: .85em; opacity: .7; }
 #mini { background: rgba(0,0,0,.4); border-radius: var(--r-panel); display: block; width: 156px; height: 134px; }
 .big { font-size: 18px; font-weight: 700; }
 .dim { opacity: .7; }
