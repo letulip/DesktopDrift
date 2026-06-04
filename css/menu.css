@@ -22,7 +22,11 @@
   display: block; font: inherit;
   transition: transform var(--ease) ease, border-color var(--ease) ease, background var(--ease) ease;
 }
-.tile:hover { transform: translateY(-3px); border-color: var(--accent-glow); background: var(--accent-tint); }
+.tile:hover {
+  transform: translateY(-3px); border-color: var(--accent-glow); background: var(--accent-tint);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35), 0 0 0 1px rgba(255,177,77,.12);
+}
+.tile:active { transform: translateY(-1px); }
 .tile-title { font-family: var(--font-display); font-size: 19px; font-weight: 800; letter-spacing: .3px; margin-bottom: 8px; }
 .tile-sub { opacity: .65; font-size: 13px; }
 .tile.disabled { cursor: default; opacity: .4; pointer-events: none; }
@@ -37,3 +41,28 @@
   text-decoration: none; transition: color var(--ease), border-color var(--ease);
 }
 .settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
+
+/* ── Оркестрованное появление при загрузке (DESIGN.md: один хороший page-load) ──
+   fill-mode: backwards — прячем элемент во время delay, но НЕ forwards, чтобы
+   после анимации вернуться к базовому состоянию и не ломать hover-трансформ плиток. */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.logo,
+.tagline,
+.tile,
+.settings-link,
+.menu-foot {
+  animation: riseIn .5s cubic-bezier(.2,.7,.3,1) backwards;
+}
+.logo          { animation-delay: .05s; }
+.tagline       { animation-delay: .13s; }
+.tiles .tile:nth-child(1) { animation-delay: .21s; }
+.tiles .tile:nth-child(2) { animation-delay: .29s; }
+.settings-link { animation-delay: .37s; }
+.menu-foot     { animation-delay: .43s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .logo, .tagline, .tile, .settings-link, .menu-foot { animation: none; }
+}
