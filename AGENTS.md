@@ -44,6 +44,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   - `js/items.js` — item catalog with 1:64-scale physics data. Each export is
     a plain object `{ hl, r, kind, imgSrc, c }`. No game state; no imports.
     Used by track files to spread item descriptors with position/angle.
+    SVGs live in `items/`.
+  - `js/collectibles.js` — collectible-item catalog (e.g. `ITEM_TIRE_COIN`),
+    same descriptor shape as `items.js`. Imported by `track.js` (the
+    `collectibles` array). SVGs live in `objects/`.
   - `js/track.js` — config1 track (SVG-derived Chaikin-smoothed polygon).
     Exports: `center`, `outer`, `inner`, `cones`, `props`, `checkpoints`,
     `startPos`, `startAngle`, `TRACK_HALF`, `CONE_R`, `CP_R`, `K`.
@@ -111,7 +115,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
-| syntax check | `node --check js/store.js js/palette.js js/config.js js/items.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/store.js js/palette.js js/config.js js/items.js js/collectibles.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
 
 ## Architecture
 
@@ -197,7 +201,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v20`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v22`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG

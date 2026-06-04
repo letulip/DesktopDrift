@@ -1,10 +1,14 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v21';
+const CACHE = 'desktop-drift-v22';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
 const BASE = new URL('.', self.location).href;
+// Pre-cache: HTML, CSS и ВСЕ js-модули (критичны для старта — должны быть
+// доступны до первого офлайн-визита). SVG из items/ и objects/ намеренно НЕ
+// здесь — их десятки, они подхватываются runtime-кэшем (fetch-хэндлер ниже)
+// при первом запросе. Добавляя новый js-модуль, впиши его сюда.
 const ASSETS = [
   '',
   'index.html',
@@ -23,6 +27,7 @@ const ASSETS = [
   'js/config.js',
   'js/palette.js',
   'js/items.js',
+  'js/collectibles.js',
   'js/track.js',
   'js/track-oval.js',
   'js/game-engine.js',
