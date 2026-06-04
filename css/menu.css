@@ -39,7 +39,7 @@
 .settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
 
 /* Логотип-иконка (используется на index.html и donate.html) */
-.menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; }
+.menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; margin-inline: auto;}
 
 /* Футер-ссылка «Support» */
 .menu-foot-support { margin-top: 28px; }
