@@ -1,0 +1,49 @@
+/* Страница настроек (settings.html) */
+
+#settings-page {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: radial-gradient(120% 120% at 50% 0%, #2a2622 0%, #14110f 55%, #0b0907 100%);
+  font: 14px/1.4 -apple-system, system-ui, sans-serif; color: #fff;
+  gap: 36px; padding: 24px;
+}
+#settings-title {
+  margin: 0;
+  font: 800 clamp(26px, 7vw, 44px) -apple-system, system-ui, sans-serif;
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, #fff 0%, #ffb14d 130%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.settings-group {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.settings-label {
+  font: 600 11px -apple-system, system-ui, sans-serif;
+  letter-spacing: .6px; text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+.unit-row { display: flex; gap: 8px; }
+.unit-btn {
+  padding: 10px 32px; border-radius: 12px;
+  border: 1.5px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.5);
+  font: 600 15px -apple-system, system-ui, sans-serif;
+  cursor: pointer; transition: all .15s;
+}
+.unit-btn.sel {
+  border-color: #ffb14d;
+  background: rgba(255,177,77,.15);
+  color: #ffb14d;
+}
+.unit-btn:not(.sel):hover {
+  border-color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.75);
+}
+#backLink {
+  color: rgba(255,255,255,.35);
+  font: 13px -apple-system, system-ui, sans-serif;
+  text-decoration: none; transition: color .15s;
+}
+#backLink:hover { color: rgba(255,255,255,.6); }

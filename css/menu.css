@@ -37,3 +37,13 @@
   text-decoration: none; transition: color .15s, border-color .15s;
 }
 .settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
+
+/* Логотип-иконка (используется на index.html и donate.html) */
+.menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; }
+
+/* Футер-ссылка «Support» */
+.menu-foot-support { margin-top: 28px; }
+.support-link {
+  color: inherit; opacity: .75; text-decoration: none; transition: opacity .15s;
+}
+.support-link:hover { opacity: .95; }
