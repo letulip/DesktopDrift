@@ -9,13 +9,13 @@ export const ITEM_CUP = {
   hl: 0, 
   r: 88, // Рассчитано под диаметр 15 см в масштабе 1:64
   kind: 'bowl', 
-  imgSrc: 'items/Cup.svg', 
+  imgSrc: 'items/cup-ready.svg', 
   c: '#ffffff' 
 };
 
 // --- Мелкие объекты ---
 // Крышечка от колы (~3 см, круглая)
-export const ITEM_COLA_CAP = { hl: 0, r: 18, kind: 'plate', c: '#ff9999', imgSrc: 'items/cola.svg' };
+export const ITEM_COLA_CAP = { hl: 0, r: 18, kind: 'plate', c: '#ff9999', imgSrc: 'objects/cola.svg' };
 
 // ==========================================
 // 📚 КУХНЯ И СВЯЗАННОЕ (Масштаб 1:64)
@@ -121,3 +121,9 @@ export const ITEM_PENCIL_PLUS = { hl: 67, r: 32, kind: 'board', c: '#fed42d', im
 // --- Циркули (в сложенном виде, ~15 см) ---
 export const ITEM_COMPASS_1 = { hl: 73, r: 15,  kind: 'knife', c: '#b5bcc2', imgSrc: 'items/compass-ready.svg' };
 export const ITEM_COMPASS_2 = { hl: 73, r: 15,  kind: 'knife', c: '#7db9d6', imgSrc: 'items/compass2-ready.svg' };
+
+// Транспортир (~12x6 см, капсула)
+export const ITEM_RULER = { hl: 35, r: 35, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-ready.svg' };
+
+// Сборка: Транспортир и циркуль (~15x10 см, широкая капсула)
+export const ITEM_COMPASS_RULER = { hl: 29, r: 58, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-plus-ready.svg' };
