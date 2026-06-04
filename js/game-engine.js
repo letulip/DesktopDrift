@@ -1,9 +1,9 @@
-import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND } from './config.js';
+import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage } from './store.js';
+import { garage, settings } from './store.js';
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
@@ -133,6 +133,13 @@ export const startGame = (T, opts = {}) => {
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
   if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
   CARS[S.carModel].neonColor = g.neonColor || null;
+
+  // Единицы скорости: читаем один раз при старте — в игре не меняются.
+  // Пересчёт: game units/s → км/ч (GU_TO_KMH) или мили/ч (× 0.621371).
+  const isMph = settings().units === 'mph';
+  const toDisplaySpeed = (s) => s * GU_TO_KMH * (isMph ? 0.621371 : 1);
+  const spdUnitEl = document.getElementById('spdUnit');
+  if (spdUnitEl) spdUnitEl.textContent = isMph ? 'mph' : 'km/h';
 
   // ─── Пауза (изолированный компонент) ────────────────────────────────────────
   // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
@@ -319,7 +326,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.flashT > 0) S.flashT -= dt;
-    draw(speed);
+    draw(toDisplaySpeed(speed));
     requestAnimationFrame(frame);
   }
 

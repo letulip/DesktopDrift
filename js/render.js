@@ -304,7 +304,7 @@ export const draw = (speed) => {
   document.getElementById('score').textContent = Math.round(S.score);
   document.getElementById('lapScores').innerHTML =
     S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
-  document.getElementById('spd').textContent = Math.round(speed);
+  document.getElementById('spd').textContent = speed.toFixed(1);
 
   const comboEl = document.getElementById('combo');
   if (S.comboPoints > 0) { comboEl.style.opacity = 1; comboEl.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }

@@ -32,6 +32,7 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 ## JS rules
 
 - all functions should be arrow functions
+- use clean functions and immutable data if possible
 
 ## Testing
 

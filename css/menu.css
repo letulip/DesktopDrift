@@ -29,3 +29,11 @@
 .tile-badge { display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: 1px;
   text-transform: uppercase; opacity: .7; }
 .menu-foot { margin-top: 26px; opacity: .45; font-size: 12px; }
+.settings-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 20px; padding: 7px 16px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.1); background: none;
+  color: rgba(255,255,255,.38); font: 13px -apple-system, system-ui, sans-serif;
+  text-decoration: none; transition: color .15s, border-color .15s;
+}
+.settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
