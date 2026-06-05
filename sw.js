@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v30';
+const CACHE = 'desktop-drift-v31';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -36,7 +36,6 @@ const ASSETS = [
   'js/palette.js',
   'js/items.js',
   'js/collectibles.js',
-  'js/track.js',
   'js/track-oval.js',
   'js/track-registry.js',
   'js/track-green-study.js',
@@ -71,23 +70,28 @@ self.addEventListener('activate', e => {
   self.clients.claim(); // take control of all open tabs right away
 });
 
-// Cache-first: serve from cache, fall back to network and cache the response
+// Stale-while-revalidate: отдаём из кэша мгновенно (быстро + оффлайн), но В ФОНЕ
+// всегда идём в сеть и обновляем кэш. Так свежий код доезжает до игрока на СЛЕДУЮЩЕЙ
+// загрузке даже если забыли бампнуть CACHE — забытый бамп самозалечивается.
+// (Бамп всё ещё полезен: гарантирует обновление на ПЕРВОЙ же загрузке через skipWaiting.)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  if (!e.request.url.startsWith(BASE)) return; // ignore cross-origin requests
+  if (!e.request.url.startsWith(BASE)) return; // игнорируем cross-origin
 
   e.respondWith(
     caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(resp => {
+      // Параллельно с отдачей кэша тянем сеть и переписываем кэш свежим ответом.
+      const network = fetch(e.request).then(resp => {
         if (resp.ok) {
           // Клонируем сразу — до любых await/then, пока тело ещё не начали читать.
-          // Иначе к моменту разрешения caches.open() resp уже потреблён браузером.
           const clone = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
-      });
+      }).catch(() => cached); // оффлайн → довольствуемся кэшем
+
+      // Есть кэш — отдаём немедленно; нет — ждём сеть (первый визит).
+      return cached || network;
     })
   );
 });
