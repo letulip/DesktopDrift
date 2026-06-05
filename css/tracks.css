@@ -1,0 +1,89 @@
+/* Экран выбора трасс (tracks.html) */
+
+#track-select {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: var(--bg-screen);
+  font: 14px/1.4 var(--font-body); color: var(--ink);
+  gap: 20px; padding: 24px; box-sizing: border-box;
+  overflow-y: auto;
+}
+
+#ts-title {
+  margin: 0;
+  font: 800 clamp(24px, 6.4vw, 40px) var(--font-display);
+  letter-spacing: .5px; line-height: 1;
+  background: var(--accent-text);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+#ts-sub {
+  margin: 0;
+  font: 600 15px var(--font-body); opacity: .45;
+}
+
+/* ── Track cards ─────────────────────────────────────────────────────────── */
+#track-cards {
+  display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+}
+
+.track-card {
+  display: flex; flex-direction: column;
+  width: min(280px, calc(100vw - 48px));
+  border-radius: var(--r-card);
+  background: var(--surface);
+  border: 2px solid var(--surface-line);
+  cursor: pointer; text-decoration: none; color: var(--ink);
+  overflow: hidden;
+  transition: border-color var(--ease), background var(--ease), transform var(--ease), box-shadow var(--ease);
+}
+.track-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(255,177,77,.12);
+}
+
+/* Canvas thumbnail */
+.track-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  background: var(--bg-mid);
+}
+
+/* Card body */
+.track-card-body {
+  padding: 12px 16px 14px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.track-card-name {
+  font: 800 15px var(--font-display);
+  letter-spacing: .3px;
+}
+
+.track-card-desc {
+  font: 400 12px var(--font-body);
+  opacity: .45; line-height: 1.4;
+}
+
+.track-card-record {
+  font: 500 12px var(--font-body);
+  color: rgba(255,255,255,.35);
+  margin-top: 2px;
+}
+.track-card-record .val {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── Back link ───────────────────────────────────────────────────────────── */
+.ts-back {
+  color: rgba(255,255,255,.35);
+  font: 13px var(--font-body);
+  text-decoration: none;
+  transition: color var(--ease);
+}
+.ts-back:hover { color: rgba(255,255,255,.65); }

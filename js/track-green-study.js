@@ -1,4 +1,4 @@
-// Трасса «Рабочий стол» — генерируется из tracks/WORK_DESK_1.svg.
+// Трасса «Green Study» — генерируется из tracks/WORK_DESK_1.svg.
 // Прокси-линии (<line id="ITEM_*">) задают позицию и угол предметов.
 // Использует top-level await (ES-модули, современные браузеры).
 
@@ -50,7 +50,6 @@ function parseSvgPath(d) {
 // 1) прямое совпадение; 2) обрезаем суффикс _N (номер экземпляра)
 function resolveKey(id) {
   if (id in ITEMS) return id;
-  // Убираем суффикс типа _2, _3 (но не _PLUS, не _YELLOW — они буквенные)
   const stripped = id.replace(/_\d+$/, '');
   return stripped in ITEMS ? stripped : null;
 }
@@ -85,7 +84,7 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
   const key   = resolveKey(rawId);
   if (!key) {
-    console.warn(`[track-workdesk] unknown item id "${rawId}" — не найден в items.js`);
+    console.warn(`[track-green-study] unknown item id "${rawId}" — не найден в items.js`);
     return;
   }
   const item = ITEMS[key];

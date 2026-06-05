@@ -46,14 +46,18 @@
   import { CARS, GU_TO_KMH } from './js/config.js';
   import { PALETTE, NEON_PALETTE } from './js/palette.js';
   import { garage, save } from './js/store.js';
+  import { TRACKS } from './js/track-registry.js';
 
-  const params = new URLSearchParams(location.search);
-  const mode   = params.get('mode') || 'sandbox';
+  const params    = new URLSearchParams(location.search);
+  const trackId   = params.get('track');                          // e.g. 'green-study'
+  const mode      = trackId ? 'timeattack' : (params.get('mode') || 'sandbox');
+  const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
+
+  // Кнопка «назад» ведёт на список трасс (если пришли оттуда) или на меню
+  document.getElementById('backLink').href = trackMeta ? 'tracks.html' : 'index.html';
 
   document.getElementById('mode-title').textContent =
-    mode === 'timeattack' ? 'Time Attack'
-    : mode === 'workdesk' ? 'Work Desk'
-    : 'Sandbox';
+    trackMeta ? trackMeta.name : mode === 'sandbox' ? 'Sandbox' : 'Time Attack';
 
   // ── Restore from store ───────────────────────────────────────────────────────
   const g = garage();
@@ -271,9 +275,7 @@
     g.bodyColor = CARS[sel].body;
     g.neonColor = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
     save();
-    location.href = mode === 'timeattack' ? 'timeattack.html'
-                  : mode === 'workdesk'   ? 'workdesk.html'
-                  : 'sandbox.html';
+    location.href = trackMeta ? trackMeta.page : 'sandbox.html';
   });
 
   // ── Initial render ───────────────────────────────────────────────────────────
