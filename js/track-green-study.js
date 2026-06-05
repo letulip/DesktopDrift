@@ -109,3 +109,16 @@ export const startPos   = { x: _c0.x, y: _c0.y };
 export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
 
 export const collectibles = [];
+
+// Цветовая тема — передаётся в render.js через initRender(T).
+// Значения из tracks/track_themes.json → "green-study".palette
+export const theme = {
+  background: '#14130e',
+  table:      '#2f4034',
+  tableEdge:  '#7a6334',
+  track:      '#cdbf9e',
+  startLine:  '#efe9d8',
+  skid:       'rgba(10,16,10,0.5)',
+  checkpoint: 'rgba(125,212,255,0.5)',
+  cone:       '#ff7a1a',
+};
