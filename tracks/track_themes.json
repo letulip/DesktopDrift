@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "_about": "Цветовые схемы и наборы предметов для локаций Time Attack в Desktop Drift. Цвета — это литералы canvas-мира (НЕ CSS-токены): сейчас они захардкожены в js/render.js. Для внедрения: каждый трек-модуль экспортирует `theme`, а render.js читает T.theme вместо литералов (по аналогии с тем, как initRender уже читает T.TABLE). Дефолт = тема 'dining-oak' (текущие значения), чтобы старые треки не сломались.",
+  "_integration": {
+    "consumedBy": "js/render.js (draw / drawProp / drawMini)",
+    "pattern": "Dependency injection через namespace трека T, как TABLE. render.js: const TH = T.theme ?? THEME_DEFAULT;",
+    "currentLiterals": {
+      "background": "#0f0b08  (render.js: пол — fillRect видимого прямоугольника)",
+      "table": "#2e241a  (render.js: заливка стола)",
+      "tableEdge": "#5a4a36  (render.js: кант стола, lineWidth 12)",
+      "track": "#43372a  (render.js: полотно трассы, fill evenodd)",
+      "startLine": "#e8e8e8  (render.js: пунктир старт/финиш)",
+      "skid": "rgba(15,9,6,a)  (render.js: следы, a из S.skids)",
+      "checkpoint": "rgba(125,212,255,0.5)  (render.js: след. чекпоинт)",
+      "cone": "#ff7a1a  (render.js: конусы; центр белый rgba(255,255,255,.75))"
+    },
+    "brandRule": "cone/accent рекомендуется держать ФИКСИРОВАННЫМ (#ff7a1a) во всех темах — это сигнатурный янтарный акцент проекта (DESIGN.md: 'single amber accent'). В схеме он themable, но дефолт один.",
+    "lightThemeCaveat": "На светлых темах (cafe-marble, steel-kitchen) ломаются два HUD-элемента, заточенных под тёмный мир: (1) #hint — белый текст opacity .55 без подложки → невидим; (2) старт/финиш #e8e8e8 — белый → исчезает на светлом треке. Поэтому startLine в таких темах ТЁМНЫЙ, а #hint надо дать text-shadow/тёмную плашку (правка css/sandbox.css). См. track_themes_proposal.md."
+  },
+  "items": {
+    "_legend": {
+      "ready": "Дескриптор есть в items.js + SVG-ассет на месте — готов к расстановке.",
+      "asset-only": "SVG в репо есть, но дескриптора в items.js нет — нужно дописать ~1 строку { hl, r, kind, imgSrc, c }.",
+      "new": "Нужно нарисовать новый SVG (портрет, масштаб 1:64) + дескриптор."
+    },
+    "descriptorShape": "{ hl: полудлина капсулы(0=круг), r: радиус коллайдера, kind: 'plate|bowl|knife|fork|board', imgSrc: 'items/x.svg', c: '#fallback' }"
+  },
+  "tracks": [
+    {
+      "id": "dining-oak",
+      "name": "Обеденный кухонный стол",
+      "surface": "Дубовый обеденный стол",
+      "bgValue": "dark",
+      "mood": "тёплый, уютный, дефолт (= текущая схема)",
+      "palette": {
+        "background": "#0f0b08",
+        "table":      "#2e241a",
+        "tableEdge":  "#5a4a36",
+        "track":      "#43372a",
+        "startLine":  "#e8e8e8",
+        "skid":       "rgba(15,9,6,0.5)",
+        "checkpoint": "rgba(125,212,255,0.5)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_PLATE_WHITE", "ITEM_PLATE_GREY", "ITEM_SET_1", "ITEM_SET_2", "ITEM_FORK_1", "ITEM_FORK_2", "ITEM_KNIFE_1", "ITEM_CUP"],
+        "asset-only": [],
+        "new":        ["бокал для вина (стекло, круг r~50)", "солонка+перечница (пара, board)", "тканевая салфетка сложенная (board)", "хлебная корзинка (bowl r~200)", "бутылка масла (board, вытянутая)"]
+      }
+    },
+    {
+      "id": "steel-kitchen",
+      "name": "Кухня — рабочая поверхность",
+      "surface": "Нержавеющая столешница / мясницкий блок у белой плитки",
+      "bgValue": "light",
+      "mood": "холодный, чистый, светлый фон (белый кафель)",
+      "palette": {
+        "background": "#c6cace",
+        "table":      "#6b7178",
+        "tableEdge":  "#444a50",
+        "track":      "#c6bca1",
+        "startLine":  "#2a2e33",
+        "skid":       "rgba(30,34,40,0.5)",
+        "checkpoint": "rgba(60,120,160,0.6)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_PAN_EGG", "ITEM_CLEAVER", "ITEM_SPATULA_1", "ITEM_SPATULA_2", "ITEM_MIXER", "ITEM_OPENER", "ITEM_SPRAY", "ITEM_KNIFE_2", "ITEM_KNIFE_3"],
+        "asset-only": ["ITEM_GRATER (есть grater-ready.svg, дописать дескриптор; board, r~120)", "ITEM_MITTEN (есть mitten-ready.svg, но битые размеры — пересохранить; board)"],
+        "new":        ["венчик (knife/board, вытянутый)", "скалка (knife, hl~140 r~28)", "разделочная доска деревянная (board) — можно board1/board2-ready.svg", "миска нержавеющая (bowl r~180)"]
+      }
+    },
+    {
+      "id": "cafe-marble",
+      "name": "Кофейный столик (кофейня)",
+      "surface": "Тёмный ореховый бистро-столик на светлом терраццо-полу",
+      "bgValue": "light",
+      "mood": "светлый, воздушный, тёплый кофейный; инверсия (светлый фон + тёмный стол)",
+      "palette": {
+        "background": "#d7d0c4",
+        "table":      "#4a3726",
+        "tableEdge":  "#2e2114",
+        "track":      "#d3b483",
+        "startLine":  "#f2ead8",
+        "skid":       "rgba(35,24,14,0.5)",
+        "checkpoint": "rgba(90,150,180,0.6)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_CUP", "ITEM_COLA_CAP", "ITEM_PLATE_WHITE", "ITEM_NOTEBOOK"],
+        "asset-only": [],
+        "new":        ["блюдце под чашку (plate r~90)", "круассан (bowl r~70)", "пакетики сахара (board, мелкие)", "десертная ложка (knife/spoon)", "стеклянная банка для чаевых (bowl r~80)", "смартфон (board ~16x8 см)"]
+      }
+    },
+    {
+      "id": "green-study",
+      "name": "Кабинет / рабочий стол",
+      "surface": "Письменный стол с зелёным сукном и латунной отделкой",
+      "bgValue": "dark",
+      "mood": "глубокий зелёный + латунь (латунь рифмуется с янтарным акцентом)",
+      "palette": {
+        "background": "#14130e",
+        "table":      "#2f4034",
+        "tableEdge":  "#7a6334",
+        "track":      "#cdbf9e",
+        "startLine":  "#efe9d8",
+        "skid":       "rgba(10,16,10,0.5)",
+        "checkpoint": "rgba(125,212,255,0.5)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_NOTEBOOK", "ITEM_CLIPBOARD", "ITEM_PENCIL", "ITEM_PENCIL_PLUS", "ITEM_RULER", "ITEM_COMPASS_1", "ITEM_COMPASS_RULER", "ITEM_PHONE", "ITEM_CUP", "ITEM_CORRECTOR"],
+        "asset-only": [],
+        "new":        ["очки (board, вытянутые)", "чернильница / пресс-папье (bowl r~70)", "печать-штамп (board)", "стопка книг (board толстая)"]
+      }
+    },
+    {
+      "id": "workbench",
+      "name": "Верстак",
+      "surface": "Потёртое дерево + металл в мастерской (бетон/петроль-фон)",
+      "bgValue": "dark",
+      "mood": "индустриальный, приглушённый, грязновато-серое дерево + холодный цех",
+      "palette": {
+        "background": "#181d1d",
+        "table":      "#574b39",
+        "tableEdge":  "#837a68",
+        "track":      "#9a8c6f",
+        "startLine":  "#e6e0d2",
+        "skid":       "rgba(14,12,8,0.55)",
+        "checkpoint": "rgba(125,212,255,0.5)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_TAPE", "ITEM_CUTTER", "ITEM_PENCIL", "ITEM_SPRAY", "ITEM_TIRE_COIN"],
+        "asset-only": [],
+        "new":        ["отвёртка (knife, hl~120 r~14)", "разводной ключ (knife/board)", "плоскогубцы (board)", "молоток (knife/board, с головкой)", "гайки и болты (мелкие круги r~14)", "рулетка-измеритель (board r~60)", "струбцина (board)"]
+      }
+    },
+    {
+      "id": "dev-desk",
+      "name": "Стол программиста",
+      "surface": "Светлый стол в тёмной комнате со свечением монитора",
+      "bgValue": "dark-cool",
+      "mood": "современный, холодный; светлый стол + тёплый трек-акцент; родная локация для неон-андерглоу",
+      "palette": {
+        "background": "#1b2230",
+        "table":      "#d9dde2",
+        "tableEdge":  "#aab2bd",
+        "track":      "#c7bda4",
+        "startLine":  "#3a4150",
+        "skid":       "rgba(40,46,58,0.5)",
+        "checkpoint": "rgba(0,207,255,0.55)",
+        "cone":       "#ff7a1a"
+      },
+      "items": {
+        "ready":      ["ITEM_CUP", "ITEM_COLA_CAP", "ITEM_NOTEBOOK", "ITEM_PENCIL", "ITEM_PHONE"],
+        "asset-only": [],
+        "new":        ["компьютерная мышь (bowl/board r~50)", "наушники (bowl r~90, кольцо)", "энергетик-банка (bowl r~60) — можно cola-filled.svg", "стикеры-заметки (board, квадрат)", "USB-флешка (knife, мелкая)", "очки (board)", "мини-суккулент в горшке (bowl r~70)"]
+      }
+    }
+  ],
+  "_alternativesPool": [
+    "Барная стойка (тёмное дерево + латунь, тёплый низкий свет)",
+    "Стол для пикника / садовый (светлое крашеное дерево, зелёный/небесный фон — травяной)",
+    "Лабораторный стол (белый ламинат, холодный сине-белый, мензурки/штатив)",
+    "Гримёрный столик (бежевый + лампочки, косметика)",
+    "Школьная парта (светлое дерево + откидная крышка, тетради/циркуль)",
+    "Стол для покера/настолок (зелёное/бордовое сукно, фишки/карты)"
+  ]
+}
