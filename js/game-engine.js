@@ -41,9 +41,23 @@ export const startGame = (T, opts = {}) => {
     S.crashCd = 0.5; S.driftGrace = 1;
   }
 
+  // Ближайшая точка центральной линии. Раньше — O(N) полный скан КАЖДЫЙ кадр.
+  // Машина движется непрерывно по замкнутой линии, поэтому ищем только в окне
+  // ±NEAR_W вокруг прошлого индекса и запоминаем найденный. Для N≈300–416 это
+  // ~49 точек вместо всех — кратно дешевле, результат тот же (шаг машины за кадр
+  // ≪ ширины окна даже при clamp dt=0.05).
+  const N_CENTER = center.length;
+  const NEAR_W = 24;
+  let nearIdx = 0;
   const distToTrack = () => {
-    let best = Infinity;
-    for (const c of center) { const dx = car.x - c.x, dy = car.y - c.y; const d = dx * dx + dy * dy; if (d < best) best = d; }
+    let best = Infinity, bi = nearIdx;
+    for (let k = -NEAR_W; k <= NEAR_W; k++) {
+      const i = (((nearIdx + k) % N_CENTER) + N_CENTER) % N_CENTER;
+      const dx = car.x - center[i].x, dy = car.y - center[i].y;
+      const d = dx * dx + dy * dy;
+      if (d < best) { best = d; bi = i; }
+    }
+    nearIdx = bi;
     return Math.sqrt(best);
   }
 

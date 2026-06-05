@@ -20,6 +20,9 @@ window.addEventListener('resize', resize); resize();
 // --- Данные трека (устанавливаются через initRender) ---
 let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
 let MINI = null;
+// Кэш статичной геометрии: строится один раз в initRender, а не пересобирается
+// каждый кадр (раньше draw() заново тянул ~830 lineTo по краям, drawMini — ~416).
+let trackPath = null, miniTrackPath = null;
 
 // Вызывается из game-engine.js перед стартом игры
 export const initRender = (T) => {
@@ -46,13 +49,42 @@ export const initRender = (T) => {
     X: x => miniEl.width  / 2 + x * _ms,
     Y: y => miniEl.height / 2 + y * _ms,
   };
+
+  // Полотно трассы (outer + реверс inner, заливка evenodd) — один Path2D на игру.
+  trackPath = new Path2D();
+  trackPath.moveTo(outer[0].x, outer[0].y);
+  for (let i = 1; i < outer.length; i++) trackPath.lineTo(outer[i].x, outer[i].y);
+  trackPath.closePath();
+  const innerRev = inner.slice().reverse();
+  trackPath.moveTo(innerRev[0].x, innerRev[0].y);
+  for (let i = 1; i < innerRev.length; i++) trackPath.lineTo(innerRev[i].x, innerRev[i].y);
+  trackPath.closePath();
+
+  // Линия трассы для миникарты (в пиксельных координатах окошка) — тоже статична.
+  miniTrackPath = new Path2D();
+  miniTrackPath.moveTo(MINI.X(center[0].x), MINI.Y(center[0].y));
+  for (let i = 1; i < center.length; i++) miniTrackPath.lineTo(MINI.X(center[i].x), MINI.Y(center[i].y));
+  miniTrackPath.closePath();
 }
 
 // --- Вспомогательные примитивы ---
-const polyPath = (pts) => {
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.closePath();
+// Следы шин: вместо отдельного fillRect на каждый след (до 1500/кадр) группируем
+// в SKID_LEVELS Path2D по уровням прозрачности и делаем по одной заливке на уровень.
+// Альфа квантуется на 6 ступеней — визуально неотличимо от исходного градиента.
+const SKID_LEVELS = 6;
+const drawSkids = () => {
+  if (!S.skids.length) return;
+  const paths = [];
+  for (let i = 0; i < SKID_LEVELS; i++) paths.push(new Path2D());
+  for (const sk of S.skids) {
+    let b = (sk.a * 10) | 0;            // a∈[0,0.6] → корзина 0..6
+    if (b > SKID_LEVELS - 1) b = SKID_LEVELS - 1;
+    paths[b].rect(sk.x - 3, sk.y - 3, 6, 6);
+  }
+  for (let i = 0; i < SKID_LEVELS; i++) {
+    ctx.fillStyle = `rgba(15,9,6,${(i + 0.5) * 0.1})`;
+    ctx.fill(paths[i]);
+  }
 };
 const rrect = (x, y, w, h, r) => {
   r = Math.min(r, w / 2, h / 2);
@@ -207,12 +239,12 @@ export const draw = (speed) => {
     ctx.strokeRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
   }
 
-  // полотно трассы
+  // полотно трассы (кэшированный Path2D — без пересборки пути каждый кадр)
   ctx.fillStyle = '#43372a';
-  ctx.beginPath(); polyPath(outer); polyPath(inner.slice().reverse()); ctx.fill('evenodd');
+  ctx.fill(trackPath, 'evenodd');
 
-  // следы
-  for (const sk of S.skids) { ctx.fillStyle = `rgba(15,9,6,${sk.a})`; ctx.fillRect(sk.x - 3, sk.y - 3, 6, 6); }
+  // следы — батчем по уровням прозрачности (несколько заливок вместо ≤1500 fillRect)
+  drawSkids();
 
   // старт/финиш
   const c0 = center[0];
@@ -330,13 +362,7 @@ export const drawMini = () => {
   mctx.lineJoin = mctx.lineCap = 'round';
   mctx.strokeStyle = 'rgba(255,255,255,.22)';
   mctx.lineWidth = Math.max(3, TRACK_HALF * 2 * MINI.s);
-  mctx.beginPath();
-  for (let i = 0; i <= center.length; i++) {
-    const c = center[i % center.length];
-    const fn = i ? 'lineTo' : 'moveTo';
-    mctx[fn](MINI.X(c.x), MINI.Y(c.y));
-  }
-  mctx.stroke();
+  mctx.stroke(miniTrackPath);
   mctx.fillStyle = 'rgba(255,255,255,.45)';
   for (const o of props) { mctx.beginPath(); mctx.arc(MINI.X(o.x), MINI.Y(o.y), Math.max(1.5, o.r * MINI.s), 0, Math.PI * 2); mctx.fill(); }
   const cx = MINI.X(car.x), cy = MINI.Y(car.y);
