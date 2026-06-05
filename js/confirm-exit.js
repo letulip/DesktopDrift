@@ -49,12 +49,20 @@ export const createConfirmExit = () => {
   });
 
   // ── Escape = отмена ──
-  addEventListener('keydown', e => {
+  const onKey = e => {
     if (e.key === 'Escape' && overlay.classList.contains('show')) {
       e.preventDefault();
       const cb = pendingCancel; hide(); if (cb) cb();
     }
-  });
+  };
+  addEventListener('keydown', onKey);
 
-  return { show, hide, isVisible: () => overlay.classList.contains('show') };
+  // Разбирает компонент: снимает глобальный слушатель и удаляет свой DOM
+  // (кнопки внутри overlay уходят вместе с ним).
+  const destroy = () => {
+    removeEventListener('keydown', onKey);
+    overlay.remove();
+  };
+
+  return { show, hide, destroy, isVisible: () => overlay.classList.contains('show') };
 }

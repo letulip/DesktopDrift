@@ -103,12 +103,18 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     0.621371 for mph) and sets `#spdUnit` label. Speed passed to `draw()` is
     already converted — `render.js` just rounds and displays it.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
+    Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
+    loop, and destroys the pause / confirm-exit components. The engine is reentrant:
+    a second `startGame` auto-stops the previous one (no leaked listeners / no double
+    RAF). Foundation for restart / results-screen / ghost-car.
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
-    pause, resume }`. Styled via `css/sandbox.css`.
+    pause, resume, destroy }`. `destroy()` removes the keydown listener and its DOM.
+    Styled via `css/sandbox.css`.
   - `js/confirm-exit.js` — self-contained exit-confirmation dialog. Creates
-    `#confirmExitOverlay` DOM. Returns `{ show({ onExit, onCancel }), hide }`.
-    Called by `game-engine.js` when the Menu button is tapped.
+    `#confirmExitOverlay` DOM. Returns `{ show({ onExit, onCancel }), hide, destroy }`.
+    `destroy()` removes the Escape listener and its DOM. Called by `game-engine.js`
+    when the Menu button is tapped.
   - **Dependency order (no circular deps):**
     `store.js` (no imports) →
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
@@ -224,7 +230,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v23`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v26`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG

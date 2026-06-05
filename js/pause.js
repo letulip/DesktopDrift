@@ -45,11 +45,20 @@ export const createPause = ({ onChange } = {}) => {
   // ── События ──
   btn.addEventListener('click',     e => { e.preventDefault(); toggle(); });
   overlay.addEventListener('click', e => { e.preventDefault(); set(false); }); // тап по экрану снимает паузу
-  addEventListener('keydown', e => {
+  const onKey = e => {
     if (e.key === 'p' || e.key === 'P') { e.preventDefault(); toggle(); }
-  });
+  };
+  addEventListener('keydown', onKey);
 
   render();
+
+  // Разбирает компонент: снимает глобальный слушатель и удаляет свой DOM.
+  // btn/overlay-клики висят на самих элементах → уходят вместе с remove().
+  const destroy = () => {
+    removeEventListener('keydown', onKey);
+    btn.remove();
+    overlay.remove();
+  };
 
   return {
     isPaused: () => paused,
@@ -57,6 +66,7 @@ export const createPause = ({ onChange } = {}) => {
     pause:  () => set(true),
     resume: () => set(false),
     set,
+    destroy,
     btn,
     overlay,
   };

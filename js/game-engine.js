@@ -5,10 +5,16 @@ import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings } from './store.js';
 
+// Текущая запущенная игра — чтобы при повторном startGame снять прошлую
+// (слушатели + цикл) и не плодить дубли. Также это сем для будущего restart/replay.
+let _active = null;
+
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
 // opts.initItems — true, если у трека есть SVG-пропсы для предзагрузки
+// Возвращает { stop } — снимает все слушатели и отменяет requestAnimationFrame.
 export const startGame = (T, opts = {}) => {
+  if (_active) _active.stop(); // не запускать вторую игру поверх живой
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R } = T;
 
   initRender(T);
@@ -101,24 +107,41 @@ export const startGame = (T, opts = {}) => {
     for (const x of pointers.values()) s += (x < W / 2 ? -1 : 1);
     S.steerInput = Math.sign(s);
   };
-  addEventListener('keydown', e => { keys[e.key] = true; });
-  addEventListener('keyup',   e => { keys[e.key] = false; });
+
+  // Все слушатели вешаем через on(): он копит их в listeners[], чтобы stop()
+  // снял всё разом. Иначе при повторном запуске слушатели накапливались бы.
+  const listeners = [];
+  const on = (target, type, handler, opts) => {
+    target.addEventListener(type, handler, opts);
+    listeners.push([target, type, handler, opts]);
+  };
+
+  const onKeyDown = e => { keys[e.key] = true; };
+  const onKeyUp   = e => { keys[e.key] = false; };
+  on(window, 'keydown', onKeyDown);
+  on(window, 'keyup',   onKeyUp);
   // passive: false + preventDefault() — не даёт iOS запустить выделение текста
   // при долгом нажатии во время игры
-  canvas.addEventListener('pointerdown',   e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); }, { passive: false });
-  canvas.addEventListener('pointermove',   e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } }, { passive: false });
-  canvas.addEventListener('pointerup',     e => { pointers.delete(e.pointerId); updatePointerSteer(); });
-  canvas.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); updatePointerSteer(); });
+  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); };
+  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } };
+  const onPointerUp     = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
+  const onPointerCancel = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
+  on(canvas, 'pointerdown',   onPointerDown,   { passive: false });
+  on(canvas, 'pointermove',   onPointerMove,   { passive: false });
+  on(canvas, 'pointerup',     onPointerUp);
+  on(canvas, 'pointercancel', onPointerCancel);
   // Блокируем контекстное меню и выделение текста по всему документу
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('selectstart', e => e.preventDefault());
+  const onContextMenu = e => e.preventDefault();
+  const onSelectStart = e => e.preventDefault();
+  on(document, 'contextmenu', onContextMenu);
+  on(document, 'selectstart', onSelectStart);
 
   // ─── UI ───────────────────────────────────────────────────────────────────
 
   // Кнопка «Меню» — сначала спрашиваем подтверждение, чтобы не выбросить игрока
   // в меню случайным нажатием. Игра встаёт на паузу на время диалога.
   const confirmExit = createConfirmExit();
-  document.getElementById('menuBtn').addEventListener('click', e => {
+  const onMenuClick = e => {
     e.preventDefault();
     const wasAlreadyPaused = pause.isPaused();
     pause.pause();
@@ -126,7 +149,8 @@ export const startGame = (T, opts = {}) => {
       onExit:   () => { location.href = 'index.html'; },
       onCancel: () => { if (!wasAlreadyPaused) pause.resume(); },
     });
-  });
+  };
+  on(document.getElementById('menuBtn'), 'click', onMenuClick);
 
   // Машинка и цвет выбраны на экране гаража (select.html), читаем из store
   const g = garage();
@@ -151,19 +175,20 @@ export const startGame = (T, opts = {}) => {
   // ─── Физика ───────────────────────────────────────────────────────────────
 
   let last = performance.now();
+  let rafId = 0;
   const frame = (now) => {
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
     // Заморозка: ничего не считаем и не перерисовываем — последний кадр остаётся
     // на canvas, оверлей его затемняет. last уже обновлён → нет скачка dt.
-    if (pause.isPaused()) { requestAnimationFrame(frame); return; }
+    if (pause.isPaused()) { rafId = requestAnimationFrame(frame); return; }
 
     if (S.startCd > 0) {
       S.startCd -= dt;
       if (S.startCd <= 0) S.goT = 1.0;
       draw(0);
-      requestAnimationFrame(frame);
+      rafId = requestAnimationFrame(frame);
       return;
     }
     if (S.goT > 0) S.goT -= dt;
@@ -327,8 +352,23 @@ export const startGame = (T, opts = {}) => {
 
     if (S.flashT > 0) S.flashT -= dt;
     draw(toDisplaySpeed(speed));
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
 
-  requestAnimationFrame(frame);
+  // ─── Жизненный цикл ─────────────────────────────────────────────────────────
+  // stop() делает движок реентерабельным: снимает все слушатели, отменяет цикл,
+  // разбирает свои UI-компоненты. Основа под restart / results-screen / ghost.
+  const stop = () => {
+    cancelAnimationFrame(rafId);
+    for (const [t, type, h, o] of listeners) t.removeEventListener(type, h, o);
+    listeners.length = 0;
+    pause.destroy();
+    confirmExit.destroy();
+    if (_active === api) _active = null;
+  };
+  const api = { stop };
+  _active = api;
+
+  rafId = requestAnimationFrame(frame);
+  return api;
 }
