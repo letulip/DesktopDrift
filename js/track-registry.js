@@ -21,7 +21,7 @@ export const TRACKS = [
   //   desc:   `A cozy dining table turned dangerous circuit. Watch out – those giant forks are unforgiving!`,
   //   svgSrc: `tracks/dining-oak.svg`,
   //   page:   `dining-oak.html`,
-  //   theme:  { background: `#111111`, table: `#222222`, tableEdge: `#555555`, track: `#888888` },
+  //   theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#43372a` },
   // },
   // {
   //   id:     `steel-kitchen`,
@@ -29,7 +29,7 @@ export const TRACKS = [
   //   desc:   `Cold steel and sharp cleavers. Navigate a perilous maze of kitchen utensils and don't slip on the oil!`,
   //   svgSrc: `tracks/steel-kitchen.svg`,
   //   page:   `steel-kitchen.html`,
-  //   theme:  { background: `#f0f0f0`, table: `#ffffff`, tableEdge: `#cccccc`, track: `#999999` },
+  //   theme:  { background: `#c6cace`, table: `#6b7178`, tableEdge: `#444a50`, track: `#c6bca1` },
   // },
   // {
   //   id:     `cafe-marble`,
@@ -37,7 +37,7 @@ export const TRACKS = [
   //   desc:   `An elegant bistro table. Slide around giant coffee cups and scattered sugar packets. Don't spill the espresso!`,
   //   svgSrc: `tracks/cafe-marble.svg`,
   //   page:   `cafe-marble.html`,
-  //   theme:  { background: `#e0e0e0`, table: `#ffffff`, tableEdge: `#cccccc`, track: `#999999` },
+  //   theme:  { background: `#d7d0c4`, table: `#4a3726`, tableEdge: `#2e2114`, track: `#d3b483` },
   // },
   // {
   //   id:     `workbench`,
@@ -45,7 +45,7 @@ export const TRACKS = [
   //   desc:   `A rugged industrial workbench. Put your suspension to the test among heavy tools, bolts, and wrenches.`,
   //   svgSrc: `tracks/workbench.svg`,
   //   page:   `workbench.html`,
-  //   theme:  { background: `#e0e0e0`, table: `#ffffff`, tableEdge: `#cccccc`, track: `#999999` },
+  //   theme:  { background: `#14130e`, table: `#2f4034`, tableEdge: `#7a6334`, track: `#cdbf9e` },
   // },
   // {
   //   id:     `dev-desk`,
@@ -53,6 +53,6 @@ export const TRACKS = [
   //   desc:   `Late-night coding chaos. Drift through a maze of sticky notes, flash drives, and empty energy drinks!`,
   //   svgSrc: `tracks/dev-desk.svg`,
   //   page:   `dev-desk.html`,
-  //   theme:  { background: `#e0e0e0`, table: `#ffffff`, tableEdge: `#cccccc`, track: `#999999` },
+  //   theme:  { background: `#181d1d`, table: `#574b39`, tableEdge: `#837a68`, track: `#9a8c6f` },
   // }
 ];
