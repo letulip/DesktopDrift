@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1160" viewBox="0 0 1160 1160" font-family="-apple-system, Segoe UI, system-ui, sans-serif">
+  <rect width="1160" height="1160" fill="#14110f"/>
+  <text x="30" y="50" fill="#fff" font-size="26" font-weight="800">Desktop Drift — цветовые схемы локаций (Time Attack)</text>
+  <text x="30" y="78" fill="#cdbb95" font-size="14">6 локаций · превью: фон · стол · кант · трек · старт-линия · конус (янтарный акцент — фиксированный). Светлые темы: steel-kitchen, cafe-marble.</text>
+
+  <!-- ============ CARD 1: dining-oak ============ -->
+  <g>
+    <rect x="30" y="100" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="50" y="130" fill="#fff" font-size="18" font-weight="700">1 · Обеденный кухонный стол</text>
+    <text x="50" y="150" fill="#9b8f7e" font-size="12">Дубовый стол · тёмный фон · ДЕФОЛТ (= текущая схема)</text>
+    <rect x="50" y="164" width="500" height="170" rx="10" fill="#0f0b08"/>
+    <rect x="110" y="190" width="380" height="120" rx="18" fill="#2e241a" stroke="#5a4a36" stroke-width="5"/>
+    <ellipse cx="300" cy="249" rx="150" ry="46" fill="none" stroke="#43372a" stroke-width="24"/>
+    <line x1="450" y1="226" x2="450" y2="272" stroke="#e8e8e8" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="180" cy="220" r="10" fill="rgba(255,255,255,0.18)"/>
+    <circle cx="425" cy="283" r="12" fill="rgba(0,0,0,0.22)"/>
+    <circle cx="150" cy="283" r="8" fill="rgba(255,255,255,0.14)"/>
+    <circle cx="300" cy="203" r="7" fill="#ff7a1a"/><circle cx="300" cy="203" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="50" y="350" fill="#8a8175" font-size="10">фон</text><rect x="50" y="355" width="116" height="32" rx="6" fill="#0f0b08" stroke="rgba(255,255,255,0.15)"/><text x="50" y="401" fill="#d8d2c8" font-size="11">#0f0b08</text>
+    <text x="172" y="350" fill="#8a8175" font-size="10">стол</text><rect x="172" y="355" width="116" height="32" rx="6" fill="#2e241a" stroke="rgba(255,255,255,0.15)"/><text x="172" y="401" fill="#d8d2c8" font-size="11">#2e241a</text>
+    <text x="294" y="350" fill="#8a8175" font-size="10">кант</text><rect x="294" y="355" width="116" height="32" rx="6" fill="#5a4a36" stroke="rgba(255,255,255,0.15)"/><text x="294" y="401" fill="#d8d2c8" font-size="11">#5a4a36</text>
+    <text x="416" y="350" fill="#8a8175" font-size="10">трек</text><rect x="416" y="355" width="116" height="32" rx="6" fill="#43372a" stroke="rgba(255,255,255,0.15)"/><text x="416" y="401" fill="#d8d2c8" font-size="11">#43372a</text>
+  </g>
+
+  <!-- ============ CARD 2: steel-kitchen ============ -->
+  <g>
+    <rect x="590" y="100" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="610" y="130" fill="#fff" font-size="18" font-weight="700">2 · Кухня — рабочая поверхность</text>
+    <text x="610" y="150" fill="#9b8f7e" font-size="12">Нержавейка · СВЕТЛЫЙ фон (белый кафель) · холодный</text>
+    <rect x="610" y="164" width="500" height="170" rx="10" fill="#c6cace"/>
+    <rect x="670" y="190" width="380" height="120" rx="18" fill="#6b7178" stroke="#444a50" stroke-width="5"/>
+    <ellipse cx="860" cy="249" rx="150" ry="46" fill="none" stroke="#c6bca1" stroke-width="24"/>
+    <line x1="1010" y1="226" x2="1010" y2="272" stroke="#2a2e33" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="740" cy="220" r="10" fill="rgba(255,255,255,0.30)"/>
+    <circle cx="985" cy="283" r="12" fill="rgba(0,0,0,0.22)"/>
+    <circle cx="710" cy="283" r="8" fill="rgba(0,0,0,0.18)"/>
+    <circle cx="860" cy="203" r="7" fill="#ff7a1a"/><circle cx="860" cy="203" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="610" y="350" fill="#8a8175" font-size="10">фон</text><rect x="610" y="355" width="116" height="32" rx="6" fill="#c6cace" stroke="rgba(255,255,255,0.15)"/><text x="610" y="401" fill="#d8d2c8" font-size="11">#c6cace</text>
+    <text x="732" y="350" fill="#8a8175" font-size="10">стол</text><rect x="732" y="355" width="116" height="32" rx="6" fill="#6b7178" stroke="rgba(255,255,255,0.15)"/><text x="732" y="401" fill="#d8d2c8" font-size="11">#6b7178</text>
+    <text x="854" y="350" fill="#8a8175" font-size="10">кант</text><rect x="854" y="355" width="116" height="32" rx="6" fill="#444a50" stroke="rgba(255,255,255,0.15)"/><text x="854" y="401" fill="#d8d2c8" font-size="11">#444a50</text>
+    <text x="976" y="350" fill="#8a8175" font-size="10">трек</text><rect x="976" y="355" width="116" height="32" rx="6" fill="#c6bca1" stroke="rgba(255,255,255,0.15)"/><text x="976" y="401" fill="#d8d2c8" font-size="11">#c6bca1</text>
+  </g>
+
+  <!-- ============ CARD 3: cafe-marble ============ -->
+  <g>
+    <rect x="30" y="450" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="50" y="480" fill="#fff" font-size="18" font-weight="700">3 · Кофейный столик (кофейня)</text>
+    <text x="50" y="500" fill="#9b8f7e" font-size="12">Орех на СВЕТЛОМ терраццо · инверсия (светлый фон + тёмный стол)</text>
+    <rect x="50" y="514" width="500" height="170" rx="10" fill="#d7d0c4"/>
+    <rect x="110" y="540" width="380" height="120" rx="18" fill="#4a3726" stroke="#2e2114" stroke-width="5"/>
+    <ellipse cx="300" cy="599" rx="150" ry="46" fill="none" stroke="#d3b483" stroke-width="24"/>
+    <line x1="450" y1="576" x2="450" y2="622" stroke="#f2ead8" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="180" cy="570" r="10" fill="rgba(255,255,255,0.22)"/>
+    <circle cx="425" cy="633" r="12" fill="rgba(0,0,0,0.25)"/>
+    <circle cx="150" cy="633" r="8" fill="rgba(255,255,255,0.16)"/>
+    <circle cx="300" cy="553" r="7" fill="#ff7a1a"/><circle cx="300" cy="553" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="50" y="700" fill="#8a8175" font-size="10">фон</text><rect x="50" y="705" width="116" height="32" rx="6" fill="#d7d0c4" stroke="rgba(255,255,255,0.15)"/><text x="50" y="751" fill="#d8d2c8" font-size="11">#d7d0c4</text>
+    <text x="172" y="700" fill="#8a8175" font-size="10">стол</text><rect x="172" y="705" width="116" height="32" rx="6" fill="#4a3726" stroke="rgba(255,255,255,0.15)"/><text x="172" y="751" fill="#d8d2c8" font-size="11">#4a3726</text>
+    <text x="294" y="700" fill="#8a8175" font-size="10">кант</text><rect x="294" y="705" width="116" height="32" rx="6" fill="#2e2114" stroke="rgba(255,255,255,0.15)"/><text x="294" y="751" fill="#d8d2c8" font-size="11">#2e2114</text>
+    <text x="416" y="700" fill="#8a8175" font-size="10">трек</text><rect x="416" y="705" width="116" height="32" rx="6" fill="#d3b483" stroke="rgba(255,255,255,0.15)"/><text x="416" y="751" fill="#d8d2c8" font-size="11">#d3b483</text>
+  </g>
+
+  <!-- ============ CARD 4: green-study ============ -->
+  <g>
+    <rect x="590" y="450" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="610" y="480" fill="#fff" font-size="18" font-weight="700">4 · Кабинет / рабочий стол</text>
+    <text x="610" y="500" fill="#9b8f7e" font-size="12">Зелёное сукно + латунь (латунь ≈ янтарный акцент) · тёмный</text>
+    <rect x="610" y="514" width="500" height="170" rx="10" fill="#14130e"/>
+    <rect x="670" y="540" width="380" height="120" rx="18" fill="#2f4034" stroke="#7a6334" stroke-width="5"/>
+    <ellipse cx="860" cy="599" rx="150" ry="46" fill="none" stroke="#cdbf9e" stroke-width="24"/>
+    <line x1="1010" y1="576" x2="1010" y2="622" stroke="#efe9d8" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="740" cy="570" r="10" fill="rgba(255,255,255,0.18)"/>
+    <circle cx="985" cy="633" r="12" fill="rgba(0,0,0,0.25)"/>
+    <circle cx="710" cy="633" r="8" fill="rgba(255,255,255,0.14)"/>
+    <circle cx="860" cy="553" r="7" fill="#ff7a1a"/><circle cx="860" cy="553" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="610" y="700" fill="#8a8175" font-size="10">фон</text><rect x="610" y="705" width="116" height="32" rx="6" fill="#14130e" stroke="rgba(255,255,255,0.15)"/><text x="610" y="751" fill="#d8d2c8" font-size="11">#14130e</text>
+    <text x="732" y="700" fill="#8a8175" font-size="10">стол</text><rect x="732" y="705" width="116" height="32" rx="6" fill="#2f4034" stroke="rgba(255,255,255,0.15)"/><text x="732" y="751" fill="#d8d2c8" font-size="11">#2f4034</text>
+    <text x="854" y="700" fill="#8a8175" font-size="10">кант</text><rect x="854" y="705" width="116" height="32" rx="6" fill="#7a6334" stroke="rgba(255,255,255,0.15)"/><text x="854" y="751" fill="#d8d2c8" font-size="11">#7a6334</text>
+    <text x="976" y="700" fill="#8a8175" font-size="10">трек</text><rect x="976" y="705" width="116" height="32" rx="6" fill="#cdbf9e" stroke="rgba(255,255,255,0.15)"/><text x="976" y="751" fill="#d8d2c8" font-size="11">#cdbf9e</text>
+  </g>
+
+  <!-- ============ CARD 5: workbench ============ -->
+  <g>
+    <rect x="30" y="800" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="50" y="830" fill="#fff" font-size="18" font-weight="700">5 · Верстак</text>
+    <text x="50" y="850" fill="#9b8f7e" font-size="12">Потёртое дерево + холодный цех (петроль-фон) · индустриальный</text>
+    <rect x="50" y="864" width="500" height="170" rx="10" fill="#181d1d"/>
+    <rect x="110" y="890" width="380" height="120" rx="18" fill="#574b39" stroke="#837a68" stroke-width="5"/>
+    <ellipse cx="300" cy="949" rx="150" ry="46" fill="none" stroke="#9a8c6f" stroke-width="24"/>
+    <line x1="450" y1="926" x2="450" y2="972" stroke="#e6e0d2" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="180" cy="920" r="10" fill="rgba(255,255,255,0.16)"/>
+    <circle cx="425" cy="983" r="12" fill="rgba(0,0,0,0.25)"/>
+    <circle cx="150" cy="983" r="8" fill="rgba(255,255,255,0.12)"/>
+    <circle cx="300" cy="903" r="7" fill="#ff7a1a"/><circle cx="300" cy="903" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="50" y="1050" fill="#8a8175" font-size="10">фон</text><rect x="50" y="1055" width="116" height="32" rx="6" fill="#181d1d" stroke="rgba(255,255,255,0.15)"/><text x="50" y="1101" fill="#d8d2c8" font-size="11">#181d1d</text>
+    <text x="172" y="1050" fill="#8a8175" font-size="10">стол</text><rect x="172" y="1055" width="116" height="32" rx="6" fill="#574b39" stroke="rgba(255,255,255,0.15)"/><text x="172" y="1101" fill="#d8d2c8" font-size="11">#574b39</text>
+    <text x="294" y="1050" fill="#8a8175" font-size="10">кант</text><rect x="294" y="1055" width="116" height="32" rx="6" fill="#837a68" stroke="rgba(255,255,255,0.15)"/><text x="294" y="1101" fill="#d8d2c8" font-size="11">#837a68</text>
+    <text x="416" y="1050" fill="#8a8175" font-size="10">трек</text><rect x="416" y="1055" width="116" height="32" rx="6" fill="#9a8c6f" stroke="rgba(255,255,255,0.15)"/><text x="416" y="1101" fill="#d8d2c8" font-size="11">#9a8c6f</text>
+  </g>
+
+  <!-- ============ CARD 6: dev-desk ============ -->
+  <g>
+    <rect x="590" y="800" width="540" height="330" rx="14" fill="#1c1814" stroke="rgba(255,255,255,0.10)"/>
+    <text x="610" y="830" fill="#fff" font-size="18" font-weight="700">6 · Стол программиста</text>
+    <text x="610" y="850" fill="#9b8f7e" font-size="12">Светлый стол · тёмно-синяя комната · родная локация для неона</text>
+    <rect x="610" y="864" width="500" height="170" rx="10" fill="#1b2230"/>
+    <rect x="670" y="890" width="380" height="120" rx="18" fill="#d9dde2" stroke="#aab2bd" stroke-width="5"/>
+    <ellipse cx="860" cy="949" rx="150" ry="46" fill="none" stroke="#c7bda4" stroke-width="24"/>
+    <line x1="1010" y1="926" x2="1010" y2="972" stroke="#3a4150" stroke-width="4" stroke-dasharray="6 6"/>
+    <circle cx="740" cy="920" r="10" fill="rgba(0,0,0,0.16)"/>
+    <circle cx="985" cy="983" r="12" fill="rgba(0,207,255,0.35)"/>
+    <circle cx="710" cy="983" r="8" fill="rgba(0,0,0,0.14)"/>
+    <circle cx="860" cy="903" r="7" fill="#ff7a1a"/><circle cx="860" cy="903" r="3" fill="rgba(255,255,255,0.85)"/>
+    <text x="610" y="1050" fill="#8a8175" font-size="10">фон</text><rect x="610" y="1055" width="116" height="32" rx="6" fill="#1b2230" stroke="rgba(255,255,255,0.15)"/><text x="610" y="1101" fill="#d8d2c8" font-size="11">#1b2230</text>
+    <text x="732" y="1050" fill="#8a8175" font-size="10">стол</text><rect x="732" y="1055" width="116" height="32" rx="6" fill="#d9dde2" stroke="rgba(255,255,255,0.15)"/><text x="732" y="1101" fill="#d8d2c8" font-size="11">#d9dde2</text>
+    <text x="854" y="1050" fill="#8a8175" font-size="10">кант</text><rect x="854" y="1055" width="116" height="32" rx="6" fill="#aab2bd" stroke="rgba(255,255,255,0.15)"/><text x="854" y="1101" fill="#d8d2c8" font-size="11">#aab2bd</text>
+    <text x="976" y="1050" fill="#8a8175" font-size="10">трек</text><rect x="976" y="1055" width="116" height="32" rx="6" fill="#c7bda4" stroke="rgba(255,255,255,0.15)"/><text x="976" y="1101" fill="#d8d2c8" font-size="11">#c7bda4</text>
+  </g>
+</svg>

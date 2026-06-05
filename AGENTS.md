@@ -79,6 +79,8 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     SVG in `tracks/`, create a new track module following this pattern.
     **Authoring reference:** `tracks/TRACK_STYLE_GUIDE.svg` — annotated guide to the
     `track_path` + `ITEM_*` proxy-line conventions, SCALE, and margin rule.
+    `tracks/TRACK_COLOR_SCHEMES.svg` — per-location colour schemes (background /
+    table / track) within the world's warm palette + amber accent.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
