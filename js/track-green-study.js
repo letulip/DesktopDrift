@@ -1,4 +1,4 @@
-// Трасса «Green Study» — генерируется из tracks/WORK_DESK_1.svg.
+// Трасса «Green Study» — генерируется из tracks/green-study.svg.
 // Прокси-линии (<line id="ITEM_*">) задают позицию и угол предметов.
 // Использует top-level await (ES-модули, современные браузеры).
 
@@ -55,7 +55,7 @@ function resolveKey(id) {
 }
 
 // ── Загрузка SVG ─────────────────────────────────────────────────────────────
-const svgText = await fetch('./tracks/WORK_DESK_1.svg').then(r => r.text());
+const svgText = await fetch('./tracks/green-study.svg').then(r => r.text());
 const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
 
 // ── Центральная линия ────────────────────────────────────────────────────────
