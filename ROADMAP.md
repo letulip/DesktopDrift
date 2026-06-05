@@ -30,10 +30,13 @@ Decisions that hold the whole thing together — settle these as they come up, d
      version,
      settings:     { units: 'kmh' | 'mph', ... },
      garage:       { carIndex, bodyColor, unlocks: [] },
-     records:      { [trackId]: { [mode]: { bestLap, bestScore } } },
+     records:      { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } },
      achievements: { [id]: { unlocked, progress } }
    }
    ```
+   `bestPPS` — Points Per Second (эффективность заезда). Дрифт на месте обрушает
+   метрику: `time` растёт непрерывно, `score` почти нет. `bestPPSTotal` и `bestPPSTime` —
+   очки и время того заезда, в котором был достигнут рекордный PPS (для отображения на карточке).
 2. **Data-driven content.** Tracks, achievements, colour palettes and (later) tuning specs
    are plain data tables. Logic stays generic; content is just data. Cars and items already
    follow this pattern — extend it.
@@ -86,8 +89,10 @@ The boring layer everything else stands on. No flashy output, highest leverage.
 
 Turns the tech demo into a game and fixes what bugs us now.
 
-- [ ] **Records** — best lap + best score per (track, mode), stored via `store`.
-- [ ] **Results screen** after a run ("NEW RECORD!", lap/score summary).
+- [x] **Records** — PPS (Points Per Second) per (track, mode), stored via `store`.
+      `bestPPS` = score / totalTime; дрифт на месте не фармится.
+      Карточка трассы: "Score: 1250 PPS (Total: 45,000 · 36.0 s)".
+- [x] **Results screen** after a run ("NEW RECORD!", lap/score summary, PPS headline).
 - [x] **Speed units** km/h ⟷ mph — done in Phase 0 settings panel (see above).
 - [x] **Custom colour palette (replaces the native `<input type="color">`).**
       20-colour body swatch grid (`PALETTE` in `palette.js`) + 10-colour neon

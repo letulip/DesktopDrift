@@ -153,6 +153,7 @@ canvas { display: block; }
 }
 .rr-label  { font: 600 13px var(--font-body); color: rgba(255,255,255,.55); }
 .rr-val    { font: 800 38px var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.rr-sub    { width: 100%; text-align: center; font: 500 12px var(--font-body); color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; margin-top: -4px; }
 .rr-val.rr-new { color: var(--accent); }
 .rr-badge  {
   font: 700 10px var(--font-body); letter-spacing: .6px; text-transform: uppercase;

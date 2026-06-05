@@ -6,7 +6,7 @@ import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save } from './store.js';
 import { createRaceResults } from './race-results.js';
 import {
-  isDrifting, driftQuality, comboMult, comboGain, slipSign,
+  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
 
@@ -381,20 +381,28 @@ export const startGame = (T, opts = {}) => {
           bankCombo();
           S.lapTime = 0; S.nextCp = 1;
 
+          const totalScore = Math.round(S.score);
+          const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
+          const pps        = pointsPerSecond(totalScore, totalTime);
+
           // Сохраняем рекорды если трек имеет id
           let isNewRecord = false;
           if (T.id) {
-            const rec = records();
+            const rec  = records();
             const slot = rec[T.id] ?? (rec[T.id] = {});
             const ta   = slot.timeattack ?? (slot.timeattack = {});
-            if (ta.bestLap   == null || S.bestLap             < ta.bestLap)   { ta.bestLap   = S.bestLap;             isNewRecord = true; }
-            if (ta.bestScore == null || Math.round(S.score)   > ta.bestScore) { ta.bestScore = Math.round(S.score);   isNewRecord = true; }
-            if (isNewRecord) save();
+            if (ta.bestPPS == null || pps > ta.bestPPS) {
+              ta.bestPPS      = pps;
+              ta.bestPPSTotal = totalScore;
+              ta.bestPPSTime  = totalTime;
+              isNewRecord = true;
+              save();
+            }
           }
 
           raceFinished = true;
           stop();
-          raceResults.show({ score: Math.round(S.score), bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord });
+          raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime });
           return; // прерываем кадр — rAF уже отменён в stop()
         }
 

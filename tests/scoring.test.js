@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isDrifting, driftQuality, comboMult, comboGain, slipSign,
+  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_MAX, QUALITY_MAX, COMBO_RATE,
 } from '../js/scoring.js';
 
@@ -43,4 +43,10 @@ test('slipSign: +1 / -1 / 0 по порогу', () => {
   assert.equal(slipSign(10), 0);
   assert.equal(slipSign(50), 0);   // граница строгая
   assert.equal(slipSign(-50), 0);
+});
+
+test('pointsPerSecond: очки / время, защита от деления на 0', () => {
+  near(pointsPerSecond(45000, 36), 1250);
+  near(pointsPerSecond(0, 36), 0);
+  near(pointsPerSecond(45000, 0), 0);  // totalTime=0 → 0, не Infinity
 });

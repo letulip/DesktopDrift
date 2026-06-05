@@ -113,16 +113,12 @@
     } catch { /* ошибка рендера — канвас остаётся с fallback-фоном */ }
   }
 
-  // ── Лучший круг из store ────────────────────────────────────────────────────
-  function bestLapStr(trackId) {
-    const lap = records()?.[trackId]?.timeattack?.bestLap;
-    return lap != null ? lap.toFixed(2) + ' s' : null;
+  // ── Лучший PPS-рекорд из store ──────────────────────────────────────────────
+  function bestRecord(trackId) {
+    const ta = records()?.[trackId]?.timeattack;
+    if (ta?.bestPPS == null) return null;
+    return { pps: Math.round(ta.bestPPS), total: ta.bestPPSTotal, time: ta.bestPPSTime };
   }
-
-  const bestLapScore = (trackId) => {
-    const score = records()?.[trackId]?.timeattack?.bestScore;
-    return score != null ? score.toFixed(0) + ' pts' : null;
-  };
 
   // ── Сборка карточек ─────────────────────────────────────────────────────────
   const container = document.getElementById('track-cards');
@@ -153,11 +149,10 @@
 
     const rec = document.createElement('div');
     rec.className = 'track-card-record';
-    const best = bestLapStr(track.id);
-    const bestScore = bestLapScore(track.id);
-    rec.innerHTML = best && bestScore
-      ? `Best: <span class="val">${best}</span>Total: <span class="val">${bestScore}</span>`
-      : 'Best: <span>—</span>';
+    const record = bestRecord(track.id);
+    rec.innerHTML = record
+      ? `Score: <span class="val">${record.pps.toLocaleString()} PPS</span><span class="rec-sub">(Total: ${record.total.toLocaleString()} · ${record.time.toFixed(1)} s)</span>`
+      : '—';
 
     body.appendChild(name);
     body.appendChild(desc);

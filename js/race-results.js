@@ -28,13 +28,16 @@ export const createRaceResults = () => {
     location.href = 'tracks.html';
   });
 
-  // show({ score, bestLap, lapScores, isNewRecord })
+  // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
-  const show = ({ score, bestLap, lapScores, isNewRecord }) => {
+  // pps: points per second (эффективность заезда)
+  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime }) => {
+    const ppsRounded = Math.round(pps);
     overlay.querySelector('#rr-score').innerHTML = `
       <span class="rr-label">Score</span>
-      <span class="rr-val${isNewRecord ? ' rr-new' : ''}">${score.toLocaleString()}</span>
+      <span class="rr-val${isNewRecord ? ' rr-new' : ''}">${ppsRounded.toLocaleString()} PPS</span>
       ${isNewRecord ? '<span class="rr-badge">NEW RECORD</span>' : ''}
+      <span class="rr-sub">Total: ${score.toLocaleString()} · ${totalTime.toFixed(1)} s</span>
     `;
 
     overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {
