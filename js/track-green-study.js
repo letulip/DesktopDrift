@@ -110,6 +110,9 @@ export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
 
 export const collectibles = [];
 
+export const id   = 'green-study'; // ключ для store.records()
+export const laps = 3;             // количество кругов по умолчанию
+
 // Цветовая тема — передаётся в render.js через initRender(T).
 // Значения из tracks/track_themes.json → "green-study".palette
 export const theme = {

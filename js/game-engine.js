@@ -3,7 +3,8 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings } from './store.js';
+import { garage, settings, records, save } from './store.js';
+import { createRaceResults } from './race-results.js';
 import {
   isDrifting, driftQuality, comboMult, comboGain, slipSign,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
@@ -20,6 +21,7 @@ let _active = null;
 export const startGame = (T, opts = {}) => {
   if (_active) _active.stop(); // не запускать вторую игру поверх живой
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R } = T;
+  const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = бесконечно (sandbox)
 
   initRender(T);
   initCar(T);
@@ -156,6 +158,9 @@ export const startGame = (T, opts = {}) => {
 
   // ─── UI ───────────────────────────────────────────────────────────────────
 
+  const raceResults  = createRaceResults();
+  let raceFinished   = false; // флаг: stop() не разрушает raceResults после финиша
+
   // Кнопка «Меню» — сначала спрашиваем подтверждение, чтобы не выбросить игрока
   // в меню случайным нажатием. Игра встаёт на паузу на время диалога.
   const confirmExit = createConfirmExit();
@@ -169,6 +174,12 @@ export const startGame = (T, opts = {}) => {
     });
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);
+
+  // Счётчик кругов в HUD: «1/3» вместо «1/-» при режиме с ограниченными кругами
+  if (TOTAL_LAPS > 0) {
+    const el = document.getElementById('lapCounter');
+    if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
+  }
 
   // Машинка и цвет выбраны на экране гаража (select.html), читаем из store
   const g = garage();
@@ -360,9 +371,33 @@ export const startGame = (T, opts = {}) => {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;
-        S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart) });
-        if (S.lapScores.length > 3) S.lapScores.shift();
+        // t — время круга для итогового экрана; сохраняем до сброса S.lapTime
+        S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
+        if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift(); // ограничение только в ∞-режиме
         S.lapScoreStart = S.score;
+
+        if (TOTAL_LAPS > 0 && S.lapNum >= TOTAL_LAPS) {
+          // Последний круг: банкуем активное комбо и показываем итоги
+          bankCombo();
+          S.lapTime = 0; S.nextCp = 1;
+
+          // Сохраняем рекорды если трек имеет id
+          let isNewRecord = false;
+          if (T.id) {
+            const rec = records();
+            const slot = rec[T.id] ?? (rec[T.id] = {});
+            const ta   = slot.timeattack ?? (slot.timeattack = {});
+            if (ta.bestLap   == null || S.bestLap             < ta.bestLap)   { ta.bestLap   = S.bestLap;             isNewRecord = true; }
+            if (ta.bestScore == null || Math.round(S.score)   > ta.bestScore) { ta.bestScore = Math.round(S.score);   isNewRecord = true; }
+            if (isNewRecord) save();
+          }
+
+          raceFinished = true;
+          stop();
+          raceResults.show({ score: Math.round(S.score), bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord });
+          return; // прерываем кадр — rAF уже отменён в stop()
+        }
+
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
         S.lapTime = 0; S.nextCp = 1;
       } else S.nextCp = (S.nextCp + 1) % K;
@@ -382,6 +417,8 @@ export const startGame = (T, opts = {}) => {
     listeners.length = 0;
     pause.destroy();
     confirmExit.destroy();
+    // raceResults остаётся живым после финиша заезда; убирается только при перезапуске
+    if (!raceFinished) raceResults.destroy();
     if (_active === api) _active = null;
   };
   const api = { stop };
