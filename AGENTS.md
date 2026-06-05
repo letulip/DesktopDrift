@@ -84,6 +84,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+    **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
+    in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
+    `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()` (live objects — mutate then call `save()`), and `save()`.
@@ -237,7 +240,7 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v26`**. Bump this
+Cache-first strategy. Current cache key: **`desktop-drift-v27`**. Bump this
 string whenever static assets change (forces all clients to re-download).
 ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
 CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
@@ -403,6 +406,11 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   uses `box-sizing: border-box` + `padding: 8px 10px` so that at `max-height: 0`
   the entire box (padding included) collapses to 0, and at `max-height: 100px` the
   8 px breathing room prevents `box-shadow` rings on neon swatches from being clipped.
+- **Nearest-centerline is an incremental windowed scan** (`distToTrack` in
+  `game-engine.js`): searches ±`NEAR_W` points around the last index, not the whole
+  loop. Assumes the car moves continuously along the closed centerline (true in normal
+  play, incl. the figure-8 Work Desk track). If you ever teleport the car far, reset
+  `nearIdx` to avoid a stale local minimum.
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.
