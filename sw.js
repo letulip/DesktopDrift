@@ -30,6 +30,8 @@ const ASSETS = [
   'fonts/unbounded-800-latin.woff2',
   'js/store.js',
   'js/config.js',
+  'js/scoring.js',
+  'js/track-util.js',
   'js/palette.js',
   'js/items.js',
   'js/collectibles.js',

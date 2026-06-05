@@ -77,6 +77,10 @@ The boring layer everything else stands on. No flashy output, highest leverage.
       `game-engine.js` at game start (`speedFactor`); `#spdUnit` label updated.
 - [x] **Speed units km/h ↔ mph** — setting in Phase 0 settings panel; applied in
       game HUD without touching `render.js`.
+- [x] **Pure-logic extraction** — drift scoring → `js/scoring.js`, track geometry →
+      `js/track-util.js`; both unit-tested (`tests/scoring.test.js`,
+      `tests/track-util.test.js`). Game logic no longer locked inside `startGame`
+      closures; track-building duplication across the three track modules removed.
 
 ## Phase 1 — Personal progress & garage polish
 

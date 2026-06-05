@@ -115,8 +115,15 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `#confirmExitOverlay` DOM. Returns `{ show({ onExit, onCancel }), hide, destroy }`.
     `destroy()` removes the Escape listener and its DOM. Called by `game-engine.js`
     when the Menu button is tapped.
+  - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
+    `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`, `sampleCheckpoints`,
+    `prepProp`. Shared by `track.js` / `track-oval.js` / `track-workdesk.js` (single
+    source of truth, unit-tested in `tests/track-util.test.js`).
+  - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
+    `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign` + named tuning
+    constants. Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
   - **Dependency order (no circular deps):**
-    `store.js` (no imports) →
+    `store.js` / `track-util.js` / `scoring.js` (no imports) →
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
     `game-engine.js` → (`pause.js` / `confirm-exit.js`).
     HTML inline module scripts are the outer shell.
@@ -288,7 +295,7 @@ After adding the page:
 - **Comments:** In-code comments are in **Russian**. Keep new comments
   consistent with surrounding code.
 - **No circular deps:** The one-way chain must be preserved:
-  `config → items → track* → state/render → game-engine → pause → [HTML inline script]`
+  `config → items → track*(+track-util) → state/render → game-engine(+scoring) → pause → [HTML inline script]`
 - **Do not add npm packages** or a bundler without explicit instruction.
 
 ## Design language
@@ -325,8 +332,9 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   build — fits the pure-static stack). Run with `npm test`. Tests live in `tests/`,
   one `*.test.js` file per concern.
 - **What gets unit-tested:** pure logic only — `store.js` (defaults, save/load,
-  version-mismatch reset), and as they land: data tables in `config.js`, track
-  geometry, the future collision validator.
+  version-mismatch reset), `scoring.js` (drift/combo formulas), `track-util.js`
+  (chaikin / edge offset / cones / checkpoints / prepProp), and as they land:
+  data tables in `config.js`, the future collision validator.
 - **What stays manual:** anything needing Canvas2D / Path2D / DOM / `requestAnimationFrame`
   — `render.js`, `game-engine.js`, `pause.js`, `confirm-exit.js`. These can't run in
   Node, so they ride the browser smoke test below.
