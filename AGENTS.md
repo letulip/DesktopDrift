@@ -10,7 +10,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
 - **Pages (6):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
-    Tiles now link to `select.html?mode=sandbox` / `select.html?mode=timeattack` / `select.html?mode=workdesk`.
+    Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
+  - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
+    card per track from `js/track-registry.js`, each with a canvas preview of
+    the track outline (parsed live from its SVG) and best lap from `store.records()`.
+    Clicking a card → `select.html?track=<id>`. `noindex`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
     Each card shows three 10-cell stat bars: **spd** (amber, absolute 0–15 km/h),
@@ -19,16 +23,14 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `THRUST_MAX=900`) are intentionally above current car values — headroom for mods.
     Player picks car + body colour + neon, saves `{ carIndex, bodyColor, neonColor }`
     to `localStorage` and navigates to the target game page.
-    Recognises modes: `sandbox` → `sandbox.html`, `timeattack` → `timeattack.html`,
-    `workdesk` → `workdesk.html`.
+    URL params: `?mode=sandbox` → `sandbox.html`; `?track=<id>` → track page from
+    registry (e.g. `?track=green-study` → `green-study.html`). Back link goes to
+    `tracks.html` when `?track` is set, otherwise `index.html`.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
-  - `timeattack.html` — lap-timed mode on the config1 (SVG-derived) track.
-    Inline `<script type="module">` imports `track.js` and calls
-    `startGame(T, { initItems: true })`.
-  - `workdesk.html` — lap-timed mode on the Work Desk track. Imports
-    `track-workdesk.js` (async, fetches SVG at runtime) and calls
+  - `green-study.html` — **Time Attack: Green Study** track. Imports
+    `track-green-study.js` (async, fetches SVG at runtime) and calls
     `startGame(T, { initItems: true })`. `noindex`.
   - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
@@ -62,25 +64,23 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Imports item constants from `items.js` and places them via `addProp()`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as `track.js`. Does NOT import `items.js` (no props).
-  - `js/track-workdesk.js` — **Work Desk track**. Uses top-level `await` to
-    fetch `tracks/WORK_DESK_1.svg` at runtime. Parses `track_path` (M/L/H/V/Z)
-    for the centerline, and `<line id="ITEM_*">` proxy-lines for item placement.
-    Scale: `SCALE=0.25` (viewBox 14462×7829, stroke-width 800 → `TRACK_HALF=100`).
-    ID resolution: direct match in `items.js` first; strips trailing `_N` digit
-    suffix for instance duplicates (e.g. `ITEM_PENCIL_2` → `ITEM_PENCIL`).
-    Exports `TABLE` computed from actual `outer` bounds + `TABLE_MARGIN=250` game
-    units on every side; `initRender` in `render.js` applies it, overriding the
-    global TABLE from `config.js`. Logs `console.warn` only for unresolvable item IDs.
-    **Figma SVG layout rule:** viewBox padding around the track path must leave
-    **200–300 game units** (= `TABLE_MARGIN`) of space between the outer track edge
-    and the viewBox boundary on every side. With SCALE=0.25 that equals
-    **800–1200 SVG units** of clear space. Verify: `(viewBox_left_margin − stroke_width/2) × SCALE ≥ 200`.
-    Same export shape as `track.js` plus `TABLE`. To add a new track: drop a new
-    SVG in `tracks/`, create a new track module following this pattern.
-    **Authoring reference:** `tracks/TRACK_STYLE_GUIDE.svg` — annotated guide to the
-    `track_path` + `ITEM_*` proxy-line conventions, SCALE, and margin rule.
-    `tracks/TRACK_COLOR_SCHEMES.svg` — per-location colour schemes (background /
-    table / track) within the world's warm palette + amber accent.
+  - `js/track-registry.js` — **track registry**. Single source of truth for all
+    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, page }`.
+    Consumed by `tracks.html` (card list + previews) and `select.html` (routing).
+    Adding a track = one entry here + track module + HTML page.
+  - `js/track-green-study.js` — **Green Study track** (first Time Attack circuit).
+    Uses top-level `await` to fetch `tracks/WORK_DESK_1.svg` at runtime. Parses
+    `track_path` (M/L/H/V/Z) for the centerline, `<line id="ITEM_*">` proxy-lines
+    for item placement. `SCALE=0.25` (viewBox 14462×7829, stroke-width 800 →
+    `TRACK_HALF=100`). ID resolution: direct match in `items.js` first; strips
+    trailing `_N` digit suffix for instance duplicates (`ITEM_PENCIL_2` → `ITEM_PENCIL`).
+    Exports `TABLE` from actual `outer` bounds + `TABLE_MARGIN=250` game units;
+    `initRender` in `render.js` applies it, overriding the global TABLE.
+    Logs `console.warn` only for unresolvable item IDs. Same export shape as `track.js`
+    plus `TABLE`. **Figma SVG layout rule:** viewBox padding around the track path must
+    leave **200–300 game units** (`TABLE_MARGIN`) on every side; with SCALE=0.25 that is
+    **800–1200 SVG units** of clear space.
+    **Authoring refs:** `tracks/TRACK_STYLE_GUIDE.svg`, `tracks/TRACK_COLOR_SCHEMES.svg`.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.

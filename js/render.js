@@ -17,6 +17,21 @@ export const resize = () => {
 }
 window.addEventListener('resize', resize); resize();
 
+// --- Цветовая тема (устанавливается через initRender из T.theme) ---
+// Дефолт = dining-oak (текущая схема), чтобы старые треки не сломались.
+const THEME_DEFAULT = {
+  background: '#0f0b08',
+  table:      '#2e241a',
+  tableEdge:  '#5a4a36',
+  track:      '#43372a',
+  startLine:  '#e8e8e8',
+  skid:       'rgba(15,9,6,1)',
+  checkpoint: 'rgba(125,212,255,0.5)',
+  cone:       '#ff7a1a',
+};
+let TH = THEME_DEFAULT;
+let _skidRgb = '15,9,6'; // RGB-часть TH.skid; заново парсится в initRender
+
 // --- Данные трека (устанавливаются через initRender) ---
 let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
 let MINI = null;
@@ -38,6 +53,10 @@ export const initRender = (T) => {
   startAngle = T.startAngle;
   // Трек может переопределить размер стола (TABLE из config.js — объект, мутируем на месте)
   if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
+  // Цветовая тема: T.theme переопределяет дефолт (dependency injection, как TABLE)
+  TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
+  const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  _skidRgb = _sm ? `${_sm[1]},${_sm[2]},${_sm[3]}` : '15,9,6';
 
   // Мини-карта: трансформация мир → окошко
   const _pad = 12;
@@ -82,7 +101,7 @@ const drawSkids = () => {
     paths[b].rect(sk.x - 3, sk.y - 3, 6, 6);
   }
   for (let i = 0; i < SKID_LEVELS; i++) {
-    ctx.fillStyle = `rgba(15,9,6,${(i + 0.5) * 0.1})`;
+    ctx.fillStyle = `rgba(${_skidRgb},${(i + 0.5) * 0.1})`;
     ctx.fill(paths[i]);
   }
 };
@@ -224,40 +243,53 @@ export const draw = (speed) => {
   ctx.translate(-car.x, -car.y);
 
   // пол — покрываем весь видимый мировой прямоугольник с небольшим запасом
-  ctx.fillStyle = '#0f0b08';
+  ctx.fillStyle = TH.background;
   ctx.fillRect(car.x - W / (2 * ZOOM), car.y - (H / 2 + camOffY) / ZOOM, W / ZOOM, H / ZOOM);
 
   // стол
-  ctx.fillStyle = '#2e241a';
+  ctx.fillStyle = TH.table;
   if (TABLE.shape === 'round') {
     ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#5a4a36'; ctx.lineWidth = 12;
+    ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
     ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
   } else {
     ctx.fillRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
-    ctx.strokeStyle = '#5a4a36'; ctx.lineWidth = 12;
+    ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
     ctx.strokeRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
   }
 
   // полотно трассы (кэшированный Path2D — без пересборки пути каждый кадр)
-  ctx.fillStyle = '#43372a';
+  ctx.fillStyle = TH.track;
   ctx.fill(trackPath, 'evenodd');
 
   // следы — батчем по уровням прозрачности (несколько заливок вместо ≤1500 fillRect)
   drawSkids();
 
-  // старт/финиш
-  const c0 = center[0];
-  const n0 = { x: -Math.sin(startAngle), y: Math.cos(startAngle) };
-  ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 8; ctx.setLineDash([12, 12]);
-  ctx.beginPath();
-  ctx.moveTo(c0.x + n0.x * TRACK_HALF, c0.y + n0.y * TRACK_HALF);
-  ctx.lineTo(c0.x - n0.x * TRACK_HALF, c0.y - n0.y * TRACK_HALF);
-  ctx.stroke(); ctx.setLineDash([]);
+  // старт/финиш — клетчатый флаг (2 ряда × N клеток поперёк трека)
+  {
+    const c0 = center[0];
+    const cell = 10; // размер клетки в игровых единицах
+    const rows = 2;  // глубина вдоль трека
+    const cols = Math.ceil(TRACK_HALF * 2 / cell); // количество клеток поперёк
+    ctx.save();
+    ctx.translate(c0.x, c0.y);
+    ctx.rotate(startAngle); // X = направление движения, Y = поперёк трека
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? TH.startLine : 'rgba(0,0,0,.75)';
+        ctx.fillRect(
+          -rows * cell / 2 + r * cell, // вдоль трека
+          -TRACK_HALF + c * cell,       // поперёк трека
+          cell, cell
+        );
+      }
+    }
+    ctx.restore();
+  }
 
   // следующий чекпоинт
   const cp = checkpoints[S.nextCp];
-  ctx.strokeStyle = 'rgba(125,212,255,0.5)'; ctx.lineWidth = 3;
+  ctx.strokeStyle = TH.checkpoint; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
 
   // объекты на столе
@@ -271,7 +303,7 @@ export const draw = (speed) => {
       ctx.beginPath(); ctx.ellipse(0, 0, CONE_R * 1.7, CONE_R * 0.6, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     } else {
-      ctx.fillStyle = '#ff7a1a';
+      ctx.fillStyle = TH.cone;
       ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.75)';
       ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R * 0.45, 0, Math.PI * 2); ctx.fill();

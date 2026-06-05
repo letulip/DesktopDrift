@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Desktop Drift — Time Attack</title>
+  <meta name="description" content="Choose your Time Attack circuit in Desktop Drift. Each track is a different surface — desk, kitchen, café. Pick one and beat your best lap.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="theme-color" content="#14110f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/tracks.css">
+</head>
+<body>
+<div id="track-select">
+  <h1 id="ts-title">Time Attack</h1>
+  <p  id="ts-sub">Choose a track</p>
+  <div id="track-cards"></div>
+  <a href="index.html" class="ts-back">← Back to menu</a>
+</div>
+
+<script type="module">
+  import { TRACKS } from './js/track-registry.js';
+  import { records } from './js/store.js';
+
+  // ── SVG path parser (только M/L/H/V/Z, абсолютные координаты) ──────────────
+  function parseSvgPath(d) {
+    const pts = [];
+    const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
+    let i = 0, cmd = '', x = 0, y = 0;
+    while (i < tokens.length) {
+      const t = tokens[i];
+      if (/[MLHVZmlhvz]/.test(t)) { cmd = t; i++; continue; }
+      const v = parseFloat(t);
+      if (cmd === 'M' || cmd === 'L') {
+        x = v; y = parseFloat(tokens[++i]); i++;
+        pts.push([x, y]);
+      } else if (cmd === 'H') { x = v; i++; pts.push([x, y]); }
+      else if (cmd === 'V') { y = v; i++; pts.push([x, y]); }
+      else i++;
+    }
+    return pts;
+  }
+
+  // ── Отрисовка превью трассы на канвасе ─────────────────────────────────────
+  // theme — объект { background, table, tableEdge, track } из track-registry.js.
+  // Fallback на тёмные цвета если тема не передана (кэш старого модуля).
+  // Y-ось инвертирована: в игре y = -(svgY - CY) * SCALE, поэтому верх SVG
+  // соответствует низу экрана → используем (maxY - py) вместо (py - minY).
+  async function drawThumb(canvas, svgSrc, theme) {
+    const th = {
+      background: theme?.background ?? '#0b0907',
+      table:      theme?.table      ?? '#2e241a',
+      tableEdge:  theme?.tableEdge  ?? '#5a4a36',
+      track:      theme?.track      ?? '#ffb14d',
+    };
+
+    let text;
+    try { text = await fetch(svgSrc).then(r => r.text()); }
+    catch { return; }
+
+    try {
+      const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+      const d   = doc.getElementById('track_path')?.getAttribute('d');
+      if (!d) return;
+
+      const pts = parseSvgPath(d);
+      const xs  = pts.map(([x]) => x), ys = pts.map(([, y]) => y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      const pad = 18; // отступ внутри канваса
+      const sx  = (canvas.width  - pad * 2) / (maxX - minX);
+      const sy  = (canvas.height - pad * 2) / (maxY - minY);
+      const s   = Math.min(sx, sy);
+      const ox  = pad + (canvas.width  - pad * 2 - (maxX - minX) * s) / 2;
+      const oy  = pad + (canvas.height - pad * 2 - (maxY - minY) * s) / 2;
+
+      const cx = canvas.getContext('2d');
+
+      // 1. Фон (пол)
+      cx.fillStyle = th.background;
+      cx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Поверхность стола
+      const ti = 5, tr = 5;
+      cx.beginPath();
+      cx.roundRect(ti, ti, canvas.width - ti * 2, canvas.height - ti * 2, tr);
+      cx.fillStyle = th.table;
+      cx.fill();
+      cx.strokeStyle = th.tableEdge;
+      cx.lineWidth = 2;
+      cx.stroke();
+
+      // 3. Полотно трассы (Y-flip совпадает с ориентацией в игре)
+      cx.lineWidth   = Math.max(5, 800 * s);
+      cx.strokeStyle = th.track;
+      cx.lineCap     = 'round';
+      cx.lineJoin    = 'round';
+      cx.beginPath();
+      pts.forEach(([px, py], idx) => {
+        const tx = (px - minX) * s + ox;
+        const ty = (maxY - py) * s + oy;
+        idx === 0 ? cx.moveTo(tx, ty) : cx.lineTo(tx, ty);
+      });
+      cx.closePath();
+      cx.stroke();
+    } catch { /* ошибка рендера — канвас остаётся с fallback-фоном */ }
+  }
+
+  // ── Лучший круг из store ────────────────────────────────────────────────────
+  function bestLapStr(trackId) {
+    const lap = records()?.[trackId]?.timeattack?.bestLap;
+    return lap != null ? lap.toFixed(2) + ' s' : null;
+  }
+
+  // ── Сборка карточек ─────────────────────────────────────────────────────────
+  const container = document.getElementById('track-cards');
+
+  for (const track of TRACKS) {
+    const link = document.createElement('a');
+    link.className = 'track-card';
+    link.href = `select.html?track=${encodeURIComponent(track.id)}`;
+
+    // Превью-канвас
+    const canvas = document.createElement('canvas');
+    canvas.className = 'track-thumb';
+    canvas.width  = 280;
+    canvas.height = 140;
+    link.appendChild(canvas);
+
+    // Текстовый блок
+    const body = document.createElement('div');
+    body.className = 'track-card-body';
+
+    const name = document.createElement('div');
+    name.className   = 'track-card-name';
+    name.textContent = track.name;
+
+    const desc = document.createElement('div');
+    desc.className   = 'track-card-desc';
+    desc.textContent = track.desc;
+
+    const rec = document.createElement('div');
+    rec.className = 'track-card-record';
+    const best = bestLapStr(track.id);
+    rec.innerHTML = best
+      ? `Best: <span class="val">${best}</span>`
+      : 'Best: <span>—</span>';
+
+    body.appendChild(name);
+    body.appendChild(desc);
+    body.appendChild(rec);
+    link.appendChild(body);
+    container.appendChild(link);
+
+    // Асинхронно рисуем превью (не блокирует построение карточек)
+    drawThumb(canvas, track.svgSrc, track.theme);
+  }
+</script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>
