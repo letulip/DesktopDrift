@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" font-family="-apple-system, Segoe UI, system-ui, sans-serif">
+  <!-- ════════════════════════════════════════════════════════════════════════
+       DESKTOP DRIFT — СТАЙЛ-ГАЙД ТРАСС (справочник, НЕ играбельная трасса).
+       Конвенции загрузчика js/track-workdesk.js + геометрии js/track-util.js.
+       Как авторить: нарисуй осевую линию (track_path) и прокси-линии ITEM_*
+       в Figma, выгрузи SVG в tracks/, создай трек-модуль по образцу track-workdesk.js.
+       ════════════════════════════════════════════════════════════════════════ -->
+  <rect width="1600" height="1120" fill="#14110f"/>
+
+  <text x="40" y="64" fill="#ffb14d" font-size="44" font-weight="800">DESKTOP DRIFT — СТАЙЛ-ГАЙД ТРАСС</text>
+  <text x="40" y="100" fill="#cdbb95" font-size="20">Как авторить трассу и выгрузить SVG в tracks/. Это справочник, а не играбельная трасса.</text>
+
+  <!-- ─── Левая колонка: правила ─────────────────────────────────────────── -->
+  <text x="40" y="168" fill="#ffb14d" font-size="22" font-weight="700">Координаты</text>
+  <text x="40" y="200" fill="#e8e2d6" font-size="19">• Центр viewBox = игровые координаты (0, 0).</text>
+  <text x="40" y="228" fill="#e8e2d6" font-size="19">• Ось SVG +Y идёт в игровое −Y (вертикаль инвертируется).</text>
+  <text x="40" y="256" fill="#e8e2d6" font-size="19">• SCALE = 0.25  →  1 игровая единица = 4 единицы SVG.</text>
+  <text x="40" y="284" fill="#e8e2d6" font-size="19">• TRACK_HALF = 100 — полуширина трассы (в игровых единицах).</text>
+
+  <text x="40" y="340" fill="#ffb14d" font-size="22" font-weight="700">Осевая линия трассы</text>
+  <text x="40" y="372" fill="#e8e2d6" font-size="19">• &lt;path id="track_path" d="…"/&gt; — единственный путь трассы.</text>
+  <text x="40" y="400" fill="#e8e2d6" font-size="19">• Только команды M / L / H / V / Z (абсолютные). Без C и кривых.</text>
+  <text x="40" y="428" fill="#e8e2d6" font-size="19">• stroke-width = 800  (= ширина трассы: 2×TRACK_HALF ÷ SCALE).</text>
+  <text x="40" y="456" fill="#e8e2d6" font-size="19">• Рисуй ОСЕВУЮ линию: края и сглаживание (Chaikin ×4) даёт код.</text>
+
+  <text x="40" y="512" fill="#ffb14d" font-size="22" font-weight="700">Предметы (препятствия)</text>
+  <text x="40" y="544" fill="#e8e2d6" font-size="19">• &lt;line id="ITEM_&lt;ИМЯ&gt;" x1 y1 x2 y2/&gt; — прокси-линия.</text>
+  <text x="40" y="572" fill="#e8e2d6" font-size="19">• Центр линии = позиция предмета, направление = угол.</text>
+  <text x="40" y="600" fill="#e8e2d6" font-size="19">• ID = имя экспорта в js/items.js (например ITEM_KNIFE_1).</text>
+  <text x="40" y="628" fill="#e8e2d6" font-size="19">• Дубликаты: хвост _N отбрасывается (ITEM_PENCIL_2 → ITEM_PENCIL).</text>
+
+  <text x="40" y="684" fill="#ffb14d" font-size="22" font-weight="700">Отступы (чистая зона)</text>
+  <text x="40" y="716" fill="#e8e2d6" font-size="19">• Между внешним краем трассы и границей viewBox оставляй</text>
+  <text x="40" y="744" fill="#e8e2d6" font-size="19">   ≥ 800–1200 ед SVG (= TABLE_MARGIN 200–300 игровых).</text>
+  <text x="40" y="772" fill="#e8e2d6" font-size="19">• Проверка: (отступ_слева − stroke/2) × 0.25 ≥ 200.</text>
+
+  <!-- ─── Правая часть: размеченный пример кадра ──────────────────────────── -->
+  <text x="800" y="186" fill="#cdbb95" font-size="18">Пример кадра (схематично):</text>
+
+  <!-- рамка viewBox -->
+  <rect x="800" y="200" width="700" height="560" fill="#1b1714" stroke="#5a4a36" stroke-width="2"/>
+  <text x="808" y="222" fill="#7d7264" font-size="14">граница viewBox (напр. 14462 × 7829)</text>
+
+  <!-- чистая зона (margin) -->
+  <rect x="872" y="272" width="556" height="416" fill="none" stroke="#ffb14d" stroke-opacity="0.55" stroke-width="2" stroke-dasharray="9 7"/>
+  <text x="880" y="266" fill="#ffb14d" font-size="13">чистая зона ≥ 800–1200 ед SVG (TABLE_MARGIN)</text>
+
+  <!-- track_path: толстый штрих = ширина трассы -->
+  <path d="M1370 480 L1306 586 L1150 630 L994 586 L930 480 L994 374 L1150 330 L1306 374 Z"
+        fill="none" stroke="#6b5a3c" stroke-width="38" stroke-linejoin="round" opacity="0.9"/>
+  <!-- осевая линия (то, что реально рисуешь) -->
+  <path d="M1370 480 L1306 586 L1150 630 L994 586 L930 480 L994 374 L1150 330 L1306 374 Z"
+        fill="none" stroke="#ffd34d" stroke-width="2" stroke-dasharray="6 5" opacity="0.9"/>
+
+  <!-- origin (0,0) = центр viewBox -->
+  <line x1="1138" y1="480" x2="1162" y2="480" stroke="#ffffff" stroke-width="2"/>
+  <line x1="1150" y1="468" x2="1150" y2="492" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="1150" cy="480" r="4" fill="#ffb14d"/>
+  <text x="1166" y="476" fill="#ffffff" font-size="14">(0,0)</text>
+
+  <!-- прокси-линия предмета ITEM_* -->
+  <line x1="1182" y1="556" x2="1268" y2="582" stroke="#39FF14" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="1182" cy="556" r="5" fill="#39FF14"/>
+  <circle cx="1268" cy="582" r="5" fill="#39FF14"/>
+  <text x="1150" y="612" fill="#39FF14" font-size="13">&lt;line id="ITEM_KNIFE_1" …/&gt;</text>
+
+  <!-- подписи под рамкой -->
+  <text x="800" y="800" fill="#cdbb95" font-size="15">━━ track_path: толстый штрих = ширина трассы (stroke 800); жёлтый пунктир — осевая, её и рисуешь.</text>
+  <text x="800" y="826" fill="#cdbb95" font-size="15">━━ ITEM_* (зелёное): тонкие линии-прокси = позиция + угол предмета.</text>
+  <text x="800" y="852" fill="#cdbb95" font-size="15">━━ origin (0,0) = центр viewBox.</text>
+
+  <text x="800" y="900" fill="#7d7264" font-size="14">Эталон: tracks/WORK_DESK_1.svg</text>
+  <text x="800" y="922" fill="#7d7264" font-size="14">Парсер: js/track-workdesk.js · геометрия/сглаживание: js/track-util.js</text>
+
+  <text x="40" y="1098" fill="#7d7264" font-size="14">Desktop Drift · стайл-гайд трасс · цвета/тема мира — см. также схемы локаций (track_themes).</text>
+</svg>
