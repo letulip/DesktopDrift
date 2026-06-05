@@ -119,6 +119,11 @@
     return lap != null ? lap.toFixed(2) + ' s' : null;
   }
 
+  const bestLapScore = (trackId) => {
+    const score = records()?.[trackId]?.timeattack?.bestScore;
+    return score != null ? score.toFixed(0) + ' pts' : null;
+  };
+
   // ── Сборка карточек ─────────────────────────────────────────────────────────
   const container = document.getElementById('track-cards');
 
@@ -149,8 +154,9 @@
     const rec = document.createElement('div');
     rec.className = 'track-card-record';
     const best = bestLapStr(track.id);
-    rec.innerHTML = best
-      ? `Best: <span class="val">${best}</span>`
+    const bestScore = bestLapScore(track.id);
+    rec.innerHTML = best && bestScore
+      ? `Best: <span class="val">${best}</span>Total: <span class="val">${bestScore}</span>`
       : 'Best: <span>—</span>';
 
     body.appendChild(name);
