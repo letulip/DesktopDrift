@@ -2,6 +2,9 @@
 // Оверлей итогов заезда — самодостаточный компонент.
 // Показывается после финиша последнего круга Time Attack.
 // Стили — css/sandbox.css (#raceResultsOverlay).
+//
+// Важно: все querySelector вызываются на overlay, а не на document —
+// чтобы не конфликтовать с ID других экземпляров (тесты, hot-reload).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const createRaceResults = () => {
@@ -20,20 +23,21 @@ export const createRaceResults = () => {
   `;
   document.body.appendChild(overlay);
 
-  document.getElementById('rr-back').addEventListener('click', () => {
+  // Ищем кнопку внутри своего оверлея, а не через глобальный getElementById
+  overlay.querySelector('#rr-back').addEventListener('click', () => {
     location.href = 'tracks.html';
   });
 
   // show({ score, bestLap, lapScores, isNewRecord })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
   const show = ({ score, bestLap, lapScores, isNewRecord }) => {
-    document.getElementById('rr-score').innerHTML = `
+    overlay.querySelector('#rr-score').innerHTML = `
       <span class="rr-label">Score</span>
       <span class="rr-val${isNewRecord ? ' rr-new' : ''}">${score.toLocaleString()}</span>
       ${isNewRecord ? '<span class="rr-badge">NEW RECORD</span>' : ''}
     `;
 
-    document.getElementById('rr-laps').innerHTML = lapScores.map(l => {
+    overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {
       const isBest = l.t != null && bestLap != null && Math.abs(l.t - bestLap) < 0.001;
       return `<div class="rr-lap${isBest ? ' rr-lap-best' : ''}">
         <span class="rr-lap-n">Lap ${l.n}</span>
@@ -42,8 +46,8 @@ export const createRaceResults = () => {
       </div>`;
     }).join('');
 
-    const bestEl = document.getElementById('rr-best');
-    bestEl.textContent = bestLap != null ? `Best lap  ${bestLap.toFixed(2)} s` : '';
+    overlay.querySelector('#rr-best').textContent =
+      bestLap != null ? `Best lap  ${bestLap.toFixed(2)} s` : '';
 
     overlay.classList.add('show');
   };

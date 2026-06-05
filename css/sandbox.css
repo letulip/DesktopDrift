@@ -151,7 +151,7 @@ canvas { display: block; }
 #rr-score {
   display: flex; justify-content: center; align-items: baseline; gap: 8px; flex-wrap: wrap;
 }
-.rr-label  { font: 600 13px var(--font-body); opacity: .45; }
+.rr-label  { font: 600 13px var(--font-body); color: rgba(255,255,255,.55); }
 .rr-val    { font: 800 38px var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
 .rr-val.rr-new { color: var(--accent); }
 .rr-badge  {
@@ -161,21 +161,21 @@ canvas { display: block; }
 }
 #rr-laps {
   display: flex; flex-direction: column; gap: 5px;
-  border-top: 1px solid rgba(255,255,255,.08);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-top: 1px solid rgba(255,255,255,.1);
+  border-bottom: 1px solid rgba(255,255,255,.1);
   padding: 10px 0;
 }
 .rr-lap {
   display: flex; justify-content: space-between; align-items: center;
-  font: 14px var(--font-body); opacity: .6; padding: 1px 4px;
+  font: 14px var(--font-body); padding: 2px 4px;
+  /* без opacity — используем rgba на дочерних элементах без накопления */
 }
-.rr-lap-best { opacity: 1; }
 .rr-lap-best .rr-lap-t { color: var(--accent); font-weight: 700; }
-.rr-lap-n   { opacity: .55; min-width: 44px; text-align: left; }
-.rr-lap-t   { font-weight: 600; font-variant-numeric: tabular-nums; }
-.rr-lap-pts { opacity: .45; font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+.rr-lap-n   { color: rgba(255,255,255,.55); min-width: 44px; text-align: left; }
+.rr-lap-t   { font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.88); }
+.rr-lap-pts { font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; color: rgba(255,255,255,.6); }
 #rr-best {
-  font: 500 13px var(--font-body); opacity: .4;
+  font: 500 13px var(--font-body); color: rgba(255,255,255,.55);
   font-variant-numeric: tabular-nums; letter-spacing: .2px;
 }
 #rr-actions { margin-top: 2px; }
