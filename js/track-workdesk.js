@@ -3,6 +3,7 @@
 // Использует top-level await (ES-модули, современные браузеры).
 
 import * as ITEMS from './items.js';
+import { chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Константы ────────────────────────────────────────────────────────────────
 // viewBox 0 0 14462 7829; stroke-width дорожки 800 → half = 400.
@@ -19,16 +20,6 @@ export const CP_R       = TRACK_HALF + 70;
 // ── Вспомогательные ─────────────────────────────────────────────────────────
 
 const toGame = (x, y) => ({ x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE });
-
-const chaikin = (pts) => {
-  const n = pts.length, r = [];
-  for (let i = 0; i < n; i++) {
-    const a = pts[i], b = pts[(i + 1) % n];
-    r.push({ x: a.x * .75 + b.x * .25, y: a.y * .75 + b.y * .25 });
-    r.push({ x: a.x * .25 + b.x * .75, y: a.y * .25 + b.y * .75 });
-  }
-  return r;
-};
 
 // Разбор SVG path d: только M, L, H, V, Z (абсолютные координаты)
 function parseSvgPath(d) {
@@ -73,27 +64,10 @@ const rawVerts  = parseSvgPath(_doc.getElementById('track_path').getAttribute('d
 let smoothPoly  = rawVerts.map(([x, y]) => toGame(x, y));
 for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly); // 26 → 416 точек
 
-export const center = [], outer = [], inner = [];
-const N = smoothPoly.length;
-
-for (let i = 0; i < N; i++) {
-  const c    = smoothPoly[i];
-  const prev = smoothPoly[(i - 1 + N) % N];
-  const next = smoothPoly[(i + 1) % N];
-  const tx   = next.x - prev.x, ty = next.y - prev.y;
-  const len  = Math.hypot(tx, ty) || 1;
-  const nx   = -ty / len, ny = tx / len;
-  center.push(c);
-  outer.push({ x: c.x + nx * TRACK_HALF, y: c.y + ny * TRACK_HALF });
-  inner.push({ x: c.x - nx * TRACK_HALF, y: c.y - ny * TRACK_HALF });
-}
+export const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
 
 // ── Конусы ───────────────────────────────────────────────────────────────────
-export const cones = [];
-for (let i = 0; i < N; i += 5) {
-  cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-  cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-}
+export const cones = placeCones(outer, inner, 5);
 
 // ── TABLE: размер стола из реальных границ outer + отступ ───────────────────
 // Отступ 250 игровых единиц с каждой стороны (≈ 200–300 px на экране).
@@ -105,12 +79,7 @@ export const TABLE = { w: Math.round((_maxX + TABLE_MARGIN) * 2), h: Math.round(
 
 // ── Предметы из прокси-линий ─────────────────────────────────────────────────
 export const props = [];
-const addProp = (o) => {
-  o.hl   = o.hl || 0;
-  o._cos = Math.cos(o.ang);
-  o._sin = Math.sin(o.ang);
-  props.push(o);
-};
+const addProp = (o) => { props.push(prepProp(o)); };
 
 _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
@@ -133,10 +102,7 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
 });
 
 // ── Чекпоинты ────────────────────────────────────────────────────────────────
-export const checkpoints = [];
-for (let i = 0; i < K; i++) {
-  checkpoints.push(center[Math.floor((i / K) * N)]);
-}
+export const checkpoints = sampleCheckpoints(center, K);
 
 // ── Старт ────────────────────────────────────────────────────────────────────
 const _c0 = center[0], _c1 = center[1];
