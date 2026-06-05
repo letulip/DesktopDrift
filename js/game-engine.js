@@ -371,14 +371,12 @@ export const startGame = (T, opts = {}) => {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;
-        // t — время круга для итогового экрана; сохраняем до сброса S.lapTime
-        S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
-        if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift(); // ограничение только в ∞-режиме
-        S.lapScoreStart = S.score;
 
         if (TOTAL_LAPS > 0 && S.lapNum >= TOTAL_LAPS) {
-          // Последний круг: банкуем активное комбо и показываем итоги
+          // Последний круг: сначала банкуем комбо, потом фиксируем лапскор —
+          // иначе финальный отрезок набора не попадает в pts последнего круга.
           bankCombo();
+          S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
           S.lapTime = 0; S.nextCp = 1;
 
           const totalScore = Math.round(S.score);
@@ -406,6 +404,10 @@ export const startGame = (T, opts = {}) => {
           return; // прерываем кадр — rAF уже отменён в stop()
         }
 
+        // t — время круга для итогового экрана; сохраняем до сброса S.lapTime
+        S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
+        if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift(); // ограничение только в ∞-режиме
+        S.lapScoreStart = S.score;
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
         S.lapTime = 0; S.nextCp = 1;
       } else S.nextCp = (S.nextCp + 1) % K;

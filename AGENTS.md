@@ -131,11 +131,13 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
     **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
     used by sandbox). With a finite count the HUD shows `1/3`; on completing the last
-    lap the engine banks the active combo, calculates `pps = totalScore / totalTime`
-    (Points Per Second — дрифт на месте не фармится, так как `time` растёт, а `score`
-    почти нет), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime` to
-    `store.records()[T.id].timeattack` when a new record is set (via `save()`),
+    lap the engine **first** banks the active combo (`bankCombo()`), **then** pushes the
+    final lap entry to `S.lapScores` — this order is critical: reversing it would drop the
+    last combo segment from both `pts` and the headline total. Calculates
+    `pps = totalScore / totalTime` (Points Per Second), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime`
+    to `store.records()[T.id].timeattack` when a new record is set (via `save()`),
     calls `stop()`, and shows the `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
+    For non-final laps the old order applies: push lapScore → update `S.lapScoreStart` → flash → reset.
     Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
     loop, and destroys the pause / confirm-exit (and, unless finished, race-results)
     components. The engine is reentrant: a second `startGame` auto-stops the previous
