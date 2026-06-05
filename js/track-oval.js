@@ -1,4 +1,5 @@
 import { TABLE } from './config.js';
+import { placeCones, prepProp } from './track-util.js';
 
 export const TRACK_HALF = 100;
 
@@ -27,11 +28,7 @@ for (let i = 0; i < SAMPLES; i++) {
 
 // Конусы вдоль краёв
 export const CONE_R = 9;
-export const cones = [];
-for (let i = 0; i < SAMPLES; i += 5) {
-  cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-  cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-}
+export const cones = placeCones(outer, inner, 5);
 
 // Кухонные объекты на столе
 const distToTrackPoint = (x, y) => {
@@ -40,11 +37,7 @@ const distToTrackPoint = (x, y) => {
   return Math.sqrt(best);
 }
 export const props = [];
-const addProp = (o) => {
-  o.hl = o.hl || 0;
-  o._cos = Math.cos(o.ang); o._sin = Math.sin(o.ang);
-  props.push(o);
-}
+const addProp = (o) => { props.push(prepProp(o)); }
 // 1) Круглая посуда в карманах трассы
 const DISHES = [
   { kind: 'plate',  c: '#e6ebf0' },
