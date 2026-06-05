@@ -9,6 +9,7 @@ import {
   ITEM_COMPASS_1,
 } from './items.js';
 import { ITEM_TIRE_COIN } from './collectibles.js';
+import { chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Трасса на основе tracks/config1.svg
@@ -31,18 +32,7 @@ const toGame = ([x, y]) => {
   return { x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE };
 }
 
-// Алгоритм Chaikin — угловое отсечение (1 проход)
-const chaikin = (pts) => {
-  const n = pts.length, r = [];
-  for (let i = 0; i < n; i++) {
-    const a = pts[i], b = pts[(i + 1) % n];
-    r.push({ x: a.x * .75 + b.x * .25, y: a.y * .75 + b.y * .25 });
-    r.push({ x: a.x * .25 + b.x * .75, y: a.y * .25 + b.y * .75 });
-  }
-  return r;
-}
-
-// 4 прохода: 26 → 52 → 104 → 208 → 416 точек
+// 4 прохода Chaikin: 26 → 52 → 104 → 208 → 416 точек
 let smoothPoly = SVG_POLY.map(toGame);
 for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
 
@@ -50,42 +40,20 @@ for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
 // Центральная линия, внешний и внутренний края
 // ─────────────────────────────────────────────────────────────────────────────
 export const TRACK_HALF = 100;
-export const center = [], outer = [], inner = [];
-const N = smoothPoly.length;
-
-for (let i = 0; i < N; i++) {
-  const c    = smoothPoly[i];
-  const prev = smoothPoly[(i - 1 + N) % N];
-  const next = smoothPoly[(i + 1) % N];
-  const tx   = next.x - prev.x, ty = next.y - prev.y;
-  const len  = Math.hypot(tx, ty) || 1;
-  const nx   = -ty / len, ny = tx / len; // перпендикуляр (в сторону левого нормаля)
-  center.push(c);
-  outer.push({ x: c.x + nx * TRACK_HALF, y: c.y + ny * TRACK_HALF });
-  inner.push({ x: c.x - nx * TRACK_HALF, y: c.y - ny * TRACK_HALF });
-}
+export const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Конусы вдоль краёв
 // ─────────────────────────────────────────────────────────────────────────────
 export const CONE_R = 9;
-export const cones  = [];
-for (let i = 0; i < N; i += 5) {
-  cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-  cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-}
+export const cones  = placeCones(outer, inner, 5);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Предметы из items/ — позиции взяты из tracks/config1setup.svg
 // Координаты конвертированы скриптом: setup(cx,cy) → game(x,y)
 // ─────────────────────────────────────────────────────────────────────────────
 export const props = [];
-const addProp = (o) => {
-  o.hl = o.hl || 0;
-  o._cos = Math.cos(o.ang);
-  o._sin = Math.sin(o.ang);
-  props.push(o);
-}
+const addProp = (o) => { props.push(prepProp(o)); }
 
 // x,y — позиция в игровых координатах (из tracks/config1setup.svg)
 // ang — угол поворота (rad), выбран по направлению трека в данной точке
@@ -128,10 +96,7 @@ for (const o of PLACED_ITEMS) addProp({ ...o });
 // Чекпоинты: K точек равномерно по сглаженной центральной линии
 // ─────────────────────────────────────────────────────────────────────────────
 export const K = 8, CP_R = TRACK_HALF + 70;
-export const checkpoints = [];
-for (let i = 0; i < K; i++) {
-  checkpoints.push(center[Math.floor((i / K) * N)]);
-}
+export const checkpoints = sampleCheckpoints(center, K);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Стартовая позиция и направление

@@ -4,6 +4,10 @@ import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings } from './store.js';
+import {
+  isDrifting, driftQuality, comboMult, comboGain, slipSign,
+  MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
+} from './scoring.js';
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
@@ -181,7 +185,7 @@ export const startGame = (T, opts = {}) => {
     let vF = car.vx * fwd.x + car.vy * fwd.y;
     let vS = car.vx * side.x + car.vy * side.y;
     const speed = Math.hypot(car.vx, car.vy);
-    const drifting = Math.abs(vS) > 60 && speed > 90;
+    const drifting = isDrifting(vS, speed);
 
     S.physT += dt;
     const wobSlow = Math.sin(S.physT * 0.8 + 1.7) + 0.5 * Math.sin(S.physT * 1.9 + 4.2);
@@ -279,20 +283,20 @@ export const startGame = (T, opts = {}) => {
 
     if (drifting && onTrack && S.crashCd <= 0) {
       S.driftTime += dt;
-      const quality = Math.min(1.4, (slip / 160) * (speed / 260));
-      S.multBuild += dt * 0.14 * quality;
-      const sgn = vS > 50 ? 1 : (vS < -50 ? -1 : 0);
+      const quality = driftQuality(slip, speed);
+      S.multBuild += dt * MULT_GAIN_PER_S * quality;
+      const sgn = slipSign(vS);
       if (sgn !== 0) {
         if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-          S.transitions++; S.multBuild += 0.3; flash('TRANSITION!', '#7fd4ff');
+          S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
         }
         S.lastSlipSign = sgn;
       }
       if (S.nearMissCd <= 0 && nearMissCheck(CR)) {
-        S.nearMisses++; S.multBuild += 0.28; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+        S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
       }
-      S.mult = Math.min(8, 1 + S.multBuild);
-      S.comboPoints += slip * speed * dt * 0.0015 * S.mult;
+      S.mult = comboMult(S.multBuild);
+      S.comboPoints += comboGain(slip, speed, dt, S.mult);
       S.driftGrace = 0;
     } else {
       S.driftGrace += dt;
