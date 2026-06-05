@@ -125,6 +125,68 @@ canvas { display: block; }
 }
 #confirmExitBtn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
 
+/* --- Итоги заезда (js/race-results.js) --- */
+/* z-index 60 — выше всех оверлеев паузы/выхода */
+#raceResultsOverlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(8,10,14,.88);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+#raceResultsOverlay.show { display: flex; }
+#rr-box {
+  background: rgba(22,18,14,.97);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 20px; padding: 28px 28px 24px;
+  text-align: center; width: min(320px, 90vw);
+  display: flex; flex-direction: column; gap: 14px;
+}
+#rr-title {
+  margin: 0;
+  font: 800 22px var(--font-display); letter-spacing: .5px;
+  background: var(--accent-text);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#rr-score {
+  display: flex; justify-content: center; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.rr-label  { font: 600 13px var(--font-body); opacity: .45; }
+.rr-val    { font: 800 38px var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.rr-val.rr-new { color: var(--accent); }
+.rr-badge  {
+  font: 700 10px var(--font-body); letter-spacing: .6px; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--accent-line);
+  padding: 2px 7px; border-radius: 6px; align-self: center;
+}
+#rr-laps {
+  display: flex; flex-direction: column; gap: 5px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 10px 0;
+}
+.rr-lap {
+  display: flex; justify-content: space-between; align-items: center;
+  font: 14px var(--font-body); opacity: .6; padding: 1px 4px;
+}
+.rr-lap-best { opacity: 1; }
+.rr-lap-best .rr-lap-t { color: var(--accent); font-weight: 700; }
+.rr-lap-n   { opacity: .55; min-width: 44px; text-align: left; }
+.rr-lap-t   { font-weight: 600; font-variant-numeric: tabular-nums; }
+.rr-lap-pts { opacity: .45; font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+#rr-best {
+  font: 500 13px var(--font-body); opacity: .4;
+  font-variant-numeric: tabular-nums; letter-spacing: .2px;
+}
+#rr-actions { margin-top: 2px; }
+#rr-back {
+  padding: 13px 0; width: 100%; border-radius: 12px;
+  background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
+  color: var(--accent); font: 600 15px var(--font-body);
+  cursor: pointer; transition: background var(--ease), border-color var(--ease);
+}
+#rr-back:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+
 /* --- Мобильная раскладка HUD --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }
