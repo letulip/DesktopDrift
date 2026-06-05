@@ -47,6 +47,22 @@ export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc:
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
 
 // ==========================================
+// 🔪 ДОСКИ И ИНВЕНТАРЬ (Масштаб 1:64)
+// ==========================================
+
+// Разделочная доска с ручкой (~35x20 см, широкая капсула)
+export const ITEM_BOARD_1 = { hl: 88, r: 117, kind: 'board', c: '#a48c84', imgSrc: 'items/kitchen-board-1-ready.svg' };
+
+// Разделочная доска прямоугольная (~30x20 см, капсула)
+export const ITEM_BOARD_2 = { hl: 58, r: 117, kind: 'board', c: '#bcccd4', imgSrc: 'items/kitchen-board-2-ready.svg' };
+
+// Терка металлическая (~22x10 см, капсула)
+export const ITEM_GRATER  = { hl: 70, r: 58, kind: 'board', c: '#9cbecf', imgSrc: 'items/grater-ready.svg' };
+
+// Кухонная прихватка-рукавица (~28x18 см, широкая капсула)
+export const ITEM_MITTEN  = { hl: 59, r: 105, kind: 'board', c: '#f4dcac', imgSrc: 'items/mitten-ready.svg' };
+
+// ==========================================
 // 🍳 КУХНЯ И ТЕХНИКА (Масштаб 1:64)
 // ==========================================
 
