@@ -9,8 +9,10 @@ export const TRACKS = [
   {
     id:     'green-study',
     name:   'Green Study',
-    desc:   'Письменный стол. Зелёное сукно, латунная отделка.',
+    desc:   'A writing desk. Green baize and brass accents.',
     svgSrc: 'tracks/WORK_DESK_1.svg',
     page:   'green-study.html',
+    // Canvas-world colours from tracks/track_themes.json (not CSS tokens)
+    theme:  { background: '#14130e', table: '#2f4034', tableEdge: '#7a6334', track: '#cdbf9e' },
   },
 ];

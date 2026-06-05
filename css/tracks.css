@@ -45,12 +45,12 @@
   box-shadow: 0 6px 24px rgba(255,177,77,.12);
 }
 
-/* Canvas thumbnail */
+/* Canvas thumbnail — фон задаётся через JS (theme.background) */
 .track-thumb {
   display: block;
   width: 100%;
   aspect-ratio: 2 / 1;
-  background: var(--bg-mid);
+  background: var(--bg-deep); /* запасной цвет пока JS не отрисовал */
 }
 
 /* Card body */
