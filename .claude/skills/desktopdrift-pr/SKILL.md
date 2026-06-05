@@ -26,6 +26,9 @@ aesthetics skill, not a game design doc).
 4. **If assets/JS changed → bump the SW cache** `desktop-drift-vN` in `sw.js`
    (and add any new js module to the `ASSETS` array). Keep versions monotonic across
    parallel branches; on merge, a CACHE-line conflict → take the newest.
+   The SW is **stale-while-revalidate**: a forgotten bump self-heals on the next load,
+   but bumping guarantees a first-load-fresh deploy — so still bump. (Forgetting it was
+   the v30→v31 prod-staleness bug.)
 5. **Browser smoke test (required for runtime changes).** Serve via
    `.claude/launch.json` → config `desktopdrift` (`python3 -m http.server 8777`).
    - 🔴 **GOTCHA: the SW is cache-first and serves stale JS.** Before testing a branch,
@@ -38,8 +41,10 @@ aesthetics skill, not a game design doc).
    - **Confirm the server actually serves the NEW code:**
      `fetch('/js/<file>.js?x='+Date.now()).then(r=>r.text())` → check your change is present
      (a sentinel string). Don't trust "it works" without this.
-   - Run sandbox / timeattack / workdesk: render, steering (ArrowLeft/Right), pause (P),
-     exit (Menu), combo/scoring; console must be error-free.
+   - Run Sandbox (`select.html?mode=sandbox` → `sandbox.html`) and a Time Attack track
+     (`tracks.html` → pick → `select.html?track=<id>` → e.g. `green-study.html`): render,
+     steering (ArrowLeft/Right), pause (P), exit (Menu), combo/scoring, lap counter, and
+     the race-results overlay on the final lap; console must be error-free.
    - `requestAnimationFrame` freezes in a backgrounded tab (a self-rAF counter reads 0) —
      that's browser behaviour, not a bug; the tab must be active to see motion.
 5. **Commit** (Conventional Commits: `feat:`/`fix:`/`refactor:`/`perf:`/`chore:`/`docs:`).

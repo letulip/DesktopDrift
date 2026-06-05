@@ -8,13 +8,14 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (6):**
+- **Pages (7):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
-    card per track from `js/track-registry.js`, each with a canvas preview of
-    the track outline (parsed live from its SVG) and best lap from `store.records()`.
-    Clicking a card → `select.html?track=<id>`. `noindex`.
+    card per track from `js/track-registry.js`, each with a canvas preview rendered
+    in the track's own `theme` colours (parses the SVG `track_path` live, Y-flipped
+    to match in-game orientation) plus best lap **and** best total score from
+    `store.records()[id].timeattack`. Clicking a card → `select.html?track=<id>`. `noindex`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
     Each card shows three 10-cell stat bars: **spd** (amber, absolute 0–15 km/h),
@@ -29,17 +30,19 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
-  - `green-study.html` — **Time Attack: Green Study** track. Imports
-    `track-green-study.js` (async, fetches SVG at runtime) and calls
-    `startGame(T, { initItems: true })`. `noindex`.
+  - `green-study.html` — **Time Attack: Green Study** track (display name
+    "Midnight Deadline" in the registry). Imports `track-green-study.js`
+    (async, fetches SVG at runtime) and calls `startGame(T, { initItems: true })`.
+    Runs a fixed 3-lap race ending in the results overlay. `noindex`.
   - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **SEO files (root):**
   - `robots.txt` — allows all bots; points to `sitemap.xml`.
   - `sitemap.xml` — lists indexable pages (`index.html`, `sandbox.html`,
-    `timeattack.html`, `donate.html`). `select.html` is omitted (transitional
-    screen, has `noindex`). Update `<lastmod>` when content changes.
+    `donate.html`). `tracks.html`, `green-study.html` (and every track page),
+    and `select.html` are `noindex` app screens, omitted. Update `<lastmod>`
+    when content changes.
 - **File layout:**
   - `css/base.css` — shared reset **+ design tokens** (`:root` vars) **+ `@font-face`**
     for the display font. Loaded by every page first (defines all `var(--…)`).
@@ -56,31 +59,40 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Used by track files to spread item descriptors with position/angle.
     SVGs live in `items/`.
   - `js/collectibles.js` — collectible-item catalog (e.g. `ITEM_TIRE_COIN`),
-    same descriptor shape as `items.js`. Imported by `track.js` (the
-    `collectibles` array). SVGs live in `objects/`.
-  - `js/track.js` — config1 track (SVG-derived Chaikin-smoothed polygon).
-    Exports: `center`, `outer`, `inner`, `cones`, `props`, `checkpoints`,
-    `startPos`, `startAngle`, `TRACK_HALF`, `CONE_R`, `CP_R`, `K`.
-    Imports item constants from `items.js` and places them via `addProp()`.
+    same descriptor shape as `items.js`. SVGs live in `objects/`. **Not currently
+    imported** (the only consumer, `track.js`, was removed) — kept as the catalog
+    for the future on-track coins feature.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
-    Same export shape as `track.js`. Does NOT import `items.js` (no props).
+    Same export shape as the Time Attack track modules. Does NOT import `items.js`
+    (no props). Used by `sandbox.html`.
   - `js/track-registry.js` — **track registry**. Single source of truth for all
-    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, page }`.
-    Consumed by `tracks.html` (card list + previews) and `select.html` (routing).
-    Adding a track = one entry here + track module + HTML page.
+    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, page, theme }`.
+    `id` keys `store.records()`; `theme` (background/table/tableEdge/track) is the
+    canvas-world palette, used both by the `tracks.html` preview and (re-declared in
+    the track module) by the game. Consumed by `tracks.html` (cards + previews) and
+    `select.html` (routing). Adding a track = one entry here + a track module + an
+    HTML page. Six future tracks are scaffolded as commented entries.
   - `js/track-green-study.js` — **Green Study track** (first Time Attack circuit).
-    Uses top-level `await` to fetch `tracks/WORK_DESK_1.svg` at runtime. Parses
+    Uses top-level `await` to fetch `tracks/green-study.svg` at runtime. Parses
     `track_path` (M/L/H/V/Z) for the centerline, `<line id="ITEM_*">` proxy-lines
     for item placement. `SCALE=0.25` (viewBox 14462×7829, stroke-width 800 →
     `TRACK_HALF=100`). ID resolution: direct match in `items.js` first; strips
     trailing `_N` digit suffix for instance duplicates (`ITEM_PENCIL_2` → `ITEM_PENCIL`).
-    Exports `TABLE` from actual `outer` bounds + `TABLE_MARGIN=250` game units;
-    `initRender` in `render.js` applies it, overriding the global TABLE.
-    Logs `console.warn` only for unresolvable item IDs. Same export shape as `track.js`
-    plus `TABLE`. **Figma SVG layout rule:** viewBox padding around the track path must
-    leave **200–300 game units** (`TABLE_MARGIN`) on every side; with SCALE=0.25 that is
-    **800–1200 SVG units** of clear space.
-    **Authoring refs:** `tracks/TRACK_STYLE_GUIDE.svg`, `tracks/TRACK_COLOR_SCHEMES.svg`.
+    Exports `TABLE` from actual `outer` bounds + `TABLE_MARGIN=250` game units
+    (`initRender` applies it, overriding the global TABLE), plus `theme` (world
+    colours), `id` (records key) and `laps` (3 — the lap count for the race).
+    Logs `console.warn` only for unresolvable item IDs. **Figma SVG layout rule:**
+    viewBox padding around the track path must leave **200–300 game units**
+    (`TABLE_MARGIN`) on every side; with SCALE=0.25 that is **800–1200 SVG units** of
+    clear space. **Authoring refs:** `tracks/TRACK_STYLE_GUIDE.svg`,
+    `tracks/TRACK_COLOR_SCHEMES.svg`. **The repeatable build pipeline is the
+    `desktopdrift-new-track` skill.**
+  - `js/race-results.js` — **self-contained race-results overlay**. Creates
+    `#raceResultsOverlay` DOM; `show({ score, bestLap, lapScores, isNewRecord })`
+    renders final score (NEW RECORD badge), per-lap times (best lap highlighted) and
+    a "Back to tracks" button → `tracks.html`. All queries are scoped to its own
+    overlay element. Returns `{ show, destroy }`. Styled in `css/sandbox.css`
+    (`#rr-*`). Shown by `game-engine.js` on the final lap of a fixed-lap race.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
@@ -88,6 +100,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+    **Theme (dependency injection):** world colours live in `THEME_DEFAULT`
+    (background/table/tableEdge/track/startLine/checkpoint/cone/skid); `initRender`
+    merges `T.theme` over it (same pattern as `T.TABLE`). Tracks ship their palette;
+    no per-track literals in `render.js`.
+    **Start/finish** is drawn as a checkered flag (`TH.startLine` light + dark cells,
+    rotated to `startAngle`), not a dashed line.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
@@ -110,10 +128,15 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     0.621371 for mph) and sets `#spdUnit` label. Speed passed to `draw()` is
     already converted — `render.js` just rounds and displays it.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
+    **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
+    used by sandbox). With a finite count the HUD shows `1/3`; on completing the last
+    lap the engine banks the active combo, writes `bestLap`/`bestScore` to
+    `store.records()[T.id].timeattack` (via `save()`), calls `stop()`, and shows the
+    `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
     Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
-    loop, and destroys the pause / confirm-exit components. The engine is reentrant:
-    a second `startGame` auto-stops the previous one (no leaked listeners / no double
-    RAF). Foundation for restart / results-screen / ghost-car.
+    loop, and destroys the pause / confirm-exit (and, unless finished, race-results)
+    components. The engine is reentrant: a second `startGame` auto-stops the previous
+    one (no leaked listeners / no double RAF).
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
     pause, resume, destroy }`. `destroy()` removes the keydown listener and its DOM.
@@ -124,18 +147,19 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
     `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`, `sampleCheckpoints`,
-    `prepProp`. Shared by `track.js` / `track-oval.js` / `track-workdesk.js` (single
-    source of truth, unit-tested in `tests/track-util.test.js`).
+    `prepProp`. Shared by `track-oval.js` / `track-green-study.js` (single source of
+    truth, unit-tested in `tests/track-util.test.js`).
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign` + named tuning
     constants. Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
   - **Dependency order (no circular deps):**
-    `store.js` / `track-util.js` / `scoring.js` (no imports) →
+    `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
-    `game-engine.js` → (`pause.js` / `confirm-exit.js`).
+    `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
-    `select.html` imports `config.js` + `palette.js` + `store.js`
-    (car previews + colour palette + persistence).
+    `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
+    (car previews + colour palette + persistence + track routing).
+    `tracks.html` imports `track-registry.js` + `store.js`.
 
 ## Setup
 
@@ -158,7 +182,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
 | build | — (none) | No build step. |
 | test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
-| syntax check | `node --check js/store.js js/palette.js js/config.js js/items.js js/collectibles.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK` | Run before every commit. |
+| syntax check | `node --check js/*.js && echo OK` | Run before every commit (all ES modules). |
 
 ## Architecture
 
@@ -166,25 +190,26 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 
 Neither `state.js` nor `render.js` imports any track module. Instead, each
 HTML page is a 3-line inline `<script type="module">` that:
-1. Does `import * as T from './js/track-oval.js'` (or `track.js`).
+1. Does `import * as T from './js/track-oval.js'` (or `track-green-study.js`).
 2. Does `import { startGame } from './js/game-engine.js'`.
 3. Calls `startGame(T)` or `startGame(T, { initItems: true })`.
 
 `state.js` exposes `initCar({ startPos, startAngle })` to reset car position.
-`render.js` exposes `initRender(T)` to wire all track arrays and recompute the
-minimap scale (`MINI`). This makes both track files interchangeable.
+`render.js` exposes `initRender(T)` to wire all track arrays, apply `T.theme` /
+`T.TABLE`, and recompute the minimap scale (`MINI`). This makes track files
+interchangeable; `T` also carries `theme`, `id`, `laps` (see game-engine).
 
 ### Track files
 
 - **`track-oval.js`:** Parametric closed loop — `centerAt(a)` with sine
   harmonics; 300 `center` samples; `outer`/`inner` offset by `TRACK_HALF=100`.
   No `props` (no items in sandbox mode). Used by `sandbox.html`.
-- **`track.js`:** 26-vertex SVG polygon (from `tracks/config1.svg`,
-  `viewBox 0 0 245 121`, `SCALE=13`). Smoothed by 4 Chaikin passes
-  (26→52→104→208→416 points). Imports item descriptors from `items.js` and
-  places 12 items via `addProp()`. Used by `timeattack.html`.
+- **`track-green-study.js`:** SVG-driven Time Attack track (see file layout above).
+  Used by `green-study.html`; registered in `track-registry.js`.
+- *(The old hardcoded `track.js` / config1 track was removed with `timeattack.html`
+  in the track-registry refactor; `tracks/config1–7.svg` remain only as references.)*
 
-### Items system (`items.js` + `track.js`)
+### Items system (`items.js` + track modules)
 
 `items.js` is a pure catalog — no side effects, no game state. Each item is:
 
@@ -197,14 +222,16 @@ minimap scale (`MINI`). This makes both track files interchangeable.
 // c   = fallback fill colour
 ```
 
-`track.js` spreads item constants with position/angle:
+Track modules spread item constants with position/angle. SVG-driven tracks
+(`track-green-study.js`) derive `x/y/ang` from `<line id="ITEM_*">` proxy-lines;
+the older hand-authored style passed them inline, e.g.:
 
 ```js
 { ...ITEM_KNIFE_1, x: -1211, y: -255, ang: 1.3 }
 ```
 
-`addProp(o)` caches `o._cos = Math.cos(o.ang)` and `o._sin = Math.sin(o.ang)`
-and pushes to `props[]`.
+`prepProp(o)` (in `track-util.js`) caches `o._cos`/`o._sin` and defaults `hl`,
+then the track pushes to `props[]`.
 
 SVG assets in `items/` are saved **portrait** (tall). `render.js` auto-detects
 orientation via `img.naturalHeight > img.naturalWidth`. Portrait SVGs are drawn
@@ -244,11 +271,19 @@ axis maps to the capsule long axis.
 
 ### Service Worker (`sw.js`)
 
-Cache-first strategy. Current cache key: **`desktop-drift-v27`**. Bump this
-string whenever static assets change (forces all clients to re-download).
-ASSETS list includes all HTML pages (including `select.html` and `donate.html`),
-CSS, JS (including `store.js`), and icon files. Does NOT cache individual SVG
-item assets (fetched lazily by the browser).
+**Stale-while-revalidate** strategy. Current cache key: **`desktop-drift-v31`**.
+The fetch handler serves the cached copy immediately (fast + offline) **and** in
+parallel re-fetches from network, overwriting the cache — so updated assets reach
+the player on the *next* load even if `CACHE` wasn't bumped (a forgotten bump
+self-heals). **Still bump `CACHE` on any asset change**: the version bump byte-changes
+`sw.js`, which triggers `skipWaiting`/`clients.claim` and guarantees the update on the
+*first* load, plus `addAll(ASSETS)` re-primes the precache. ASSETS lists every HTML page
+(incl. `tracks.html`, `green-study.html`), CSS, JS, the track SVG (`tracks/green-study.svg`),
+and icons. Individual `items/` SVGs are NOT precached (fetched + runtime-cached lazily).
+
+> Why prod sometimes showed stale content before v31: four commits changed
+> `tracks.html` / `css/tracks.css` / `track-registry.js` without bumping `CACHE`,
+> so cache-first kept serving the old precached copies. SWR + the bump fixes it.
 
 ## Development rules
 
@@ -345,9 +380,11 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
 - **What stays manual:** anything needing Canvas2D / Path2D / DOM / `requestAnimationFrame`
   — `render.js`, `game-engine.js`, `pause.js`, `confirm-exit.js`. These can't run in
   Node, so they ride the browser smoke test below.
-- **Manual smoke test:** `index.html` → both game modes via `select.html`, pick car +
-  colour, drive, check HUD, scoring, collisions, items visible and not fully blocking
-  track, pause + back-to-menu confirm.
+- **Manual smoke test:** `index.html` → Sandbox via `select.html`; Time Attack via
+  `tracks.html` → pick a track → `select.html?track=<id>` → pick car + colour → drive.
+  Check HUD, scoring, collisions, items visible and not blocking the racing line,
+  pause + back-to-menu confirm, lap counter (`1/3`), and the race-results overlay
+  (score + per-lap times + Back to tracks) on the final lap.
 - **Process isolation:** `node --test` runs each `tests/*.test.js` in its own process,
   so module-level caches (`store.js`'s `_s`) don't leak between files. Conflicting
   setups (fresh-defaults vs. load-existing) live in **separate files** for that reason.
@@ -362,8 +399,11 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   on push to `main`. No build step, no lint/test in CI — run `npm test` + smoke
   test locally first.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
-- **Feature branches:** Work in progress lives in `feat/*` branches, merged to
-  `main` when ready. Currently active: `feat/settings`.
+- **Feature branches:** Work in progress lives in `feat/*` / `fix/*` / `chore/*`
+  branches, merged to `main` via PR when ready.
+- **Skills:** repo-specific workflows live in `.claude/skills/` —
+  `desktopdrift-pr` (branch → test → SW-clear browser verify → bump → PR) and
+  `desktopdrift-new-track` (the add-a-track pipeline). Use them.
 
 ## Safety (DO NOT SHORTEN)
 
@@ -389,8 +429,11 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   `STEER_WOBBLE` are the tuning knobs in `config.js`.
 - **Two `launch.json` configs with different cwd assumptions.** See the `.claude/`
   folder. Both use port **8777** — launching both at once conflicts on the port.
-- **SW cache key must be bumped manually** (`desktop-drift-vN` in `sw.js`) when
-  any static asset changes. Otherwise browsers keep serving stale files.
+- **SW cache key should still be bumped** (`desktop-drift-vN` in `sw.js`) on any
+  asset change — it guarantees the update on the *first* reload. The stale-while-
+  revalidate handler does refresh the cache on the next load even without a bump, so
+  a forgotten bump is no longer fatal (just one load late). New JS modules still must
+  be added to the `ASSETS` array for offline precache.
 - **`MINI` is computed inside `initRender(T)`, not at module load time.** Do not
   call any render function before `initRender(T)` runs.
 - **Portrait SVGs only.** All files in `items/` are portrait (taller than wide).
