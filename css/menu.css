@@ -14,8 +14,11 @@
   text-shadow: 0 6px 30px rgba(255,150,60,.18);
 }
 .logo sup {
-  font-size: .38em;          /* настоящий надстрочный ™ — мелкий */
-  vertical-align: super;
+  font-size: .26em;          /* ™ значительно мельче основного текста */
+  vertical-align: baseline;  /* сбрасываем браузерный super, управляем вручную */
+  position: relative;
+  top: -.75em;               /* вверх на ¾ собственного em — хорошо над заглавными */
+  margin-left: .12em;        /* небольшой отступ вправо от буквы */
   letter-spacing: 0;
 }
 .tagline { margin: 8px 0 30px; opacity: .65; font-size: clamp(13px, 2.4vw, 17px); }
