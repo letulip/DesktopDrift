@@ -34,7 +34,13 @@ canvas { display: block; }
 /* HUD layout columns (были инлайновые style= на безымянных div-ах) */
 #hud-left  { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 #hud-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-#controls  { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+/* #controls вынесен из stacking context #hud (position:fixed без z-index → auto ≈ 0)
+   как самостоятельный fixed-элемент — иначе pauseOverlay (z-index:30) его перекрывает. */
+#controls {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 35; /* выше pauseOverlay (30), ниже confirmExit (50) */
+  display: flex; gap: 8px; align-items: center; pointer-events: auto;
+}
 #spdUnit   { font-size: .85em; opacity: .7; }
 #mini { background: rgba(0,0,0,.4); border-radius: var(--r-panel); display: block; width: 156px; height: 134px; }
 .big { font-size: 18px; font-weight: 700; }
@@ -46,7 +52,6 @@ canvas { display: block; }
 #menuBtn {
   border: none; color: var(--ink); font: inherit; cursor: pointer;
   background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); pointer-events: auto;
-  position: relative; z-index: 35; /* выше pauseOverlay (30), ниже confirmExit (50) */
 }
 
 /* --- Кнопка паузы (самодостаточный компонент, DOM создаёт js/pause.js) --- */
