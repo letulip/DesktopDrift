@@ -120,7 +120,6 @@ export const theme = {
   table:      '#2f4034',
   tableEdge:  '#7a6334',
   track:      '#cdbf9e',
-  startLine:  '#efe9d8',
   skid:       'rgba(10,16,10,0.5)',
   checkpoint: 'rgba(125,212,255,0.5)',
   cone:       '#ff7a1a',
