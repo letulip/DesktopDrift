@@ -8,7 +8,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (7):**
+- **Pages (8):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
@@ -35,6 +35,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     "Midnight Deadline" in the registry). Imports `track-green-study.js`
     (async, fetches SVG at runtime) and calls `startGame(T, { initItems: true })`.
     Runs a fixed 3-lap race ending in the results overlay. `noindex`.
+  - `steel-kitchen.html` — **Time Attack: Steel Kitchen** track (display name
+    "Stainless Speedway"). Imports `track-steel-kitchen.js`. Light theme
+    (inverted background — first bright track in the game). `noindex`.
   - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
@@ -95,6 +98,13 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     clear space. **Authoring refs:** `tracks/TRACK_STYLE_GUIDE.svg`,
     `tracks/TRACK_COLOR_SCHEMES.svg`. **The repeatable build pipeline is the
     `desktopdrift-new-track` skill.**
+  - `js/track-steel-kitchen.js` — **Steel Kitchen track** ("Stainless Speedway").
+    Same structure as `track-green-study.js`. viewBox 16399×8756, SCALE=0.25,
+    15 items (kitchen utensils: PAN_EGG, CLEAVER, SPATULA×2, MIXER, OPENER, SPRAY,
+    BOARD×2, GRATER×2, MITTEN×2, CUP, COLA_CAP). **Light theme** — first bright track
+    in the game; `background:#c6cace`, `table:#6b7178`. No `startLine` field needed
+    (flag is now universal black/white). `#hint` text-shadow added in `css/sandbox.css`
+    for readability on light backgrounds (applies to all future light-theme tracks too).
   - `js/race-results.js` — **self-contained race-results overlay**. Creates
     `#raceResultsOverlay` DOM; `show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })`
     renders the PPS score ("1250 PPS", NEW RECORD badge), sub-line "Total: 45,000 · 36.0 s",
@@ -109,11 +119,17 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
     **Theme (dependency injection):** world colours live in `THEME_DEFAULT`
-    (background/table/tableEdge/track/startLine/checkpoint/cone/skid); `initRender`
-    merges `T.theme` over it (same pattern as `T.TABLE`). Tracks ship their palette;
-    no per-track literals in `render.js`.
-    **Start/finish** is drawn as a checkered flag (`TH.startLine` light + dark cells,
-    rotated to `startAngle`), not a dashed line.
+    (background/table/tableEdge/track/cone/skid); `initRender` merges `T.theme`
+    over it (same pattern as `T.TABLE`). Tracks ship their palette; no per-track
+    literals in `render.js`. `TH.checkpoint` kept in shape for legacy but not used
+    in rendering (replaced by fixed colour, see below).
+    **Start/finish** is a **universal black/white** checkered flag
+    (`rgba(255,255,255,0.92)` / `rgba(0,0,0,0.82)`) — not theme-dependent, always
+    readable on any background. `startLine` is no longer a theme field.
+    **Checkpoint circles** (intermediate only — finish has no circle): fixed
+    `#7dd4ff` stroke, `lineWidth 5`, `shadowColor rgba(0,0,0,0.7)` `shadowBlur 14`.
+    Dark shadow creates contrast halo on light themes; bright blue is self-visible
+    on dark themes.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
@@ -140,8 +156,8 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     used by sandbox). With a finite count the HUD shows `1/3`. The finish line
     (checkpoint[0] = center[0]) is detected by **sign-change of the forward projection**
     of the car position onto `startAngle` — not a radius circle. `prevFinishDot` tracks
-    the previous frame's dot product; when it goes from negative to positive while the car
-    is within `TRACK_HALF + 60` laterally, the lap is counted. Intermediate checkpoints
+    the previous frame's dot product; when it goes from negative to positive (no lateral
+    constraint — direction check + mandatory checkpoints are sufficient anti-fraud), the lap is counted. Intermediate checkpoints
     (1…K-1) still use the circle `CP_R`. When the final lap is crossed, the engine
     **first** banks the active combo (`bankCombo()`), **then** pushes the final lap entry
     to `S.lapScores` — this order is critical: reversing it would drop the last combo
