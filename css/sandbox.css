@@ -5,6 +5,7 @@ canvas { display: block; }
   font: 14px/1.4 var(--font-body);
   color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,.7);
   pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start;
+  z-index: 100;
 }
 #combo {
   position: fixed; top: 64px; left: 0; right: 0; text-align: center;
@@ -34,7 +35,13 @@ canvas { display: block; }
 /* HUD layout columns (были инлайновые style= на безымянных div-ах) */
 #hud-left  { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 #hud-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-#controls  { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+/* #controls вынесен из stacking context #hud (position:fixed без z-index → auto ≈ 0)
+   как самостоятельный fixed-элемент — иначе pauseOverlay (z-index:30) его перекрывает. */
+#controls {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 35; /* выше pauseOverlay (30), ниже confirmExit (50) */
+  display: flex; gap: 8px; align-items: center; pointer-events: auto;
+}
 #spdUnit   { font-size: .85em; opacity: .7; }
 #mini { background: rgba(0,0,0,.4); border-radius: var(--r-panel); display: block; width: 156px; height: 134px; }
 .big { font-size: 18px; font-weight: 700; }

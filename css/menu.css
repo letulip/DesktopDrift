@@ -13,6 +13,18 @@
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   text-shadow: 0 6px 30px rgba(255,150,60,.18);
 }
+.logo sup {
+  font-size: .24em;
+  vertical-align: top;   /* прибит к верхней линии строки — не уходит из потока */
+  margin-left: .1em;
+  letter-spacing: 0;
+  /* Собственный градиент: background-clip родителя не покрывает top-aligned дочерний
+     элемент за пределами его нормальной позиции. */
+  background: var(--accent-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .tagline { margin: 8px 0 30px; opacity: .65; font-size: clamp(13px, 2.4vw, 17px); }
 .tiles { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
 .tile {

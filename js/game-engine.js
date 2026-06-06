@@ -396,9 +396,11 @@ export const startGame = (T, opts = {}) => {
       // Кружок убран — детект точный: время фиксируется в момент пересечения,
       // а не въезда в зону радиуса CP_R.
       const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
-      const fLat = Math.abs((car.x - c0.x) * (-finishSin) + (car.y - c0.y) * finishCos);
 
-      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0 && fLat < TRACK_HALF + 60) {
+      // Боковое ограничение убрано: машина могла объехать линию по краю стола и не получить
+      // зачёт. Направленного детекта (знак fDot) + пройденных промежуточных чекпоинтов
+      // достаточно — они уже гарантируют полный круг.
+      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;

@@ -69,3 +69,4 @@ they win when they conflict:
 - Run `npm test` — it must be green.
 - Update roadmap with current state.
 - Update agents with actual structure and nuances.
+- Update sw.js if needed.

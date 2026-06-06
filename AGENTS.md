@@ -49,8 +49,15 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     for the display font. Loaded by every page first (defines all `var(--…)`).
   - `css/menu.css` — menu styles + the staggered entrance animation
     (`index.html`, also loaded by `select`/`settings`/`donate`).
+    `.logo sup` — trademark mark: `font-size:.24em; vertical-align:top` keeps it
+    in flow so the parent's `background-clip:text` gradient covers it; has its own
+    `background-clip:text` as a fallback; `margin-left:.1em` for side offset.
   - `css/sandbox.css` — HUD styles + mobile media query (shared by both game
-    pages).
+    pages). **z-index ladder:** `#hud z-index:100` (pointer-events:none, always
+    on top) → `#controls position:fixed z-index:35` (menuBtn, interactive above
+    all overlays) → `#raceResultsOverlay 60` → `#confirmExitOverlay 50` →
+    `#pauseBtn 40` → `#pauseOverlay 30`. `#hud` at 100 ensures the Menu button
+    remains clickable during pause without needing to restructure the overlay stack.
   - `fonts/unbounded-800-latin.woff2` — self-hosted display font (Unbounded 800, OFL).
   - `js/config.js` — pure static data: `CFG`, `CARS` (with Path2D init),
     `TABLE`, physics constants (`PHYS_HZ`, `GRIP_WOBBLE`, `STEER_WOBBLE`,
