@@ -130,14 +130,25 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     already converted — `render.js` just rounds and displays it.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
     **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
-    used by sandbox). With a finite count the HUD shows `1/3`; on completing the last
-    lap the engine **first** banks the active combo (`bankCombo()`), **then** pushes the
-    final lap entry to `S.lapScores` — this order is critical: reversing it would drop the
-    last combo segment from both `pts` and the headline total. Calculates
-    `pps = totalScore / totalTime` (Points Per Second), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime`
-    to `store.records()[T.id].timeattack` when a new record is set (via `save()`),
+    used by sandbox). With a finite count the HUD shows `1/3`. The finish line
+    (checkpoint[0] = center[0]) is detected by **sign-change of the forward projection**
+    of the car position onto `startAngle` — not a radius circle. `prevFinishDot` tracks
+    the previous frame's dot product; when it goes from negative to positive while the car
+    is within `TRACK_HALF + 60` laterally, the lap is counted. Intermediate checkpoints
+    (1…K-1) still use the circle `CP_R`. When the final lap is crossed, the engine
+    **first** banks the active combo (`bankCombo()`), **then** pushes the final lap entry
+    to `S.lapScores` — this order is critical: reversing it would drop the last combo
+    segment from both `pts` and the headline total. Calculates `pps = totalScore / totalTime`
+    (Points Per Second), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime` to
+    `store.records()[T.id].timeattack` when a new record is set (via `save()`),
     calls `stop()`, and shows the `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
-    For non-final laps the old order applies: push lapScore → update `S.lapScoreStart` → flash → reset.
+    **Wall collision (rect):** uses capsule AABB — `absExtX = |hx|×nose + CR`,
+    `absExtY = |hy|×nose + CR` — so the bumper, not the windshield, triggers the wall.
+    **Wall collision (round/oval):** iterates body points, pushes car radially inward on
+    first violation. **Prop collision:** finds closest body point to the prop capsule
+    (`bodyPts` iteration), pushes car so that point clears the prop. Previously all three
+    used only `car.x, car.y` with radius `CR`, causing ~24 gu of visual penetration before
+    triggering.
     Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
     loop, and destroys the pause / confirm-exit (and, unless finished, race-results)
     components. The engine is reentrant: a second `startGame` auto-stops the previous

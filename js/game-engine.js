@@ -20,7 +20,7 @@ let _active = null;
 // Возвращает { stop } — снимает все слушатели и отменяет requestAnimationFrame.
 export const startGame = (T, opts = {}) => {
   if (_active) _active.stop(); // не запускать вторую игру поверх живой
-  const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R } = T;
+  const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = бесконечно (sandbox)
 
   initRender(T);
@@ -201,6 +201,13 @@ export const startGame = (T, opts = {}) => {
     onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
   });
 
+  // ─── Финишная линия ─────────────────────────────────────────────────────────
+  // Детект пересечения по знаку проекции на ось трека (не кружок).
+  // prevFinishDot < 0 = машина ещё позади линии; смена знака = пересечение.
+  const finishCos = Math.cos(startAngle), finishSin = Math.sin(startAngle);
+  const c0 = checkpoints[0];
+  let prevFinishDot = null; // null = ещё не отсчитали первую позицию в текущем подъезде
+
   // ─── Физика ───────────────────────────────────────────────────────────────
 
   let last = performance.now();
@@ -285,39 +292,57 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (TABLE.shape === 'round') {
+      // Итерируем точки капсулы: фронт → центр → корма. Первое нарушение = реакция.
       const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      const nx = car.x / rx, ny = car.y / ry;
-      const r = Math.hypot(nx, ny);
-      if (r > 1) {
-        car.x = nx / r * rx; car.y = ny / r * ry;
-        const ux = nx / r / rx, uy = ny / r / ry, ul = Math.hypot(ux, uy);
-        const px = ux / ul, py = uy / ul;
-        const vn = car.vx * px + car.vy * py;
-        if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) burnCombo('WALL!'); }
+      for (const [bpx, bpy] of bodyPts) {
+        const bnx = bpx / rx, bny = bpy / ry;
+        const br = Math.hypot(bnx, bny);
+        if (br > 1) {
+          car.x += bnx / br * rx - bpx;
+          car.y += bny / br * ry - bpy;
+          const ux = bnx / br / rx, uy = bny / br / ry, ul = Math.hypot(ux, uy);
+          const px = ux / ul, py = uy / ul;
+          const vn = car.vx * px + car.vy * py;
+          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) burnCombo('WALL!'); }
+          break; // одна реакция за кадр
+        }
       }
     } else {
-      const bx = TABLE.w / 2 - CR, by = TABLE.h / 2 - CR;
+      // AABB капсулы: экстент по X/Y зависит от угла машины, а не от CR.
+      // Раньше использовался только CR (ширина), поэтому бампер "уходил в стену"
+      // на ~24 gu прежде чем срабатывала коллизия.
+      const absExtX = Math.abs(hx) * nose + CR;
+      const absExtY = Math.abs(hy) * nose + CR;
+      const wallW = TABLE.w / 2, wallH = TABLE.h / 2;
       let wallHit = 0;
-      if (car.x < -bx) { car.x = -bx; if (car.vx < 0) { wallHit = Math.max(wallHit, -car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.x >  bx) { car.x =  bx; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.y < -by) { car.y = -by; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (car.y >  by) { car.y =  by; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
+      if (car.x - absExtX < -wallW) { car.x = -wallW + absExtX; if (car.vx < 0) { wallHit = Math.max(wallHit, -car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
+      if (car.x + absExtX >  wallW) { car.x =  wallW - absExtX; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
+      if (car.y - absExtY < -wallH) { car.y = -wallH + absExtY; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
+      if (car.y + absExtY >  wallH) { car.y =  wallH - absExtY; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
       if (wallHit > 120) burnCombo('WALL!');
     }
 
     for (const o of props) {
-      let qx = o.x, qy = o.y;
-      if (o.hl > 0) {
-        const lx = car.x - o.x, ly = car.y - o.y;
-        let t = lx * o._cos + ly * o._sin;
-        if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-        qx = o.x + o._cos * t; qy = o.y + o._sin * t;
+      // Ищем ближайшую точку капсулы машины к объекту (бампер/центр/корма)
+      let bestD2 = Infinity, bestBpX = car.x, bestBpY = car.y;
+      let bestQx = o.x, bestQy = o.y;
+      for (const [bpx, bpy] of bodyPts) {
+        let qx = o.x, qy = o.y;
+        if (o.hl > 0) {
+          const lx = bpx - o.x, ly = bpy - o.y;
+          let t = lx * o._cos + ly * o._sin;
+          if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
+          qx = o.x + o._cos * t; qy = o.y + o._sin * t;
+        }
+        const dx = bpx - qx, dy = bpy - qy, d2 = dx * dx + dy * dy;
+        if (d2 < bestD2) { bestD2 = d2; bestBpX = bpx; bestBpY = bpy; bestQx = qx; bestQy = qy; }
       }
-      const dx = car.x - qx, dy = car.y - qy, rr = o.r + CR;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < rr * rr) {
-        const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
-        car.x = qx + nx * rr; car.y = qy + ny * rr;
+      const rr = o.r + CR;
+      if (bestD2 < rr * rr) {
+        const d = Math.sqrt(bestD2) || 1;
+        const nx = (bestBpX - bestQx) / d, ny = (bestBpY - bestQy) / d;
+        car.x += bestQx + nx * rr - bestBpX;
+        car.y += bestQy + ny * rr - bestBpY;
         const vn = car.vx * nx + car.vy * ny;
         if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) burnCombo('CRASH!'); }
       }
@@ -365,16 +390,21 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.lapStarted) S.lapTime += dt;
-    const cp = checkpoints[S.nextCp];
-    if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
-      if (S.nextCp === 0) {
+
+    if (S.nextCp === 0) {
+      // ── Финишная линия: пересечение по знаку проекции ──────────────────────
+      // Кружок убран — детект точный: время фиксируется в момент пересечения,
+      // а не въезда в зону радиуса CP_R.
+      const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
+      const fLat = Math.abs((car.x - c0.x) * (-finishSin) + (car.y - c0.y) * finishCos);
+
+      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0 && fLat < TRACK_HALF + 60) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;
 
         if (TOTAL_LAPS > 0 && S.lapNum >= TOTAL_LAPS) {
-          // Последний круг: сначала банкуем комбо, потом фиксируем лапскор —
-          // иначе финальный отрезок набора не попадает в pts последнего круга.
+          // Последний круг: сначала банкуем комбо, потом фиксируем лапскор.
           bankCombo();
           S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
           S.lapTime = 0; S.nextCp = 1;
@@ -383,7 +413,6 @@ export const startGame = (T, opts = {}) => {
           const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
           const pps        = pointsPerSecond(totalScore, totalTime);
 
-          // Сохраняем рекорды если трек имеет id
           let isNewRecord = false;
           if (T.id) {
             const rec  = records();
@@ -401,16 +430,25 @@ export const startGame = (T, opts = {}) => {
           raceFinished = true;
           stop();
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime });
-          return; // прерываем кадр — rAF уже отменён в stop()
+          return;
         }
 
-        // t — время круга для итогового экрана; сохраняем до сброса S.lapTime
         S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
-        if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift(); // ограничение только в ∞-режиме
+        if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift();
         S.lapScoreStart = S.score;
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
         S.lapTime = 0; S.nextCp = 1;
-      } else S.nextCp = (S.nextCp + 1) % K;
+        // prevFinishDot остаётся null до следующего подъезда (выставляется ниже)
+      } else {
+        prevFinishDot = fDot;
+      }
+    } else {
+      // ── Промежуточные чекпоинты: кружок CP_R ───────────────────────────────
+      const cp = checkpoints[S.nextCp];
+      if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
+        S.nextCp = (S.nextCp + 1) % K;
+        if (S.nextCp === 0) prevFinishDot = null; // сбросить перед новым подъездом к финишу
+      }
     }
 
     if (S.flashT > 0) S.flashT -= dt;
