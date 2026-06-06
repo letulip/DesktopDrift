@@ -23,14 +23,14 @@ export const TRACKS = [
   //   page:   `dining-oak.html`,
   //   theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#43372a` },
   // },
-  // {
-  //   id:     `steel-kitchen`,
-  //   name:   `Stainless Speedway`,
-  //   desc:   `Cold steel and sharp cleavers. Navigate a perilous maze of kitchen utensils and don't slip on the oil!`,
-  //   svgSrc: `tracks/steel-kitchen.svg`,
-  //   page:   `steel-kitchen.html`,
-  //   theme:  { background: `#c6cace`, table: `#6b7178`, tableEdge: `#444a50`, track: `#c6bca1` },
-  // },
+  {
+    id:     `steel-kitchen`,
+    name:   `Stainless Speedway`,
+    desc:   `Cold steel and sharp cleavers. Navigate a perilous maze of kitchen utensils on a stainless worktop.`,
+    svgSrc: `tracks/steel-kitchen.svg`,
+    page:   `steel-kitchen.html`,
+    theme:  { background: `#c6cace`, table: `#6b7178`, tableEdge: `#444a50`, track: `#c6bca1` },
+  },
   // {
   //   id:     `cafe-marble`,
   //   name:   `Macchiato Madness`,
