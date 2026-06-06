@@ -274,9 +274,12 @@ export const draw = (speed) => {
     ctx.save();
     ctx.translate(c0.x, c0.y);
     ctx.rotate(startAngle); // X = направление движения, Y = поперёк трека
+    // startLineDark — опциональное поле темы для светлых треков,
+    // где оба цвета клетки должны быть явными (иначе дефолтный тёмный).
+    const darkCell = TH.startLineDark ?? 'rgba(0,0,0,.75)';
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        ctx.fillStyle = (r + c) % 2 === 0 ? TH.startLine : 'rgba(0,0,0,.75)';
+        ctx.fillStyle = (r + c) % 2 === 0 ? TH.startLine : darkCell;
         ctx.fillRect(
           -rows * cell / 2 + r * cell, // вдоль трека
           -TRACK_HALF + c * cell,       // поперёк трека
@@ -288,10 +291,16 @@ export const draw = (speed) => {
   }
 
   // следующий чекпоинт (только промежуточные — финиш уже визуализирован клеткой)
+  // shadowBlur нужен для читаемости на светлых темах (steel-kitchen и др.)
   if (S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
-    ctx.strokeStyle = TH.checkpoint; ctx.lineWidth = 3;
+    ctx.save();
+    ctx.shadowColor = TH.checkpoint;
+    ctx.shadowBlur  = 18;
+    ctx.strokeStyle = TH.checkpoint;
+    ctx.lineWidth   = 4;
     ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
   }
 
   // объекты на столе

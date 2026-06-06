@@ -112,14 +112,16 @@ export const id   = 'steel-kitchen';
 export const laps = 3;
 
 // Цветовая тема — светлая: нержавеющая столешница, белая плитка.
-// startLine тёмный (#2a2e33) — иначе теряется на светлом фоне трека.
+// startLine + startLineDark: обе клетки клетчатого флага заданы явно,
+// потому что на светлом треке дефолтный белый startLine не даёт контраста.
 export const theme = {
-  background: '#c6cace',
-  table:      '#6b7178',
-  tableEdge:  '#444a50',
-  track:      '#c6bca1',
-  startLine:  '#2a2e33',
-  skid:       'rgba(30,34,40,0.5)',
-  checkpoint: 'rgba(60,120,160,0.6)',
-  cone:       '#ff7a1a',
+  background:    '#c6cace',
+  table:         '#6b7178',
+  tableEdge:     '#444a50',
+  track:         '#c6bca1',
+  startLine:     '#f0ede4',     // светлые клетки флага
+  startLineDark: '#2a2e33',     // тёмные клетки флага (поле темы, опциональное)
+  skid:          'rgba(30,34,40,0.5)',
+  checkpoint:    'rgba(60,120,160,0.6)',
+  cone:          '#ff7a1a',
 };
