@@ -46,6 +46,7 @@ canvas { display: block; }
 #menuBtn {
   border: none; color: var(--ink); font: inherit; cursor: pointer;
   background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); pointer-events: auto;
+  position: relative; z-index: 35; /* выше pauseOverlay (30), ниже confirmExit (50) */
 }
 
 /* --- Кнопка паузы (самодостаточный компонент, DOM создаёт js/pause.js) --- */

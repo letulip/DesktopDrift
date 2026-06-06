@@ -13,6 +13,11 @@
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   text-shadow: 0 6px 30px rgba(255,150,60,.18);
 }
+.logo sup {
+  font-size: .38em;          /* настоящий надстрочный ™ — мелкий */
+  vertical-align: super;
+  letter-spacing: 0;
+}
 .tagline { margin: 8px 0 30px; opacity: .65; font-size: clamp(13px, 2.4vw, 17px); }
 .tiles { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
 .tile {
