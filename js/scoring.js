@@ -43,3 +43,8 @@ export const comboGain = (slip, speed, dt, mult) =>
 // Знак заноса: +1 / -1 / 0 (для детекта перекладки и накопления transitions).
 export const slipSign = (vS) =>
   vS > SLIP_SIGN_THRESHOLD ? 1 : (vS < -SLIP_SIGN_THRESHOLD ? -1 : 0);
+
+// Коэффициент эффективности: очки в секунду (PPS).
+// Знаменатель растёт непрерывно — дрифт на месте обрушает метрику.
+export const pointsPerSecond = (score, totalTime) =>
+  totalTime > 0 ? score / totalTime : 0;

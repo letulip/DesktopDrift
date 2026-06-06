@@ -14,8 +14,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
     card per track from `js/track-registry.js`, each with a canvas preview rendered
     in the track's own `theme` colours (parses the SVG `track_path` live, Y-flipped
-    to match in-game orientation) plus best lap **and** best total score from
-    `store.records()[id].timeattack`. Clicking a card → `select.html?track=<id>`. `noindex`.
+    to match in-game orientation) plus the PPS record ("Score: 1250 PPS (Total: 45,000 · 36.0 s)")
+    read from `store.records()[id].timeattack.{bestPPS, bestPPSTotal, bestPPSTime}`.
+    Clicking a card → `select.html?track=<id>`. `noindex`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
     Each card shows three 10-cell stat bars: **spd** (amber, absolute 0–15 km/h),
@@ -88,11 +89,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `tracks/TRACK_COLOR_SCHEMES.svg`. **The repeatable build pipeline is the
     `desktopdrift-new-track` skill.**
   - `js/race-results.js` — **self-contained race-results overlay**. Creates
-    `#raceResultsOverlay` DOM; `show({ score, bestLap, lapScores, isNewRecord })`
-    renders final score (NEW RECORD badge), per-lap times (best lap highlighted) and
-    a "Back to tracks" button → `tracks.html`. All queries are scoped to its own
-    overlay element. Returns `{ show, destroy }`. Styled in `css/sandbox.css`
-    (`#rr-*`). Shown by `game-engine.js` on the final lap of a fixed-lap race.
+    `#raceResultsOverlay` DOM; `show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })`
+    renders the PPS score ("1250 PPS", NEW RECORD badge), sub-line "Total: 45,000 · 36.0 s",
+    per-lap times (best lap highlighted) and a "Back to tracks" button → `tracks.html`.
+    All queries are scoped to its own overlay element. Returns `{ show, destroy }`.
+    Styled in `css/sandbox.css` (`#rr-*`, `.rr-sub`). Shown by `game-engine.js` on the final lap of a fixed-lap race.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
@@ -129,10 +130,25 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     already converted — `render.js` just rounds and displays it.
     When `neonColor` is set, the black drop-shadow under the car is suppressed.
     **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
-    used by sandbox). With a finite count the HUD shows `1/3`; on completing the last
-    lap the engine banks the active combo, writes `bestLap`/`bestScore` to
-    `store.records()[T.id].timeattack` (via `save()`), calls `stop()`, and shows the
-    `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
+    used by sandbox). With a finite count the HUD shows `1/3`. The finish line
+    (checkpoint[0] = center[0]) is detected by **sign-change of the forward projection**
+    of the car position onto `startAngle` — not a radius circle. `prevFinishDot` tracks
+    the previous frame's dot product; when it goes from negative to positive while the car
+    is within `TRACK_HALF + 60` laterally, the lap is counted. Intermediate checkpoints
+    (1…K-1) still use the circle `CP_R`. When the final lap is crossed, the engine
+    **first** banks the active combo (`bankCombo()`), **then** pushes the final lap entry
+    to `S.lapScores` — this order is critical: reversing it would drop the last combo
+    segment from both `pts` and the headline total. Calculates `pps = totalScore / totalTime`
+    (Points Per Second), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime` to
+    `store.records()[T.id].timeattack` when a new record is set (via `save()`),
+    calls `stop()`, and shows the `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
+    **Wall collision (rect):** uses capsule AABB — `absExtX = |hx|×nose + CR`,
+    `absExtY = |hy|×nose + CR` — so the bumper, not the windshield, triggers the wall.
+    **Wall collision (round/oval):** iterates body points, pushes car radially inward on
+    first violation. **Prop collision:** finds closest body point to the prop capsule
+    (`bodyPts` iteration), pushes car so that point clears the prop. Previously all three
+    used only `car.x, car.y` with radius `CR`, causing ~24 gu of visual penetration before
+    triggering.
     Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
     loop, and destroys the pause / confirm-exit (and, unless finished, race-results)
     components. The engine is reentrant: a second `startGame` auto-stops the previous
@@ -150,8 +166,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `prepProp`. Shared by `track-oval.js` / `track-green-study.js` (single source of
     truth, unit-tested in `tests/track-util.test.js`).
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
-    `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign` + named tuning
-    constants. Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
+    `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
+    + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
+    (returns 0 when `totalTime = 0`). Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
     `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →

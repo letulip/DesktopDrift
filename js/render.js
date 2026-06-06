@@ -287,10 +287,12 @@ export const draw = (speed) => {
     ctx.restore();
   }
 
-  // следующий чекпоинт
-  const cp = checkpoints[S.nextCp];
-  ctx.strokeStyle = TH.checkpoint; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
+  // следующий чекпоинт (только промежуточные — финиш уже визуализирован клеткой)
+  if (S.nextCp !== 0) {
+    const cp = checkpoints[S.nextCp];
+    ctx.strokeStyle = TH.checkpoint; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
+  }
 
   // объекты на столе
   for (const o of props) drawProp(o);
