@@ -200,12 +200,12 @@ canvas { display: block; }
 #rr-restart:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
 /* Back to tracks — secondary: тихий, меньше, не конкурирует с restart */
 #rr-back {
-  padding: 10px 0; width: 100%; border-radius: 12px;
+  padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10);
-  color: rgba(255,255,255,.45); font: 500 13px var(--font-body);
+  color: rgba(255,255,255,.85); font: 500 13px var(--font-body);
   cursor: pointer; transition: background var(--ease), color var(--ease);
 }
-#rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,.7); }
+#rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,1); }
 
 /* --- Мобильная раскладка HUD --- */
 @media (max-width: 640px) {
