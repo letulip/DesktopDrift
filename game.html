@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Desktop Drift — Green Study</title>
-<meta name="description" content="Race against the clock on the Green Study track in Desktop Drift. Dodge stationery on a desk with green baize and brass trim.">
-<link rel="canonical" href="https://letulip.github.io/DesktopDrift/green-study.html">
+<title>Desktop Drift</title>
+<meta name="description" content="Time Attack race in Desktop Drift.">
 <meta name="robots" content="noindex, follow">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon.svg">
@@ -45,8 +44,21 @@
 <div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Dodge the obstacles!</div>
 
 <script type="module">
-  import * as T from './js/track-green-study.js';
+  import { TRACKS }    from './js/track-registry.js';
   import { startGame } from './js/game-engine.js';
+
+  const trackId = new URLSearchParams(location.search).get('track') ?? '';
+  const meta    = TRACKS.find(t => t.id === trackId);
+
+  // Невалидный или отсутствующий track → обратно на выбор трасс
+  if (!meta) { location.replace('tracks.html'); throw new Error('unknown track'); }
+
+  // Заголовок вкладки по имени из реестра
+  document.title = `Desktop Drift — ${meta.name}`;
+
+  // Динамический импорт: модуль содержит top-level await (fetch SVG),
+  // поэтому import() завершается только когда трасса полностью инициализирована.
+  const T = await import(`./js/track-${meta.id}.js`);
   startGame(T, { initItems: true });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

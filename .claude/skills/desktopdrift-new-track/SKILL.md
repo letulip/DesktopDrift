@@ -1,6 +1,6 @@
 ---
 name: desktopdrift-new-track
-description: Use this skill when adding a new Time Attack track / location to this Desktop Drift repo. Triggers — "add a track", "new location", "build the <name> track", "make a track from this SVG", "add a kitchen/office/workbench track", "new Time Attack circuit". Walks the pipeline: author/parse the track SVG (per tracks/TRACK_STYLE_GUIDE.svg) → new track module after js/track-green-study.js using js/track-util.js helpers → wire colours (tracks/TRACK_COLOR_SCHEMES.svg) + items (js/items.js) → page + track-registry entry + SW ASSETS + cache bump → browser smoke. For the branch/test/verify/PR mechanics it defers to the desktopdrift-pr skill.
+description: Use this skill when adding a new Time Attack track / location to this Desktop Drift repo. Triggers — "add a track", "new location", "build the <name> track", "make a track from this SVG", "add a kitchen/office/workbench track", "new Time Attack circuit". Walks the pipeline: author/parse the track SVG (per tracks/TRACK_STYLE_GUIDE.svg) → new track module after js/track-green-study.js using js/track-util.js helpers → wire colours (tracks/TRACK_COLOR_SCHEMES.svg) + items (js/items.js) → track-registry entry + SW ASSETS + cache bump → browser smoke. No HTML page needed — game.html handles all tracks via dynamic import. For the branch/test/verify/PR mechanics it defers to the desktopdrift-pr skill.
 ---
 
 # Desktop Drift — add a Time Attack track
@@ -10,8 +10,9 @@ Reference material lives in `tracks/TRACK_STYLE_GUIDE.svg` (authoring convention
 shared geometry: `js/track-util.js`; item catalog: `js/items.js`; track list: `js/track-registry.js`.
 
 A track is plugged in by **registering it** (`js/track-registry.js`) — `tracks.html` then
-auto-builds its selection card + preview, and `select.html?track=<id>` routes to its page.
-No `index.html` tile, no sitemap entry (track pages are `noindex`).
+auto-builds its selection card + preview, and `game.html?track=<id>` runs the race via
+dynamic import. **No HTML page per track** — `game.html` handles all tracks.
+No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
 
 > Branch / tests / browser-verify / PR mechanics → use the **desktopdrift-pr** skill
 > (including the mandatory SW-clear before verifying). Below = track-specific work.
@@ -50,16 +51,13 @@ No `index.html` tile, no sitemap entry (track pages are `noindex`).
    draw a top-down SVG (portrait, 1:64 scale) + descriptor. Items must read from above
    (avoid bare circles); keep clear of the racing line
    (distance-to-centerline > TRACK_HALF + collider.r + margin); ~8–12 per track.
-5. **Page** `<id>.html` — copy `green-study.html`; the inline module imports
-   `./js/track-<id>.js` and calls `startGame(T, { initItems: true })`. Follow the SEO
-   checklist in `AGENTS.md` but keep it `noindex` (track pages are app screens) — do NOT
-   add to `sitemap.xml` or `index.html`.
-6. **Register** — add/uncomment the `{ id, name, desc, svgSrc, page, theme }` entry in
+5. **Register** — add/uncomment the `{ id, name, desc, svgSrc, theme }` entry in
    `js/track-registry.js`. `name`/`desc` are player-facing (English). This is what makes
-   the track appear on `tracks.html`.
-7. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
-   then bump the cache version. (SWR self-heals a forgotten bump on the next load, but
-   bump anyway for a first-load-fresh deploy.)
+   the track appear on `tracks.html`. **No `page` field** — routing is automatic via
+   `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
+6. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
+   then bump the cache version. **No HTML to add** — `game.html` is already in ASSETS.
+   (SWR self-heals a forgotten bump on the next load, but bump anyway for first-load-fresh.)
 8. **Verify + PR** via the **desktopdrift-pr** skill (npm test + node --check + browser
    smoke with the SW cleared; branch `feat/track-<id>` → PR).
 

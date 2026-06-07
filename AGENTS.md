@@ -8,7 +8,7 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (8):**
+- **Pages (7):**
   - `index.html` — menu landing screen. Static markup only, no game logic.
     Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
@@ -27,29 +27,26 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     thrust). Scale maxima (`SPEED_MAX_KMH=15`, `STEER_MAX=5`, `LOWTURN_MAX=0.5`,
     `THRUST_MAX=900`) are intentionally above current car values — headroom for mods.
     Player picks car + body colour + neon, saves `{ carIndex, bodyColor, neonColor }`
-    to `localStorage` and navigates to the target game page.
-    URL params: `?mode=sandbox` → `sandbox.html`; `?track=<id>` → track page from
-    registry (e.g. `?track=green-study` → `green-study.html`). Back link goes to
-    `tracks.html` when `?track` is set, otherwise `index.html`.
+    to `localStorage` and navigates to target game page.
+    URL params: `?mode=sandbox` → `sandbox.html`; `?track=<id>` → `game.html?track=<id>`.
+    Back link goes to `tracks.html` when `?track` is set, otherwise `index.html`.
+  - `game.html` — **universal Time Attack game page**. Single page for all tracks;
+    reads `?track=<id>` from URL, validates against `TRACKS` registry (redirect to
+    `tracks.html` on unknown ID), then `await import(\`./js/track-${meta.id}.js\`)`.
+    Top-level `await` on `import()` waits for the track module's own top-level await
+    (SVG fetch) to complete before `startGame` is called. `document.title` is set
+    from `meta.name`. Adding a new track never requires a new HTML file. `noindex`.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
-  - `green-study.html` — **Time Attack: Green Study** track (display name
-    "Midnight Deadline" in the registry). Imports `track-green-study.js`
-    (async, fetches SVG at runtime) and calls `startGame(T, { initItems: true })`.
-    Runs a fixed 3-lap race ending in the results overlay. `noindex`.
-  - `steel-kitchen.html` — **Time Attack: Steel Kitchen** track (display name
-    "Stainless Speedway"). Imports `track-steel-kitchen.js`. Light theme
-    (inverted background — first bright track in the game). `noindex`.
   - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **SEO files (root):**
   - `robots.txt` — allows all bots; points to `sitemap.xml`.
   - `sitemap.xml` — lists indexable pages (`index.html`, `sandbox.html`,
-    `donate.html`). `tracks.html`, `green-study.html` (and every track page),
-    and `select.html` are `noindex` app screens, omitted. Update `<lastmod>`
-    when content changes.
+    `donate.html`). `tracks.html`, `game.html`, and `select.html` are `noindex`
+    app screens, omitted. Update `<lastmod>` when content changes.
 - **File layout:**
   - `css/base.css` — shared reset **+ design tokens** (`:root` vars) **+ `@font-face`**
     for the display font. Loaded by every page first (defines all `var(--…)`).
