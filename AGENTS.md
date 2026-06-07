@@ -507,6 +507,12 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.
+- **Knocked cone → prop collision.** When a cone is knocked and slides across the
+  table, `game-engine.js` checks it against every prop using the same capsule formula
+  as car→prop collision (closest point on `hl`-capsule, not just center distance).
+  On overlap: cone is pushed out along the contact normal; velocity reflected with
+  restitution 0.8 (`vDotN * 0.8`), spin reversed and damped (`* −0.4`).
+  Cost: O(knocked_cones × props) per frame — typically 0–45 checks, negligible.
 
 ## Commit / PR conventions
 
