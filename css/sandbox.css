@@ -189,14 +189,23 @@ canvas { display: block; }
   font: 500 13px var(--font-body); color: rgba(255,255,255,.55);
   font-variant-numeric: tabular-nums; letter-spacing: .2px;
 }
-#rr-actions { margin-top: 2px; }
-#rr-back {
+#rr-actions { margin-top: 2px; display: flex; flex-direction: column; gap: 10px; }
+/* Restart — primary: amber, крупный, очевидное намерение */
+#rr-restart {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
   color: var(--accent); font: 600 15px var(--font-body);
   cursor: pointer; transition: background var(--ease), border-color var(--ease);
 }
-#rr-back:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+#rr-restart:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+/* Back to tracks — secondary: тихий, меньше, не конкурирует с restart */
+#rr-back {
+  padding: 10px 0; width: 100%; border-radius: 12px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.45); font: 500 13px var(--font-body);
+  cursor: pointer; transition: background var(--ease), color var(--ease);
+}
+#rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,.7); }
 
 /* --- Мобильная раскладка HUD --- */
 @media (max-width: 640px) {
