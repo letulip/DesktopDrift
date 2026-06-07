@@ -79,9 +79,11 @@ export const ITEM_MIXER     = { hl: 40, r: 105, kind: 'board', c: '#e3e5e6', img
 export const ITEM_SPRAY     = { hl: 87, r: 58,  kind: 'board', c: '#a4d3ee', imgSrc: 'items/washer-ready.svg' };
 
 // Сковорода с яичницей (~45 см с ручкой, диаметр сковороды ~28 см)
-// ВНИМАНИЕ: Используем круг, описывающий всё.
-// r: 260 покрывает всю сковороду с ручкой.
-export const ITEM_PAN_EGG   = { hl: 0,  r: 260, kind: 'bowl',  c: '#385253', imgSrc: 'items/pan1-ready.svg' };
+// SVG 800×537 (aspect 1.490). Капсула hl:80 + r:164 → fw/fh 488/328 (aspect 1.488) —
+// почти точное совпадение: SVG вписывается без искажений.
+// Левый кружок капсулы (-80) = центр чаши; правый (+80) = область ручки.
+// r:164 = 28 см в масштабе 1:64 (как ITEM_PLATE_*).
+export const ITEM_PAN_EGG   = { hl: 80, r: 164, kind: 'bowl',  c: '#385253', imgSrc: 'items/pan1-ready.svg' };
 
 
 // --- Наборы посуды (Сборные SVG) ---
