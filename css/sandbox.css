@@ -24,6 +24,9 @@ canvas { display: block; }
 #hint {
   position: fixed; bottom: 14px; left: 0; right: 0; text-align: center;
   font: 13px var(--font-body); color: var(--ink); opacity: .55;
+  /* text-shadow нужен для светлых тем (steel-kitchen, cafe-marble):
+     белый текст без подложки был невидим на светлом фоне. */
+  text-shadow: 0 1px 4px rgba(0,0,0,.85), 0 0 10px rgba(0,0,0,.5);
   pointer-events: none;
 }
 .panel { background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); }

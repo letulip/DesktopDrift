@@ -1,15 +1,15 @@
-// Трасса «Green Study» — генерируется из tracks/green-study.svg.
-// Прокси-линии (<line id="ITEM_*">) задают позицию и угол предметов.
+// Трасса «Steel Kitchen» — генерируется из tracks/steel-kitchen.svg.
+// Нержавеющая столешница: светлая тема, кухонный инвентарь.
 // Использует top-level await (ES-модули, современные браузеры).
 
 import * as ITEMS from './items.js';
 import { chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Константы ────────────────────────────────────────────────────────────────
-// viewBox 0 0 14462 7829; stroke-width дорожки 800 → half = 400.
-// SCALE = TRACK_HALF / 400 = 100 / 400 = 0.25 (мир совпадает по размеру со старым треком).
-const SVG_CX = 14462 / 2;
-const SVG_CY = 7829  / 2;
+// viewBox 0 0 16399 8756; stroke-width дорожки 800 → half = 400.
+// SCALE = TRACK_HALF / 400 = 100 / 400 = 0.25.
+const SVG_CX = 16399 / 2;
+const SVG_CY = 8756  / 2;
 const SCALE  = 0.25;
 
 export const TRACK_HALF = 100;
@@ -55,13 +55,13 @@ function resolveKey(id) {
 }
 
 // ── Загрузка SVG ─────────────────────────────────────────────────────────────
-const svgText = await fetch('./tracks/green-study.svg').then(r => r.text());
+const svgText = await fetch('./tracks/steel-kitchen.svg').then(r => r.text());
 const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
 
 // ── Центральная линия ────────────────────────────────────────────────────────
 const rawVerts  = parseSvgPath(_doc.getElementById('track_path').getAttribute('d'));
 let smoothPoly  = rawVerts.map(([x, y]) => toGame(x, y));
-for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly); // 26 → 416 точек
+for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
 
 export const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
 
@@ -69,8 +69,6 @@ export const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
 export const cones = placeCones(outer, inner, 5);
 
 // ── TABLE: размер стола из реальных границ outer + отступ ───────────────────
-// Отступ 250 игровых единиц с каждой стороны (≈ 200–300 px на экране).
-// render.js прочитает T.TABLE в initRender и заменит глобальный TABLE из config.js.
 const TABLE_MARGIN = 250;
 let _maxX = 0, _maxY = 0;
 for (const o of outer) { _maxX = Math.max(_maxX, Math.abs(o.x)); _maxY = Math.max(_maxY, Math.abs(o.y)); }
@@ -84,7 +82,7 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
   const key   = resolveKey(rawId);
   if (!key) {
-    console.warn(`[track-green-study] unknown item id "${rawId}" — не найден в items.js`);
+    console.warn(`[track-steel-kitchen] unknown item id "${rawId}" — не найден в items.js`);
     return;
   }
   const item = ITEMS[key];
@@ -110,17 +108,18 @@ export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
 
 export const collectibles = [];
 
-export const id   = 'green-study'; // ключ для store.records()
-export const laps = 3;             // количество кругов по умолчанию
+export const id   = 'steel-kitchen';
+export const laps = 3;
 
-// Цветовая тема — передаётся в render.js через initRender(T).
-// Значения из tracks/track_themes.json → "green-study".palette
+// Цветовая тема — светлая: нержавеющая столешница, белая плитка.
+// startLine + startLineDark: обе клетки клетчатого флага заданы явно,
+// потому что на светлом треке дефолтный белый startLine не даёт контраста.
 export const theme = {
-  background: '#14130e',
-  table:      '#2f4034',
-  tableEdge:  '#7a6334',
-  track:      '#cdbf9e',
-  skid:       'rgba(10,16,10,0.5)',
-  checkpoint: 'rgba(125,212,255,0.5)',
-  cone:       '#ff7a1a',
+  background:    '#c6cace',
+  table:         '#6b7178',
+  tableEdge:     '#444a50',
+  track:         '#c6bca1',
+  skid:          'rgba(30,34,40,0.5)',
+  checkpoint:    'rgba(60,120,160,0.6)',
+  cone:          '#ff7a1a',
 };

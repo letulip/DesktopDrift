@@ -24,9 +24,8 @@ const THEME_DEFAULT = {
   table:      '#2e241a',
   tableEdge:  '#5a4a36',
   track:      '#43372a',
-  startLine:  '#e8e8e8',
   skid:       'rgba(15,9,6,1)',
-  checkpoint: 'rgba(125,212,255,0.5)',
+  checkpoint: 'rgba(125,212,255,0.5)', // не используется в рендере напрямую — заменён универсальным
   cone:       '#ff7a1a',
 };
 let TH = THEME_DEFAULT;
@@ -274,9 +273,11 @@ export const draw = (speed) => {
     ctx.save();
     ctx.translate(c0.x, c0.y);
     ctx.rotate(startAngle); // X = направление движения, Y = поперёк трека
+    // Клетчатый флаг — всегда чёрно-белый, независимо от темы трека.
+    // Универсальный racing symbol; не требует поля startLine в теме.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        ctx.fillStyle = (r + c) % 2 === 0 ? TH.startLine : 'rgba(0,0,0,.75)';
+        ctx.fillStyle = (r + c) % 2 === 0 ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.82)';
         ctx.fillRect(
           -rows * cell / 2 + r * cell, // вдоль трека
           -TRACK_HALF + c * cell,       // поперёк трека
@@ -288,10 +289,17 @@ export const draw = (speed) => {
   }
 
   // следующий чекпоинт (только промежуточные — финиш уже визуализирован клеткой)
+  // Фиксированный голубой + тёмная тень: на тёмных фонах голубой читается сам,
+  // на светлых — тёмное halo от shadowBlur даёт контур и контраст.
   if (S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
-    ctx.strokeStyle = TH.checkpoint; ctx.lineWidth = 3;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur  = 14;
+    ctx.strokeStyle = '#7dd4ff';
+    ctx.lineWidth   = 5;
     ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
   }
 
   // объекты на столе
