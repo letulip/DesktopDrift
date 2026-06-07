@@ -275,7 +275,7 @@
     g.bodyColor = CARS[sel].body;
     g.neonColor = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
     save();
-    location.href = trackMeta ? trackMeta.page : 'sandbox.html';
+    location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
   });
 
   // ── Initial render ───────────────────────────────────────────────────────────
