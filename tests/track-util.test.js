@@ -4,10 +4,25 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
+  parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
 } from '../js/track-util.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
+
+test('parseSvgPath: M/L/H/V/Z → массив пар [x,y]', () => {
+  // Простой прямоугольник
+  const pts = parseSvgPath('M10 20 L30 20 H50 V40 Z');
+  assert.equal(pts.length, 4);
+  assert.deepEqual(pts[0], [10, 20]);
+  assert.deepEqual(pts[1], [30, 20]);
+  assert.deepEqual(pts[2], [50, 20]); // H50 → x=50, y=20
+  assert.deepEqual(pts[3], [50, 40]); // V40 → x=50, y=40
+  // Дробные координаты (как в реальных SVG треков)
+  const pts2 = parseSvgPath('M11374.3 1531.75L6486.45 2177.88Z');
+  assert.equal(pts2.length, 2);
+  assert.ok(Math.abs(pts2[0][0] - 11374.3) < 0.01);
+  assert.ok(Math.abs(pts2[1][1] - 2177.88) < 0.01);
+});
 
 test('chaikin: n точек → 2n, выпуклая комбинация соседей', () => {
   const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];

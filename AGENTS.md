@@ -13,9 +13,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
     card per track from `js/track-registry.js`, each with a canvas preview rendered
-    in the track's own `theme` colours (parses the SVG `track_path` live, Y-flipped
-    to match in-game orientation) plus the PPS record ("Score: 1250 PPS (Total: 45,000 · 36.0 s)")
-    read from `store.records()[id].timeattack.{bestPPS, bestPPSTotal, bestPPSTime}`.
+    in the track's own `theme` colours. Preview uses **the same pipeline as the
+    in-game mini-map**: `parseSvgPath` + game-coord transform (SCALE=0.25) +
+    `chaikin`×4 → smooth centerline rendered as thick stroke (`TRACK_GU*2*s`),
+    both from `js/track-util.js`. No Y-flip hack — `toGame` handles inversion.
+    Shows PPS record ("Score: 1250 PPS (Total: 45,000 · 36.0 s)")
+    from `store.records()[id].timeattack.{bestPPS, bestPPSTotal, bestPPSTime}`.
     Clicking a card → `select.html?track=<id>`. `noindex`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
@@ -191,9 +194,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `destroy()` removes the Escape listener and its DOM. Called by `game-engine.js`
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
-    `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`, `sampleCheckpoints`,
-    `prepProp`. Shared by `track-oval.js` / `track-green-study.js` (single source of
-    truth, unit-tested in `tests/track-util.test.js`).
+    `parseSvgPath`, `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`,
+    `sampleCheckpoints`, `prepProp`. `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z,
+    absolute coords) — единственный экземпляр; раньше был продублирован в каждом
+    трек-модуле и в `tracks.html`. Shared by track modules + `tracks.html`.
+    Unit-tested in `tests/track-util.test.js` (20 tests).
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric

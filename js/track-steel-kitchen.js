@@ -3,7 +3,7 @@
 // Использует top-level await (ES-модули, современные браузеры).
 
 import * as ITEMS from './items.js';
-import { chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
+import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Константы ────────────────────────────────────────────────────────────────
 // viewBox 0 0 16399 8756; stroke-width дорожки 800 → half = 400.
@@ -21,30 +21,6 @@ export const CP_R       = TRACK_HALF + 70;
 
 const toGame = (x, y) => ({ x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE });
 
-// Разбор SVG path d: только M, L, H, V, Z (абсолютные координаты)
-function parseSvgPath(d) {
-  const pts = [];
-  const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
-  let i = 0, cmd = '', x = 0, y = 0;
-  while (i < tokens.length) {
-    const t = tokens[i];
-    if (/[MLHVZmlhvz]/.test(t)) { cmd = t; i++; continue; }
-    const v = parseFloat(t);
-    if (cmd === 'M' || cmd === 'L') {
-      x = v; y = parseFloat(tokens[++i]); i++;
-      pts.push([x, y]);
-    } else if (cmd === 'H') {
-      x = v; i++;
-      pts.push([x, y]);
-    } else if (cmd === 'V') {
-      y = v; i++;
-      pts.push([x, y]);
-    } else {
-      i++;
-    }
-  }
-  return pts;
-}
 
 // Разрешение layer-ID в ключ items.js:
 // 1) прямое совпадение; 2) обрезаем суффикс _N (номер экземпляра)
