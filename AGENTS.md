@@ -130,6 +130,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `#7dd4ff` stroke, `lineWidth 5`, `shadowColor rgba(0,0,0,0.7)` `shadowBlur 14`.
     Dark shadow creates contrast halo on light themes; bright blue is self-visible
     on dark themes.
+    **Cone rendering (2.5D):** Standing cone — 3 arcs in world coords (no save/restore):
+    shadow (+2,+2 offset dark circle) → base (`TH.cone`) → highlight (r×0.35, shifted
+    −1,−1 to simulate top-left light source). Knocked cone — `save/translate/rotate(c.ang)`:
+    shadow trapezoid (+2,+2) → cone body trapezoid (wide at base, `rTip=r×0.25` at tip,
+    `h=r×3`) → white reflective stripe (70% of cone width, interpolated per x so it stays
+    inside the body). No save/restore for standing cones (166+/frame) — perf intentional.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
