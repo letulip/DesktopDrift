@@ -308,15 +308,51 @@ export const draw = (speed) => {
   // конусы
   for (const c of cones) {
     if (c.knocked) {
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.ang);
-      ctx.fillStyle = 'rgba(255,122,26,.45)';
-      ctx.beginPath(); ctx.ellipse(0, 0, CONE_R * 1.7, CONE_R * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      // Сбитый: трапеция (усечённый конус на боку) + белая световозвращающая полоса.
+      // save/translate/rotate нужны — форма ориентирована по c.ang.
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.ang);
+
+      const h     = CONE_R * 3;      // длина лежащего конуса
+      const rBase = CONE_R;          // полурадиус основания (широкий конец)
+      const rTip  = CONE_R * 0.25;  // полурадиус вершины (узкий конец)
+
+      // Тень — та же трапеция со сдвигом (+2, +2)
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath();
+      ctx.moveTo(-h/2 + 2, -rBase + 2); ctx.lineTo(h/2 + 2, -rTip + 2);
+      ctx.lineTo( h/2 + 2,  rTip  + 2); ctx.lineTo(-h/2 + 2, rBase + 2);
+      ctx.closePath(); ctx.fill();
+
+      // Тело конуса
+      ctx.fillStyle = TH.cone;
+      ctx.beginPath();
+      ctx.moveTo(-h/2, -rBase); ctx.lineTo(h/2, -rTip);
+      ctx.lineTo( h/2,  rTip);  ctx.lineTo(-h/2,  rBase);
+      ctx.closePath(); ctx.fill();
+
+      // Белая полоса: 70% ширины конуса в каждой точке — гарантированно внутри тела
+      const x0 = -h * 0.05, w0 = (rBase + (rTip - rBase) * ((x0 + h/2) / h)) * 0.7;
+      const x1 =  h * 0.22, w1 = (rBase + (rTip - rBase) * ((x1 + h/2) / h)) * 0.7;
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(x0, -w0); ctx.lineTo(x1, -w1);
+      ctx.lineTo(x1,  w1); ctx.lineTo(x0,  w0);
+      ctx.closePath(); ctx.fill();
+
       ctx.restore();
     } else {
+      // Стоящий: три arc в мировых координатах — без save/restore (166 конусов/кадр).
+      // Тень
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2); ctx.fill();
+      // База
       ctx.fillStyle = TH.cone;
       ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.75)';
-      ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R * 0.45, 0, Math.PI * 2); ctx.fill();
+      // Бликовая точка: сдвиг (-1,-1) имитирует источник света сверху-слева
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2); ctx.fill();
     }
   }
 

@@ -130,6 +130,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `#7dd4ff` stroke, `lineWidth 5`, `shadowColor rgba(0,0,0,0.7)` `shadowBlur 14`.
     Dark shadow creates contrast halo on light themes; bright blue is self-visible
     on dark themes.
+    **Cone rendering (2.5D):** Standing cone — 3 arcs in world coords (no save/restore):
+    shadow (+2,+2 offset dark circle) → base (`TH.cone`) → highlight (r×0.35, shifted
+    −1,−1 to simulate top-left light source). Knocked cone — `save/translate/rotate(c.ang)`:
+    shadow trapezoid (+2,+2) → cone body trapezoid (wide at base, `rTip=r×0.25` at tip,
+    `h=r×3`) → white reflective stripe (70% of cone width, interpolated per x so it stays
+    inside the body). No save/restore for standing cones (166+/frame) — perf intentional.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
@@ -501,6 +507,12 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
 - **Lap counter shows the in-progress lap** (`lapNum + 1`), not completed laps.
 - **Cones vs. objects differ in scoring.** Hitting a cone = flat −200 (combo
   survives). Hitting a kitchen object or wall / going off-track = combo burned.
+- **Knocked cone → prop collision.** When a cone is knocked and slides across the
+  table, `game-engine.js` checks it against every prop using the same capsule formula
+  as car→prop collision (closest point on `hl`-capsule, not just center distance).
+  On overlap: cone is pushed out along the contact normal; velocity reflected with
+  restitution 0.8 (`vDotN * 0.8`), spin reversed and damped (`* −0.4`).
+  Cost: O(knocked_cones × props) per frame — typically 0–45 checks, negligible.
 
 ## Commit / PR conventions
 
