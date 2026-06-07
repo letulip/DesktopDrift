@@ -52,13 +52,10 @@ export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc
 
 // Разделочная доска с ручкой (~35x20 см, широкая капсула)
 export const ITEM_BOARD_1 = { hl: 88, r: 117, kind: 'board', c: '#a48c84', imgSrc: 'items/kitchen-board-1-ready.svg' };
-
 // Разделочная доска прямоугольная (~30x20 см, капсула)
 export const ITEM_BOARD_2 = { hl: 58, r: 117, kind: 'board', c: '#bcccd4', imgSrc: 'items/kitchen-board-2-ready.svg' };
-
 // Терка металлическая (~22x10 см, капсула)
 export const ITEM_GRATER  = { hl: 70, r: 58, kind: 'board', c: '#9cbecf', imgSrc: 'items/grater-ready.svg' };
-
 // Кухонная прихватка-рукавица (~28x18 см, широкая капсула)
 export const ITEM_MITTEN  = { hl: 59, r: 105, kind: 'board', c: '#f4dcac', imgSrc: 'items/mitten-ready.svg' };
 
@@ -71,6 +68,12 @@ export const ITEM_MITTEN  = { hl: 59, r: 105, kind: 'board', c: '#f4dcac', imgSr
 // Стационарный телефон (~20x20 см)
 // Огромный квадратный предмет. Используем широкую короткую капсулу.
 export const ITEM_PHONE     = { hl: 30, r: 100, kind: 'board', c: '#f0ce35', imgSrc: 'items/phone1-ready.svg' };
+// --- Телефон 2 (Габариты идентичны ITEM_PHONE) ---
+export const ITEM_PHONE_2 = { hl: 30, r: 100, kind: 'board', c: '#ced3d8', imgSrc: 'items/phone2-ready.svg' };
+
+// --- Ноутбуки (13 дюймов = 30.41 x 21.24 см) ---
+export const ITEM_LAPTOP_OPEN = { hl: 54, r: 124, kind: 'board', c: '#e2e6e8', imgSrc: 'items/laptop-open-ready.svg' };
+export const ITEM_LAPTOP_CLOSED = { hl: 54, r: 124, kind: 'board', c: '#d2d6d9', imgSrc: 'items/laptop-ready.svg' };
 
 // Ручной миксер (~18x25 см с венчиками)
 export const ITEM_MIXER     = { hl: 40, r: 105, kind: 'board', c: '#e3e5e6', imgSrc: 'items/mixer2-ready.svg' };
@@ -84,6 +87,11 @@ export const ITEM_SPRAY     = { hl: 87, r: 58,  kind: 'board', c: '#a4d3ee', img
 // Левый кружок капсулы (-80) = центр чаши; правый (+80) = область ручки.
 // r:164 = 28 см в масштабе 1:64 (как ITEM_PLATE_*).
 export const ITEM_PAN_EGG   = { hl: 80, r: 164, kind: 'bowl',  c: '#385253', imgSrc: 'items/pan1-ready.svg' };
+
+// --- Пончики (Блюдце 15 см, коллайдер круглый) ---
+export const ITEM_DOUGHNUT_1 = { hl: 0, r: 88, kind: 'plate', c: '#ff6b5a', imgSrc: 'items/doughnut-1-ready.svg' };
+export const ITEM_DOUGHNUT_2 = { hl: 0, r: 88, kind: 'plate', c: '#7b5c46', imgSrc: 'items/doughnut-2-ready.svg' };
+export const ITEM_DOUGHNUT_3 = { hl: 0, r: 88, kind: 'plate', c: '#f07178', imgSrc: 'items/doughnut-3-ready.svg' };
 
 
 // --- Наборы посуды (Сборные SVG) ---
@@ -145,3 +153,46 @@ export const ITEM_RULER = { hl: 35, r: 35, kind: 'board', c: '#a4acb4', imgSrc: 
 
 // Сборка: Транспортир и циркуль (~15x10 см, широкая капсула)
 export const ITEM_COMPASS_RULER = { hl: 29, r: 58, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-plus-ready.svg' };
+
+// --- Канцелярия (дополнение) ---
+// Карандаш (~19 см)
+export const ITEM_PENCIL_2 = { hl: 102, r: 9, kind: 'knife', c: '#fca311', imgSrc: 'items/pencil2-ready.svg' };
+// Ручка (~15 см)
+export const ITEM_PEN_1 = { hl: 80, r: 9, kind: 'knife', c: '#437cd6', imgSrc: 'items/pen1-ready.svg' };
+// Ручка и карандаш вместе (~19x3 см)
+export const ITEM_PEN_PENCIL = { hl: 94, r: 17, kind: 'board', c: '#437cd6', imgSrc: 'items/pen-pencil-ready.svg' };
+// Длинная линейка (~30x3 см)
+export const ITEM_RULER_LONG = { hl: 158, r: 17, kind: 'knife', c: '#f59e0b', imgSrc: 'items/ruler2-ready.svg' };
+
+// --- Инструменты (Мастерская) ---
+// Шуруповерт (~20x20 см)
+export const ITEM_DRILL = { hl: 27, r: 90, kind: 'board', c: '#fca311', imgSrc: 'items/drill-ready.svg' };
+// Гаечный ключ рожковый (~15x3 см)
+export const ITEM_WRENCH_1 = { hl: 70, r: 17, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench1-ready.svg' };
+// Разводной ключ (~20x5 см)
+export const ITEM_WRENCH_2 = { hl: 88, r: 29, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench2-ready.svg' };
+// Молоток (~30x12 см, капсула покрывает рукоять и боек)
+export const ITEM_HAMMER_1 = { hl: 120, r: 60, kind: 'knife', c: '#787676', imgSrc: 'items/hummer1-ready.svg' };
+// Отвертка 1 (красная рукоять, ~20x3 см)
+export const ITEM_SCREWDRIVER_1 = { hl: 100, r: 17, kind: 'knife', c: '#d94b4b', imgSrc: 'items/screwdriver1-ready.svg' };
+// Отвертка 2 (оранжевая рукоять, ~20x3 см)
+export const ITEM_SCREWDRIVER_2 = { hl: 100, r: 17, kind: 'knife', c: '#eb7152', imgSrc: 'items/screwdriver2-ready.svg' };
+
+// --- Наборы инструментов ---
+// Набор 3 инструмента в ряд (~20x10 см)
+export const ITEM_TOOLSET_1 = { hl: 59, r: 58, kind: 'board', c: '#cccccc', imgSrc: 'items/toolset1-ready.svg' };
+// Молоток и отвертка крестом (~25x25 см, круглый коллайдер)
+export const ITEM_TOOLSET_2 = { hl: 0, r: 146, kind: 'plate', c: '#737373', imgSrc: 'items/toolset2-ready.svg' };
+
+// --- Разное (Мастерская / Быт) ---
+
+// Расческа (~20x4 см)
+export const ITEM_COMB = { hl: 94, r: 23, kind: 'knife', c: '#568ae5', imgSrc: 'items/comb-ready.svg' };
+// Рабочие перчатки (~25x20 см)
+export const ITEM_GLOVES = { hl: 29, r: 117, kind: 'board', c: '#eed247', imgSrc: 'items/gloves1-ready.svg' };
+// Гвозди 3 шт. в ряд (~10x8 см)
+export const ITEM_NAILS_ROW = { hl: 12, r: 46, kind: 'board', c: '#ffd600', imgSrc: 'items/nails2-ready.svg' };
+// Гвозди крестом (~10x10 см, круглый коллайдер)
+export const ITEM_NAILS_CROSS = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
+// Подкова (~12x12 см, круглый коллайдер)
+export const ITEM_HORSESHOE = { hl: 0, r: 70, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };
