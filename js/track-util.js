@@ -3,6 +3,27 @@
 // в track.js / track-workdesk.js (и частично track-oval.js) — теперь единый
 // источник правды, который можно покрыть юнит-тестами. Поведение идентично.
 
+// Разбор SVG path d: только M, L, H, V, Z (абсолютные координаты).
+// Возвращает массив пар [[x, y], ...].
+// Вынесено из track-модулей и tracks.html — раньше было три одинаковых копии.
+export const parseSvgPath = (d) => {
+  const pts = [];
+  const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
+  let i = 0, cmd = '', x = 0, y = 0;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (/[MLHVZmlhvz]/.test(t)) { cmd = t; i++; continue; }
+    const v = parseFloat(t);
+    if (cmd === 'M' || cmd === 'L') {
+      x = v; y = parseFloat(tokens[++i]); i++;
+      pts.push([x, y]);
+    } else if (cmd === 'H') { x = v; i++; pts.push([x, y]); }
+    else if (cmd === 'V')   { y = v; i++; pts.push([x, y]); }
+    else i++;
+  }
+  return pts;
+};
+
 // Алгоритм Chaikin — угловое отсечение, один проход (вызывается несколько раз).
 // n точек → 2n точек. Замкнутый контур (последняя соединяется с первой).
 export const chaikin = (pts) => {
