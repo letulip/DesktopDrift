@@ -234,5 +234,7 @@ export const ITEM_GLOVES = { hl: 29, r: 117, kind: 'board', c: '#eed247', imgSrc
 export const ITEM_NAILS_ROW = { hl: 12, r: 46, kind: 'board', c: '#ffd600', imgSrc: 'items/nails2-ready.svg' };
 // Гвозди крестом (~10x10 см, круглый коллайдер)
 export const ITEM_NAILS_CROSS = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
+// ITEM_NAILS_1 — алиас для использования в SVG треков (resolveKey стрипует только один суффикс)
+export const ITEM_NAILS_1 = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
 // Подкова (~12x12 см, круглый коллайдер)
 export const ITEM_HORSESHOE = { hl: 0, r: 70, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };

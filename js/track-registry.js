@@ -22,14 +22,13 @@ export const TRACKS = [
     svgSrc: `tracks/steel-kitchen.svg`,
     theme:  { background: `#c6cace`, table: `#6b7178`, tableEdge: `#444a50`, track: `#c6bca1` },
   },
-  // {
-  //   id:     `workbench`,
-  //   name:   `Workshop Wasteland`,
-  //   desc:   `A rugged industrial workbench. Put your suspension to the test among heavy tools, bolts, and wrenches.`,
-  //   svgSrc: `tracks/workbench.svg`,
-  //
-  //   theme:  { background: `#14130e`, table: `#2f4034`, tableEdge: `#7a6334`, track: `#cdbf9e` },
-  // },
+  {
+    id:     `workbench`,
+    name:   `Workshop Wasteland`,
+    desc:   `A rugged industrial workbench. Dodge wrenches, hammers and drills on weathered wood and cold metal.`,
+    svgSrc: `tracks/workbench.svg`,
+    theme:  { background: `#181d1d`, table: `#574b39`, tableEdge: `#837a68`, track: `#9a8c6f` },
+  },
   // {
   //   id:     `cafe-marble`,
   //   name:   `Macchiato Madness`,
