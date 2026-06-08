@@ -6,9 +6,9 @@ import * as ITEMS from './items.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Константы ────────────────────────────────────────────────────────────────
-// viewBox 0 0 16399 8756; stroke-width дорожки 800 → half = 400.
+// viewBox 0 0 16512 8756; stroke-width дорожки 800 → half = 400.
 // SCALE = TRACK_HALF / 400 = 100 / 400 = 0.25.
-const SVG_CX = 16399 / 2;
+const SVG_CX = 16512 / 2;
 const SVG_CY = 8756  / 2;
 const SCALE  = 0.25;
 
@@ -53,7 +53,7 @@ export const TABLE = { w: Math.round((_maxX + TABLE_MARGIN) * 2), h: Math.round(
 export const props = [];
 const addProp = (o) => { props.push(prepProp(o)); };
 
-_doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
+_doc.querySelectorAll('line[id^="ITEM_"], path[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
   const key   = resolveKey(rawId);
   if (!key) {
@@ -62,10 +62,17 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   }
   const item = ITEMS[key];
 
-  const x1 = parseFloat(el.getAttribute('x1'));
-  const y1 = parseFloat(el.getAttribute('y1'));
-  const x2 = parseFloat(el.getAttribute('x2'));
-  const y2 = parseFloat(el.getAttribute('y2'));
+  let x1, y1, x2, y2;
+  if (el.tagName === 'path') {
+    const m = el.getAttribute('d').match(/M\s*([\d.]+)\s+([\d.]+)\s*L\s*([\d.]+)\s+([\d.]+)/);
+    if (!m) return;
+    x1 = +m[1]; y1 = +m[2]; x2 = +m[3]; y2 = +m[4];
+  } else {
+    x1 = parseFloat(el.getAttribute('x1'));
+    y1 = parseFloat(el.getAttribute('y1'));
+    x2 = parseFloat(el.getAttribute('x2'));
+    y2 = parseFloat(el.getAttribute('y2'));
+  }
 
   const { x: gx, y: gy } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
   const ang = Math.atan2(-(y2 - y1), x2 - x1);
