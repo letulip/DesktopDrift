@@ -93,6 +93,38 @@ export const ITEM_DOUGHNUT_1 = { hl: 0, r: 88, kind: 'plate', c: '#ff6b5a', imgS
 export const ITEM_DOUGHNUT_2 = { hl: 0, r: 88, kind: 'plate', c: '#7b5c46', imgSrc: 'items/doughnut-2-ready.svg' };
 export const ITEM_DOUGHNUT_3 = { hl: 0, r: 88, kind: 'plate', c: '#f07178', imgSrc: 'items/doughnut-3-ready.svg' };
 
+// --- Еда и посуда (Масштаб 1:64) ---
+
+// Глубокая тарелка с супом и ложкой (~30x28 см, увеличенный круглый коллайдер для ложки)
+export const ITEM_PLATE_SOUP_SPOON = { hl: 0, r: 175, kind: 'plate', c: '#dce2e8', imgSrc: 'items/plate-soup2-ready.svg' };
+
+// Сковорода с рагу/сосисками (~45 см с ручками, диаметр 28 см)
+export const ITEM_PAN_STEER = { hl: 80, r: 164, kind: 'bowl', c: '#3d434a', imgSrc: 'items/pan-steer-ready.svg' };
+
+// Картофель фри в красной упаковке (~12x8 см)
+export const ITEM_FRIES_RED = { hl: 35, r: 46, kind: 'board', c: '#f92a1c', imgSrc: 'items/fries2-ready.svg' };
+
+// Картофель фри в оранжевой упаковке (~12x8 см)
+export const ITEM_FRIES_ORANGE = { hl: 35, r: 46, kind: 'board', c: '#f27221', imgSrc: 'items/fries1-ready.svg' };
+
+// Тарелка с куриными ножками (Диаметр 28 см)
+export const ITEM_PLATE_CHICKEN = { hl: 0, r: 164, kind: 'plate', c: '#a0b4ed', imgSrc: 'items/plate-chicken-ready.svg' };
+
+// Тарелка с шашлыками (Диаметр 28 см)
+export const ITEM_PLATE_BBQ = { hl: 0, r: 164, kind: 'plate', c: '#faba02', imgSrc: 'items/plate-bbq-ready.svg' };
+
+// Тарелка с пюре и курицей (Диаметр 28 см)
+export const ITEM_PLATE_MASHED = { hl: 0, r: 164, kind: 'plate', c: '#ededed', imgSrc: 'items/plate-mashed-chicken-ready.svg' };
+
+// Миска с супом 1 (Диаметр ~20 см)
+export const ITEM_BOWL_SOUP_1 = { hl: 0, r: 117, kind: 'plate', c: '#f5f5f5', imgSrc: 'items/plate-soup3-ready.svg' };
+
+// Миска с супом и яйцом (Диаметр ~20 см)
+export const ITEM_BOWL_SOUP_EGG = { hl: 0, r: 117, kind: 'plate', c: '#ffdb59', imgSrc: 'items/plate-soup1-ready.svg' };
+
+// Тарелка с сосисками и приборами (~30x28 см, увеличенный круглый коллайдер для приборов)
+export const ITEM_PLATE_SAUSAGE_SET = { hl: 0, r: 175, kind: 'plate', c: '#f5f2db', imgSrc: 'items/plate-sausage-ready.svg' };
+
 
 // --- Наборы посуды (Сборные SVG) ---
 
