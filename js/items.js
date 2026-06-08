@@ -127,6 +127,14 @@ export const ITEM_SPATULA_2 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', img
 export const ITEM_CLIPBOARD = { hl: 52, r: 135, kind: 'board', c: '#70a441', imgSrc: 'items/writing-board-ready.svg' };
 // Ежедневник / Блокнот (~21x15 см)
 export const ITEM_NOTEBOOK  = { hl: 35, r: 88,  kind: 'board', c: '#6ca342', imgSrc: 'items/daily-ready.svg' };
+export const ITEM_NOTEBOOK_2 = { hl: 35, r: 88, kind: 'board', c: '#c8cfd5', imgSrc: 'items/notebook2-ready.svg' };
+export const ITEM_RUBBER_DUCK = { hl: 12, r: 46, kind: 'board', c: '#fff2b2', imgSrc: 'items/rubber-duck-ready.svg' };
+// Смартфон (Диагональ 16.94 см, габариты ~16.5 x 7.5 см)
+export const ITEM_SMARTPHONE_1 = { hl: 53, r: 44, kind: 'board', c: '#333333', imgSrc: 'items/smartphone1-ready.svg' };
+export const ITEM_SMARTPHONE_2 = { hl: 53, r: 44, kind: 'board', c: '#000000', imgSrc: 'items/smartphone2-ready.svg' };
+
+// Планшет (Диагональ 25.4 см, габариты ~24 x 17 см, горизонтальная ориентация)
+export const ITEM_TABLET_10 = { hl: 41, r: 99, kind: 'board', c: '#3d444d', imgSrc: 'items/tablet-10inch-ready.svg' };
 
 // --- Средние объекты (Степлер, диспенсер, корректор) ---
 // Диспенсер для скотча (~20x8 см)

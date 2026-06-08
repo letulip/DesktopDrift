@@ -1,0 +1,37 @@
+<svg width="16399" height="8756" viewBox="0 0 16399 8756" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="workbench">
+<line id="ITEM_COLA_CAP" x1="1301.68" y1="7665.39" x2="1088.68" y2="7490.39" stroke="black"/>
+<line id="ITEM_CUP" x1="5245.5" y1="1988" x2="5241.5" y2="3123" stroke="white"/>
+<line id="ITEM_WRENCH_1" x1="5385.39" y1="4191.68" x2="5909.39" y2="4836.68" stroke="white"/>
+<line id="ITEM_SCREWDRIVER_2" x1="11690" y1="6847.5" x2="12396" y2="6841.57" stroke="white"/>
+<line id="ITEM_SCREWDRIVER_2_2" x1="6610" y1="1544.43" x2="7316" y2="1538.5" stroke="white"/>
+<line id="ITEM_SCREWDRIVER_1" x1="11352.7" y1="2304.57" x2="12108.7" y2="1858.57" stroke="white"/>
+<line id="ITEM_RULER_LONG" x1="4173.72" y1="4082.41" x2="2981.72" y2="3260.41" stroke="white"/>
+<line id="ITEM_RULER_LONG_2" x1="3617.96" y1="5087.5" x2="5071.96" y2="4981.5" stroke="white"/>
+<line id="ITEM_RULER_LONG_3" x1="15278.5" y1="4143.11" x2="14955.5" y2="5603.11" stroke="white"/>
+<line id="ITEM_GLOVES" x1="4354.43" y1="838.747" x2="4646.43" y2="1335.75" stroke="white"/>
+<line id="ITEM_GLOVES_2" x1="12329.5" y1="4904.08" x2="12247.5" y2="5419.08" stroke="white"/>
+<line id="ITEM_PEN_PENCIL" x1="2715.29" y1="1365.59" x2="3158.29" y2="1675.59" stroke="white"/>
+<line id="ITEM_MITTEN" x1="13781.3" y1="1228.63" x2="14206.3" y2="1616.63" stroke="white"/>
+<path id="track_path" d="M5264.54 5825.13L7791.87 7129.59L9503.93 7578H14640.1L15863 5825.13V2890.1L14640.1 1178H11582.9L10360 2278.64L11175.2 3216.22L13539.5 2563.99L14640.1 3664.62L14110.2 5376.73L12765 6151.25H9993.08L8321.79 5091.38L8525.61 1870.99H7791.87L5794.47 3664.62H4775.38L2166.53 1870.99L536 2563.99V4846.79L1758.9 5825.13H5264.54Z" stroke="black" stroke-width="800"/>
+<line id="ITEM_DRILL" x1="1884.47" y1="2707.17" x2="1604.47" y2="3473.17" stroke="white"/>
+<line id="ITEM_HAMMER_1" x1="7590.5" y1="3757" x2="7590.5" y2="2823" stroke="white"/>
+<line id="ITEM_SCREWDRIVER_1_2" x1="2102.24" y1="6465.56" x2="2902.24" y2="6912.56" stroke="white"/>
+<line id="ITEM_NAILS_1" x1="6246.35" y1="7157.64" x2="6958.35" y2="7854.64" stroke="white"/>
+<line id="ITEM_WRENCH_1_2" x1="14638.3" y1="6291.37" x2="14059.3" y2="6820.37" stroke="white"/>
+<line id="ITEM_PENCIL_2" x1="15875.4" y1="6862.23" x2="15637.4" y2="7314.23" stroke="white"/>
+<line id="ITEM_PENCIL_2_2" x1="10538.4" y1="963.233" x2="10300.4" y2="1415.23" stroke="white"/>
+<line id="ITEM_WRENCH_2" x1="8769.29" y1="6328.59" x2="9452.29" y2="6822.59" stroke="white"/>
+<line id="ITEM_COMPASS_RULER" x1="10751.5" y1="4156.82" x2="11197.5" y2="5321.82" stroke="white"/>
+<line id="ITEM_TOOLSET_2" x1="9298.5" y1="4098" x2="9298.5" y2="4943" stroke="white"/>
+<line id="ITEM_WRENCH_2_2" x1="6026.29" y1="1399.59" x2="6709.29" y2="1893.59" stroke="white"/>
+<line id="ITEM_TOOLSET_1" x1="4688.46" y1="6491.81" x2="5001.46" y2="7240.81" stroke="white"/>
+<line id="ITEM_DRILL_2" x1="12820.3" y1="3671.57" x2="13565.3" y2="4121.57" stroke="white"/>
+<line id="ITEM_COMB" x1="15454.4" y1="1089.7" x2="15975.4" y2="1797.7" stroke="white"/>
+<line id="ITEM_NAILS_1_2" x1="6913.47" y1="3653.17" x2="6633.47" y2="4438.17" stroke="white"/>
+<line id="ITEM_HORSESHOE" x1="6962.5" y1="5281.99" x2="6969.5" y2="5955.99" stroke="white"/>
+<line id="ITEM_RULER" x1="737.703" y1="1530.6" x2="1490.7" y2="975.598" stroke="white"/>
+<line id="ITEM_PEN_PENCIL_2" x1="557.287" y1="5763.59" x2="1000.29" y2="6073.59" stroke="white"/>
+<line id="ITEM_PEN_1" x1="9202.5" y1="1931" x2="9202.5" y2="2477" stroke="white"/>
+</g>
+</svg>
