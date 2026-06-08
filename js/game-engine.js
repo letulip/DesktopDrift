@@ -169,8 +169,9 @@ export const startGame = (T, opts = {}) => {
     const wasAlreadyPaused = pause.isPaused();
     pause.pause();
     confirmExit.show({
-      onExit:   () => { location.href = 'index.html'; },
-      onCancel: () => { if (!wasAlreadyPaused) pause.resume(); },
+      onExit:    () => { location.href = 'index.html'; },
+      onRestart: () => { location.reload(); },
+      onCancel:  () => { if (!wasAlreadyPaused) pause.resume(); },
     });
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);

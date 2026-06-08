@@ -126,6 +126,14 @@ canvas { display: block; }
   cursor: pointer; transition: background var(--ease), border-color var(--ease);
 }
 #confirmCancelBtn:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+/* «Рестарт» — средний вес: белый, чётко кликабельный, но не конкурирует с Keep racing */
+#confirmRestartBtn {
+  padding: 13px 0; width: 100%; border-radius: 12px;
+  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22);
+  color: rgba(255,255,255,.85); font: 600 15px var(--font-body);
+  cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+#confirmRestartBtn:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.38); color: #fff; }
 /* «Выйти» — деструктивное действие, приглушённый цвет */
 #confirmExitBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;

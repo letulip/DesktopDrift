@@ -14,28 +14,35 @@ export const createConfirmExit = () => {
       <p  id="confirmTitle">Leave the race?</p>
       <div id="confirmBtns">
         <button id="confirmCancelBtn">Keep racing</button>
+        <button id="confirmRestartBtn">↺ Restart</button>
         <button id="confirmExitBtn">Exit to menu</button>
       </div>
     </div>
   `;
   document.body.appendChild(overlay);
 
-  let pendingCancel = null, pendingExit = null;
+  let pendingCancel = null, pendingRestart = null, pendingExit = null;
 
   const hide = () => {
     overlay.classList.remove('show');
-    pendingCancel = pendingExit = null;
+    pendingCancel = pendingRestart = pendingExit = null;
   }
 
-  const show = ({ onExit, onCancel } = {}) => {
-    pendingCancel = onCancel || null;
-    pendingExit  = onExit  || null;
+  const show = ({ onExit, onCancel, onRestart } = {}) => {
+    pendingCancel  = onCancel  || null;
+    pendingRestart = onRestart || null;
+    pendingExit    = onExit    || null;
     overlay.classList.add('show');
   }
 
   // ── Кнопка «Продолжить» ──
   document.getElementById('confirmCancelBtn').addEventListener('click', () => {
     const cb = pendingCancel; hide(); if (cb) cb();
+  });
+
+  // ── Кнопка «Рестарт» ──
+  document.getElementById('confirmRestartBtn').addEventListener('click', () => {
+    const cb = pendingRestart; hide(); if (cb) cb();
   });
 
   // ── Кнопка «Выйти» ──
