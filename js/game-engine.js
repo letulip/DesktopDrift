@@ -10,16 +10,26 @@ import {
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
 
-// Текущая запущенная игра — чтобы при повторном startGame снять прошлую
-// (слушатели + цикл) и не плодить дубли. Также это сем для будущего restart/replay.
-let _active = null;
+// Реестр активной игры — чтобы при повторном startGame снять прошлую
+// (слушатели + цикл) и не плодить дубли. Якорим на globalThis, а НЕ в module-scope:
+// если game-engine.js по какой-то причине загрузится двумя инстансами (двойная
+// отдача из SW в PWA, гонка навигации), обе копии делят один флаг → новый запуск
+// гарантированно гасит предыдущий и не оставляет задвоенных rAF/pointer-листенеров.
+const getActive = () => globalThis.__ddActiveGame ?? null;
+const setActive = (v) => { globalThis.__ddActiveGame = v; };
 
 // Запускает игровой цикл с переданным треком.
 // T   — namespace-импорт трекового модуля (track.js или track-oval.js)
 // opts.initItems — true, если у трека есть SVG-пропсы для предзагрузки
 // Возвращает { stop } — снимает все слушатели и отменяет requestAnimationFrame.
 export const startGame = (T, opts = {}) => {
-  if (_active) _active.stop(); // не запускать вторую игру поверх живой
+  // не запускать вторую игру поверх живой; warn = сигнал, если это случилось
+  // неожиданно (напр. залипший инстанс в PWA — тот самый класс «двойного rAF»).
+  const prev = getActive();
+  if (prev) {
+    console.warn('[game-engine] startGame: предыдущая игра ещё активна — снимаю её (возможна задвоенность движка)');
+    prev.stop();
+  }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = бесконечно (sandbox)
 
@@ -491,10 +501,10 @@ export const startGame = (T, opts = {}) => {
     confirmExit.destroy();
     // raceResults остаётся живым после финиша заезда; убирается только при перезапуске
     if (!raceFinished) raceResults.destroy();
-    if (_active === api) _active = null;
+    if (getActive() === api) setActive(null);
   };
   const api = { stop };
-  _active = api;
+  setActive(api);
 
   rafId = requestAnimationFrame(frame);
   return api;
