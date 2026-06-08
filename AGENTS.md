@@ -181,7 +181,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Returns `{ stop }` — removes every listener, cancels the `requestAnimationFrame`
     loop, and destroys the pause / confirm-exit (and, unless finished, race-results)
     components. The engine is reentrant: a second `startGame` auto-stops the previous
-    one (no leaked listeners / no double RAF).
+    one (no leaked listeners / no double RAF). The active-game registry lives on
+    `globalThis.__ddActiveGame` (not module-scope), so even a duplicate module instance
+    (e.g. an SW glitch in the installed PWA) shares one flag and can't run two engines
+    at once; an unexpected live game at start logs a `console.warn` as a signal.
   - `js/pause.js` — self-contained pause component. Creates `#pauseBtn` and
     `#pauseOverlay` DOM elements, handles P key. Returns `{ isPaused, toggle,
     pause, resume, destroy }`. `destroy()` removes the keydown listener and its DOM.
