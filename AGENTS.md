@@ -105,6 +105,12 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     in the game; `background:#c6cace`, `table:#6b7178`. No `startLine` field needed
     (flag is now universal black/white). `#hint` text-shadow added in `css/sandbox.css`
     for readability on light backgrounds (applies to all future light-theme tracks too).
+  - `js/track-workbench.js` — **Workbench track** ("Workshop Wasteland").
+    Same structure as other SVG track modules. viewBox 16399×8756, SCALE=0.25,
+    36 items (workshop tools: DRILL×2, WRENCH_1×2, WRENCH_2×2, HAMMER_1, SCREWDRIVER_1×2,
+    SCREWDRIVER_2×2, TOOLSET_1, TOOLSET_2, GLOVES×2, NAILS_ROW×2, NAILS_CROSS, RULER_LONG×3,
+    RULER, HORSESHOE, COMB, PEN_PENCIL×2, PEN_1, PENCIL_2×2, COMPASS_RULER, MITTEN, CUP,
+    COLA_CAP). Dark industrial theme; `background:#181d1d`, `table:#574b39`.
   - `js/race-results.js` — **self-contained race-results overlay**. Creates
     `#raceResultsOverlay` DOM; `show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })`
     renders the PPS score ("1250 PPS", NEW RECORD badge), sub-line "Total: 45,000 · 36.0 s",

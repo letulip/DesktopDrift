@@ -17,13 +17,17 @@ export const createRaceResults = () => {
       <div id="rr-laps"></div>
       <div id="rr-best"></div>
       <div id="rr-actions">
+        <button id="rr-restart">↺ Race Again</button>
         <button id="rr-back">Back to tracks</button>
       </div>
     </div>
   `;
   document.body.appendChild(overlay);
 
-  // Ищем кнопку внутри своего оверлея, а не через глобальный getElementById
+  // Кнопки внутри своего оверлея (не глобальный getElementById)
+  overlay.querySelector('#rr-restart').addEventListener('click', () => {
+    location.reload(); // перезагрузить game.html?track=<id> — чистый старт
+  });
   overlay.querySelector('#rr-back').addEventListener('click', () => {
     location.href = 'tracks.html';
   });
