@@ -1,0 +1,29 @@
+#ts-footer {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-deep) 44%);
+  pointer-events: none;
+  position: fixed;
+  bottom: 0;
+  width: 100vw;
+  box-sizing: border-box;
+}
+
+.ts-back {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0 28px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.4);
+  font: 500 13px var(--font-body);
+  text-decoration: none;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+.ts-back:hover {
+  color: rgba(255,255,255,.7);
+  border-color: rgba(255,255,255,.28);
+  background: rgba(255,255,255,.10);
+}

@@ -1,33 +1,58 @@
 /* Экран выбора трасс (tracks.html) */
 
+/* ── Outer layout: фиксированный контейнер на весь экран ─────────────────── */
 #track-select {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
   background: var(--bg-screen);
   font: 14px/1.4 var(--font-body); color: var(--ink);
-  gap: 20px; padding: 24px; box-sizing: border-box;
-  overflow-y: auto;
 }
 
-#ts-title {
-  margin: 0;
-  font: 800 clamp(24px, 6.4vw, 40px) var(--font-display);
-  letter-spacing: .5px; line-height: 1;
-  background: var(--accent-text);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+/* ── Normal / Reversed toggle ────────────────────────────────────────────── */
+#ts-mode {
+  display: flex; gap: 8px;
+  width: 100%; max-width: 370px;
+  margin-top: 6px;
 }
 
-#ts-sub {
-  margin: 0;
-  font: 600 15px var(--font-body); opacity: .45;
+.mode-btn {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 2px solid var(--surface-line);
+  background: var(--surface);
+  color: rgba(255,255,255,.5);
+  font: 600 14px var(--font-body);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: border-color var(--ease), background var(--ease), color var(--ease);
 }
 
-/* ── Track cards ─────────────────────────────────────────────────────────── */
+.mode-btn.is-active {
+  border-color: var(--accent-glow);
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+.mode-btn.is-locked {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.lock-icon { flex-shrink: 0; }
+
+/* ── Scrollable cards area ───────────────────────────────────────────────── */
 #track-cards {
-  display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+  display: flex; flex-wrap: wrap; gap: 18px;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 12px;
 }
+#track-cards::-webkit-scrollbar { display: none; }
 
+/* ── Track card (desktop default) ────────────────────────────────────────── */
 .track-card {
   display: flex; flex-direction: column;
   width: min(280px, calc(100vw - 48px));
@@ -36,7 +61,8 @@
   border: 2px solid var(--surface-line);
   cursor: pointer; text-decoration: none; color: var(--ink);
   overflow: hidden;
-  transition: border-color var(--ease), background var(--ease), transform var(--ease), box-shadow var(--ease);
+  transition: border-color var(--ease), background var(--ease),
+              transform var(--ease), box-shadow var(--ease);
 }
 .track-card:hover {
   border-color: var(--accent);
@@ -45,15 +71,17 @@
   box-shadow: 0 6px 24px rgba(255,177,77,.12);
 }
 
-/* Canvas thumbnail — фон задаётся через JS (theme.background) */
+.track-card-top { display: block; }
+
+.track-card-score { display: none; }
+
 .track-thumb {
   display: block;
   width: 100%;
   aspect-ratio: 2 / 1;
-  background: var(--bg-deep); /* запасной цвет пока JS не отрисовал */
+  background: var(--bg-deep);
 }
 
-/* Card body */
 .track-card-body {
   padding: 12px 16px 14px;
   display: flex; flex-direction: column; gap: 5px;
@@ -85,11 +113,77 @@
   font-weight: 400;
 }
 
-/* ── Back link ───────────────────────────────────────────────────────────── */
-.ts-back {
-  color: rgba(255,255,255,.35);
-  font: 13px var(--font-body);
-  text-decoration: none;
-  transition: color var(--ease);
+/* ── Mobile layout (≤ 480px) ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  #track-cards {
+    gap: 12px;
+  }
+
+  .track-card {
+    width: clamp(340px, calc(100vw - 24px), 380px);
+    flex-shrink: 0;   /* не сжиматься в flex-column контейнере */
+  }
+
+  .track-card-top {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .track-thumb {
+    flex: 0 0 71%;
+    width: auto;
+    aspect-ratio: 267 / 146;
+  }
+
+  .track-card-score {
+    flex: 1;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 8px 10px 8px 8px;
+    gap: 1px;
+    min-width: 90px;
+    border-left: 1px solid var(--surface-line);
+  }
+
+  .tcs-label {
+    font: 400 9px var(--font-body);
+    opacity: .4;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    margin-top: 5px;
+  }
+  .tcs-label:first-child { margin-top: 0; }
+
+  .tcs-pps {
+    font: 700 15px var(--font-display);
+    color: var(--accent);
+    letter-spacing: -.3px;
+    line-height: 1.1;
+  }
+
+  .tcs-unit { font-size: 10px; font-weight: 600; }
+
+  .tcs-total,
+  .tcs-time {
+    font: 500 11px var(--font-body);
+    opacity: .55;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tcs-none {
+    font: 400 14px var(--font-body);
+    opacity: .25;
+    align-self: center;
+  }
+
+  .track-card-record { display: none; }
+
+  .track-card-body {
+    padding: 8px 12px 10px;
+    gap: 3px;
+  }
+
+  .track-card-name { font-size: 14px; }
 }
-.ts-back:hover { color: rgba(255,255,255,.65); }
