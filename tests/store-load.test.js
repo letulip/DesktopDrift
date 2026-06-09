@@ -1,7 +1,7 @@
-// store.js — путь "загрузка существующих данных": в localStorage уже лежит
-// сохранение с совпадающей версией, store обязан его поднять, а не сбросить.
-// Отдельный файл (а не отдельный тест) — чтобы получить свежий процесс и
-// чистый модульный кэш store.js (см. комментарий в store.test.js).
+// store.js — "load existing data" path: localStorage already contains a save
+// with a matching version; store must load it rather than reset to defaults.
+// Separate file (not a separate test) to get a fresh process and a clean
+// module cache for store.js (see the comment in store.test.js).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,12 +33,12 @@ test('loads persisted records / achievements', () => {
   assert.equal(achievements().firstDrift.unlocked, true);
 });
 
-// version mismatch → сброс к defaults (защита от несовместимой схемы)
+// version mismatch → reset to defaults (guard against incompatible schema)
 test('version mismatch falls back to defaults', async () => {
   installLocalStorage({
     'desktop-drift': JSON.stringify({ version: 999, settings: { units: 'mph' } }),
   });
-  // отдельный импорт с busting query — новый модульный экземпляр, чистый _s
+  // separate import with busting query — fresh module instance, clean _s
   const fresh = await import('../js/store.js?v=mismatch');
   assert.deepEqual(fresh.settings(), { units: 'kmh' });
 });

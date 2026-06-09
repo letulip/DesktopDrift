@@ -1,9 +1,9 @@
-/* Общий сброс + дизайн-токены для всех страниц Desktop Drift.
-   Токены — единый источник правды для цвета/типографики/формы (см. AGENTS.md →
-   Design language, DESIGN.md). Не хардкодь цвета по месту — используй var(). */
+/* Shared reset + design tokens for all Desktop Drift pages.
+   Tokens are the single source of truth for colour/typography/shape (see AGENTS.md →
+   Design language, DESIGN.md). Never hardcode colours inline — use var(). */
 
-/* Характерный display-шрифт (логотип/заголовки). Селф-хост, офлайн, без CDN.
-   Body остаётся системным ради скорости и веса. */
+/* Distinctive display font (logo/headings). Self-hosted, offline, no CDN.
+   Body stays system for speed and file size. */
 @font-face {
   font-family: 'Unbounded';
   font-style: normal;
@@ -15,55 +15,55 @@
 }
 
 :root {
-  /* Фоны — тёплые тёмно-коричневые */
-  --bg-deep:   #0b0907;   /* самый глубокий */
+  /* Backgrounds — warm dark browns */
+  --bg-deep:   #0b0907;   /* deepest */
   --bg-mid:    #14110f;
-  --bg-raise:  #2a2622;   /* приподнятый */
+  --bg-raise:  #2a2622;   /* raised surface */
   --bg-vignette: radial-gradient(120% 120% at 50% 0%,
                  var(--bg-raise) 0%, var(--bg-mid) 55%, var(--bg-deep) 100%);
-  /* Тонкое зерно (feTurbulence в data-URI) — глубина без растровых ассетов. */
+  /* Subtle grain (feTurbulence in data-URI) — depth without raster assets. */
   --grain: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.8'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='saturate'%20values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type='linear'%20slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E");
-  /* Полный фон экранов = зерно поверх виньетки. */
+  /* Full screen background = grain over vignette. */
   --bg-screen: var(--grain), var(--bg-vignette);
 
-  /* Акцент — янтарь (единственный сигнатурный цвет) */
+  /* Accent — amber (the one signature colour) */
   --accent:      #ffb14d;
-  --accent-gold: #ffd34d;   /* комбо-золото */
+  --accent-gold: #ffd34d;   /* combo gold */
 
-  /* Текст */
+  /* Text */
   --ink: #fff;
 
-  /* Поверхности (нейтральные панели/карточки) */
+  /* Surfaces (neutral panels/cards) */
   --surface:      rgba(255,255,255,.05);
   --surface-line: rgba(255,255,255,.12);
 
-  /* Акцентные поверхности */
+  /* Accent surfaces */
   --accent-tint: rgba(255,177,77,.10);
   --accent-line: rgba(255,177,77,.40);
   --accent-glow: rgba(255,177,77,.70);
 
-  /* Стат-бары гаража */
+  /* Garage stat bars */
   --stat-spd: rgba(255,177,77,.82);
   --stat-hdl: rgba(90,210,255,.75);
   --stat-acc: rgba(120,220,120,.82);
 
-  /* Градиент акцентного текста (логотип/заголовки) */
+  /* Accent text gradient (logo/headings) */
   --accent-text: linear-gradient(180deg, var(--ink) 0%, var(--accent) 130%);
 
-  /* Форма и движение */
+  /* Shape and motion */
   --r-panel: 10px;
   --r-card:  16px;
   --ease:    .14s;
 
-  /* Типографика */
+  /* Typography */
   --font-display: 'Unbounded', -apple-system, system-ui, sans-serif;
   --font-body:    -apple-system, system-ui, sans-serif;
 }
 
 html, body {
   margin: 0; height: 100%; overflow: hidden; background: var(--bg-deep);
-  touch-action: none;          /* запрет scroll/zoom */
-  user-select: none;           /* запрет выделения текста */
+  touch-action: none;          /* disable scroll/zoom */
+  user-select: none;           /* disable text selection */
   -webkit-user-select: none;   /* Safari / iOS */
-  -webkit-touch-callout: none; /* запрет callout-меню при долгом нажатии (iOS) */
+  -webkit-touch-callout: none; /* disable callout menu on long press (iOS) */
 }

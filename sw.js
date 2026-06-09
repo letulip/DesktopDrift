@@ -5,10 +5,11 @@ const CACHE = 'desktop-drift-v38';
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
 const BASE = new URL('.', self.location).href;
-// Pre-cache: HTML, CSS и ВСЕ js-модули (критичны для старта — должны быть
-// доступны до первого офлайн-визита). SVG из items/ и objects/ намеренно НЕ
-// здесь — их десятки, они подхватываются runtime-кэшем (fetch-хэндлер ниже)
-// при первом запросе. Добавляя новый js-модуль, впиши его сюда.
+// Pre-cache: HTML, CSS and ALL js modules (critical for startup — must be
+// available before the first offline visit). SVGs from items/ and objects/ are
+// intentionally NOT here — there are dozens of them; they are picked up by the
+// runtime cache (fetch handler below) on first request. When adding a new js
+// module, add it here.
 const ASSETS = [
   '',
   'index.html',
@@ -74,27 +75,28 @@ self.addEventListener('activate', e => {
   self.clients.claim(); // take control of all open tabs right away
 });
 
-// Stale-while-revalidate: отдаём из кэша мгновенно (быстро + оффлайн), но В ФОНЕ
-// всегда идём в сеть и обновляем кэш. Так свежий код доезжает до игрока на СЛЕДУЮЩЕЙ
-// загрузке даже если забыли бампнуть CACHE — забытый бамп самозалечивается.
-// (Бамп всё ещё полезен: гарантирует обновление на ПЕРВОЙ же загрузке через skipWaiting.)
+// Stale-while-revalidate: serve from cache instantly (fast + offline), but IN THE
+// BACKGROUND always fetch from the network and overwrite the cache. This way fresh
+// code reaches the player on the NEXT load even if the CACHE bump was forgotten —
+// a forgotten bump self-heals. (Bumping is still useful: it guarantees the update
+// on the FIRST load via skipWaiting.)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  if (!e.request.url.startsWith(BASE)) return; // игнорируем cross-origin
+  if (!e.request.url.startsWith(BASE)) return; // ignore cross-origin
 
   e.respondWith(
     caches.match(e.request).then(cached => {
-      // Параллельно с отдачей кэша тянем сеть и переписываем кэш свежим ответом.
+      // In parallel with serving from cache, fetch from the network and refresh the cache.
       const network = fetch(e.request).then(resp => {
         if (resp.ok) {
-          // Клонируем сразу — до любых await/then, пока тело ещё не начали читать.
+          // Clone immediately — before any await/then, while the body hasn't been read yet.
           const clone = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
-      }).catch(() => cached); // оффлайн → довольствуемся кэшем
+      }).catch(() => cached); // offline → fall back to cache
 
-      // Есть кэш — отдаём немедленно; нет — ждём сеть (первый визит).
+      // Cache available — serve immediately; not available — wait for network (first visit).
       return cached || network;
     })
   );

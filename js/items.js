@@ -1,238 +1,238 @@
-// Как использовать: addProp({ ...ITEM_PLATE_YELLOW, x: 800, y: -450, ang: 0 });
+// Usage: addProp({ ...ITEM_PLATE_YELLOW, x: 800, y: -450, ang: 0 });
 
 // ==========================================
-// УНИВЕРСАЛЬНЫЕ ПРЕДМЕТЫ
-// (которые можно раскидать по разным трекам, не меняя код)
+// UNIVERSAL ITEMS
+// (can be placed on any track without code changes)
 // ==========================================
 
-export const ITEM_CUP = { 
-  hl: 0, 
-  r: 88, // Рассчитано под диаметр 15 см в масштабе 1:64
-  kind: 'bowl', 
-  imgSrc: 'items/cup-ready.svg', 
-  c: '#ffffff' 
+export const ITEM_CUP = {
+  hl: 0,
+  r: 88, // calibrated for 15 cm diameter at 1:64 scale
+  kind: 'bowl',
+  imgSrc: 'items/cup-ready.svg',
+  c: '#ffffff'
 };
 
-// --- Мелкие объекты ---
-// Крышечка от колы (~3 см, круглая)
+// --- Small objects ---
+// Cola bottle cap (~3 cm, round)
 export const ITEM_COLA_CAP = { hl: 0, r: 18, kind: 'plate', c: '#ff9999', imgSrc: 'objects/cola.svg' };
 
 // ==========================================
-// 📚 КУХНЯ И СВЯЗАННОЕ (Масштаб 1:64)
+// 📚 KITCHEN & RELATED (1:64 scale)
 // ==========================================
 
-// export const ITEM_FORK = { 
-//   hl: 123, // Рассчитано под длину 21 см
-//   r: 15,   // Толщина коллайдера для вилки
-//   kind: 'fork', 
-//   imgSrc: 'items/fork.svg', 
-//   c: '#c8ccd2' 
+// export const ITEM_FORK = {
+//   hl: 123, // calibrated for 21 cm length
+//   r: 15,   // collider thickness for a fork
+//   kind: 'fork',
+//   imgSrc: 'items/fork.svg',
+//   c: '#c8ccd2'
 // };
 
-// --- Тарелки (28 см, r: 164) ---
+// --- Plates (28 cm, r: 164) ---
 export const ITEM_PLATE_YELLOW = { hl: 0, r: 164, kind: 'plate', c: '#fff9d6', imgSrc: 'items/plate1-yellow-ready.svg' };
 export const ITEM_PLATE_WHITE  = { hl: 0, r: 164, kind: 'plate', c: '#ffffff', imgSrc: 'items/plate1-ready.svg' };
 export const ITEM_PLATE_GREY   = { hl: 0, r: 164, kind: 'plate', c: '#dce3e8', imgSrc: 'items/plate2-ready.svg' };
 
-// --- Столовые ножи (~21 см, капсула 246x30) ---
+// --- Table knives (~21 cm, capsule 246×30) ---
 export const ITEM_KNIFE_1 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
 export const ITEM_KNIFE_2 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
 export const ITEM_KNIFE_3 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
 
-// --- Столовые вилки (~21 см, капсула 246x30) ---
+// --- Table forks (~21 cm, capsule 246×30) ---
 export const ITEM_FORK_1 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
 export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
 
-// --- Большая вилка для мяса (~32.5 см, капсула 380x40) ---
+// --- Large meat fork (~32.5 cm, capsule 380×40) ---
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
 
 // ==========================================
-// 🔪 ДОСКИ И ИНВЕНТАРЬ (Масштаб 1:64)
+// 🔪 BOARDS & UTENSILS (1:64 scale)
 // ==========================================
 
-// Разделочная доска с ручкой (~35x20 см, широкая капсула)
+// Chopping board with handle (~35×20 cm, wide capsule)
 export const ITEM_BOARD_1 = { hl: 88, r: 117, kind: 'board', c: '#a48c84', imgSrc: 'items/kitchen-board-1-ready.svg' };
-// Разделочная доска прямоугольная (~30x20 см, капсула)
+// Rectangular chopping board (~30×20 cm, capsule)
 export const ITEM_BOARD_2 = { hl: 58, r: 117, kind: 'board', c: '#bcccd4', imgSrc: 'items/kitchen-board-2-ready.svg' };
-// Терка металлическая (~22x10 см, капсула)
+// Metal grater (~22×10 cm, capsule)
 export const ITEM_GRATER  = { hl: 70, r: 58, kind: 'board', c: '#9cbecf', imgSrc: 'items/grater-ready.svg' };
-// Кухонная прихватка-рукавица (~28x18 см, широкая капсула)
+// Oven glove / mitt (~28×18 cm, wide capsule)
 export const ITEM_MITTEN  = { hl: 59, r: 105, kind: 'board', c: '#f4dcac', imgSrc: 'items/mitten-ready.svg' };
 
 // ==========================================
-// 🍳 КУХНЯ И ТЕХНИКА (Масштаб 1:64)
+// 🍳 KITCHEN & APPLIANCES (1:64 scale)
 // ==========================================
 
-// --- Крупная техника и предметы ---
+// --- Large appliances and objects ---
 
-// Стационарный телефон (~20x20 см)
-// Огромный квадратный предмет. Используем широкую короткую капсулу.
+// Landline phone (~20×20 cm)
+// Very square object — using a wide short capsule.
 export const ITEM_PHONE     = { hl: 30, r: 100, kind: 'board', c: '#f0ce35', imgSrc: 'items/phone1-ready.svg' };
-// --- Телефон 2 (Габариты идентичны ITEM_PHONE) ---
+// Phone 2 (same dimensions as ITEM_PHONE)
 export const ITEM_PHONE_2 = { hl: 30, r: 100, kind: 'board', c: '#ced3d8', imgSrc: 'items/phone2-ready.svg' };
 
-// --- Ноутбуки (13 дюймов = 30.41 x 21.24 см) ---
-export const ITEM_LAPTOP_OPEN = { hl: 54, r: 124, kind: 'board', c: '#e2e6e8', imgSrc: 'items/laptop-open-ready.svg' };
+// --- Laptops (13 inch = 30.41 × 21.24 cm) ---
+export const ITEM_LAPTOP_OPEN   = { hl: 54, r: 124, kind: 'board', c: '#e2e6e8', imgSrc: 'items/laptop-open-ready.svg' };
 export const ITEM_LAPTOP_CLOSED = { hl: 54, r: 124, kind: 'board', c: '#d2d6d9', imgSrc: 'items/laptop-ready.svg' };
 
-// Ручной миксер (~18x25 см с венчиками)
+// Hand mixer (~18×25 cm with beaters)
 export const ITEM_MIXER     = { hl: 40, r: 105, kind: 'board', c: '#e3e5e6', imgSrc: 'items/mixer2-ready.svg' };
 
-// Пульверизатор (Бутылка средства) (~10x25 см)
+// Spray bottle (~10×25 cm)
 export const ITEM_SPRAY     = { hl: 87, r: 58,  kind: 'board', c: '#a4d3ee', imgSrc: 'items/washer-ready.svg' };
 
-// Сковорода с яичницей (~45 см с ручкой, диаметр сковороды ~28 см)
-// SVG 800×537 (aspect 1.490). Капсула hl:80 + r:164 → fw/fh 488/328 (aspect 1.488) —
-// почти точное совпадение: SVG вписывается без искажений.
-// Левый кружок капсулы (-80) = центр чаши; правый (+80) = область ручки.
-// r:164 = 28 см в масштабе 1:64 (как ITEM_PLATE_*).
+// Frying pan with fried egg (~45 cm with handle, pan diameter ~28 cm)
+// SVG 800×537 (aspect 1.490). Capsule hl:80 + r:164 → fw/fh 488/328 (aspect 1.488) —
+// near-perfect fit: SVG scales without distortion.
+// Left capsule circle (-80) = pan centre; right (+80) = handle area.
+// r:164 = 28 cm at 1:64 scale (matches ITEM_PLATE_*).
 export const ITEM_PAN_EGG   = { hl: 80, r: 164, kind: 'bowl',  c: '#385253', imgSrc: 'items/pan1-ready.svg' };
 
-// --- Пончики (Блюдце 15 см, коллайдер круглый) ---
+// --- Doughnuts (saucer 15 cm, round collider) ---
 export const ITEM_DOUGHNUT_1 = { hl: 0, r: 88, kind: 'plate', c: '#ff6b5a', imgSrc: 'items/doughnut-1-ready.svg' };
 export const ITEM_DOUGHNUT_2 = { hl: 0, r: 88, kind: 'plate', c: '#7b5c46', imgSrc: 'items/doughnut-2-ready.svg' };
 export const ITEM_DOUGHNUT_3 = { hl: 0, r: 88, kind: 'plate', c: '#f07178', imgSrc: 'items/doughnut-3-ready.svg' };
 
-// --- Еда и посуда (Масштаб 1:64) ---
+// --- Food & tableware (1:64 scale) ---
 
-// Глубокая тарелка с супом и ложкой (~30x28 см, увеличенный круглый коллайдер для ложки)
+// Deep soup plate with spoon (~30×28 cm, enlarged round collider to cover spoon)
 export const ITEM_PLATE_SOUP_SPOON = { hl: 0, r: 175, kind: 'plate', c: '#dce2e8', imgSrc: 'items/plate-soup2-ready.svg' };
 
-// Сковорода с рагу/сосисками (~45 см с ручками, диаметр 28 см)
+// Frying pan with stew/sausages (~45 cm with handles, diameter 28 cm)
 export const ITEM_PAN_STEER = { hl: 80, r: 164, kind: 'bowl', c: '#3d434a', imgSrc: 'items/pan-steer-ready.svg' };
 
-// Картофель фри в красной упаковке (~12x8 см)
+// Fries in red packaging (~12×8 cm)
 export const ITEM_FRIES_RED = { hl: 35, r: 46, kind: 'board', c: '#f92a1c', imgSrc: 'items/fries2-ready.svg' };
 
-// Картофель фри в оранжевой упаковке (~12x8 см)
+// Fries in orange packaging (~12×8 cm)
 export const ITEM_FRIES_ORANGE = { hl: 35, r: 46, kind: 'board', c: '#f27221', imgSrc: 'items/fries1-ready.svg' };
 
-// Тарелка с куриными ножками (Диаметр 28 см)
+// Plate with chicken drumsticks (diameter 28 cm)
 export const ITEM_PLATE_CHICKEN = { hl: 0, r: 164, kind: 'plate', c: '#a0b4ed', imgSrc: 'items/plate-chicken-ready.svg' };
 
-// Тарелка с шашлыками (Диаметр 28 см)
+// Plate with BBQ skewers (diameter 28 cm)
 export const ITEM_PLATE_BBQ = { hl: 0, r: 164, kind: 'plate', c: '#faba02', imgSrc: 'items/plate-bbq-ready.svg' };
 
-// Тарелка с пюре и курицей (Диаметр 28 см)
+// Plate with mashed potato and chicken (diameter 28 cm)
 export const ITEM_PLATE_MASHED = { hl: 0, r: 164, kind: 'plate', c: '#ededed', imgSrc: 'items/plate-mashed-chicken-ready.svg' };
 
-// Миска с супом 1 (Диаметр ~20 см)
+// Soup bowl 1 (diameter ~20 cm)
 export const ITEM_BOWL_SOUP_1 = { hl: 0, r: 117, kind: 'plate', c: '#f5f5f5', imgSrc: 'items/plate-soup3-ready.svg' };
 
-// Миска с супом и яйцом (Диаметр ~20 см)
+// Soup bowl with egg (diameter ~20 cm)
 export const ITEM_BOWL_SOUP_EGG = { hl: 0, r: 117, kind: 'plate', c: '#ffdb59', imgSrc: 'items/plate-soup1-ready.svg' };
 
-// Тарелка с сосисками и приборами (~30x28 см, увеличенный круглый коллайдер для приборов)
+// Plate with sausages and cutlery (~30×28 cm, enlarged round collider to cover cutlery)
 export const ITEM_PLATE_SAUSAGE_SET = { hl: 0, r: 175, kind: 'plate', c: '#f5f2db', imgSrc: 'items/plate-sausage-ready.svg' };
 
 
-// --- Наборы посуды (Сборные SVG) ---
+// --- Tableware sets (composite SVGs) ---
 
-// Набор: Тарелка + Нож + Вилка (~30x30 см)
-// Используем круглый коллайдер, так как предметы лежат квадратом.
+// Set: plate + knife + fork (~30×30 cm)
+// Round collider because the items are arranged in a square layout.
 export const ITEM_SET_1     = { hl: 0,  r: 175, kind: 'plate', c: '#faf5d4', imgSrc: 'items/cutlery-set1-ready.svg' };
 export const ITEM_SET_2     = { hl: 0,  r: 175, kind: 'plate', c: '#faf5d4', imgSrc: 'items/cutlery-set2-ready.svg' };
 
 
-// --- Кухонная утварь (ВНИМАНИЕ: Нарисованы под углом!) ---
-// Для этих предметов расчеты даны для ГОРИЗОНТАЛЬНОГО коллайдера.
-// При добавлении на трассу их нужно будет повернуть: ang: -0.78 (или перерисовать SVG).
+// --- Kitchen utensils (NOTE: drawn at an angle in the SVG!) ---
+// Collider dimensions below assume a HORIZONTAL capsule.
+// When placing on a track these items need rotating: ang: -0.78 (or redraw the SVG upright).
 
-// Открывалка для консервов (~18x5 см)
+// Can opener (~18×5 cm)
 export const ITEM_OPENER    = { hl: 76, r: 29,  kind: 'knife', c: '#9c5c56', imgSrc: 'items/opener-ready.svg' };
 
-// Кухонный топорик (Тесак) (~30x9 см)
+// Cleaver (~30×9 cm)
 export const ITEM_CLEAVER   = { hl: 122, r: 52, kind: 'knife', c: '#c8ccce', imgSrc: 'items/cook-knife-ready.svg' };
 
-// Лопатка сплошная (~30x8 см)
+// Solid spatula (~30×8 cm)
 export const ITEM_SPATULA_1 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', imgSrc: 'items/spatula1-ready.svg' };
 
-// Лопатка с прорезями (~30x8 см)
+// Slotted spatula (~30×8 cm)
 export const ITEM_SPATULA_2 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', imgSrc: 'items/spatula2-ready.svg' };
 
 // ==========================================
-// 📚 КАНЦЕЛЯРИЯ И РАБОЧИЙ СТОЛ (Масштаб 1:64)
+// 📚 STATIONERY & DESK (1:64 scale)
 // ==========================================
 
-// --- Крупные объекты (Блокноты, планшетки) ---
-// Планшетка с зажимом (~32x23 см)
+// --- Large objects (notepads, clipboards) ---
+// Clipboard with clip (~32×23 cm)
 export const ITEM_CLIPBOARD = { hl: 52, r: 135, kind: 'board', c: '#70a441', imgSrc: 'items/writing-board-ready.svg' };
-// Ежедневник / Блокнот (~21x15 см)
+// Planner / notepad (~21×15 cm)
 export const ITEM_NOTEBOOK  = { hl: 35, r: 88,  kind: 'board', c: '#6ca342', imgSrc: 'items/daily-ready.svg' };
 export const ITEM_NOTEBOOK_2 = { hl: 35, r: 88, kind: 'board', c: '#c8cfd5', imgSrc: 'items/notebook2-ready.svg' };
 export const ITEM_RUBBER_DUCK = { hl: 12, r: 46, kind: 'board', c: '#fff2b2', imgSrc: 'items/rubber-duck-ready.svg' };
-// Смартфон (Диагональ 16.94 см, габариты ~16.5 x 7.5 см)
+// Smartphone (diagonal 16.94 cm, body ~16.5×7.5 cm)
 export const ITEM_SMARTPHONE_1 = { hl: 53, r: 44, kind: 'board', c: '#333333', imgSrc: 'items/smartphone1-ready.svg' };
 export const ITEM_SMARTPHONE_2 = { hl: 53, r: 44, kind: 'board', c: '#000000', imgSrc: 'items/smartphone2-ready.svg' };
 
-// Планшет (Диагональ 25.4 см, габариты ~24 x 17 см, горизонтальная ориентация)
+// Tablet (diagonal 25.4 cm, body ~24×17 cm, landscape)
 export const ITEM_TABLET_10 = { hl: 41, r: 99, kind: 'board', c: '#3d444d', imgSrc: 'items/tablet-10inch-ready.svg' };
 
-// --- Средние объекты (Степлер, диспенсер, корректор) ---
-// Диспенсер для скотча (~20x8 см)
+// --- Medium objects (stapler, tape dispenser, corrector) ---
+// Tape dispenser (~20×8 cm)
 export const ITEM_TAPE      = { hl: 70, r: 46,  kind: 'board', c: '#ffd13b', imgSrc: 'items/ducttape-dispensor-ready.svg' };
-// Степлер (~16x4 см)
+// Stapler (~16×4 cm)
 export const ITEM_STAPLER   = { hl: 70, r: 24,  kind: 'board', c: '#b3b8bd', imgSrc: 'items/stapler-ready.svg' };
-// Ленточный корректор (~10x5 см)
+// Correction tape (~10×5 cm)
 export const ITEM_CORRECTOR = { hl: 30, r: 29,  kind: 'board', c: '#609f40', imgSrc: 'items/corrector-ready.svg' };
 
-// --- Вытянутые объекты (Ножи, карандаши, циркули) ---
-// Канцелярский нож (~16x3.5 см)
+// --- Elongated objects (cutters, pencils, compasses) ---
+// Box cutter (~16×3.5 cm)
 export const ITEM_CUTTER    = { hl: 73, r: 20,  kind: 'knife', c: '#fed42d', imgSrc: 'items/card-knife-ready.svg' };
-// Простой карандаш (~19 см, коллайдер r:9 для стабильной физики)
+// Plain pencil (~19 cm, collider r:9 for stable physics)
 export const ITEM_PENCIL    = { hl: 102, r: 9,  kind: 'knife', c: '#64a03c', imgSrc: 'items/pencil-ready.svg' };
-// Карандаш + Нож вместе (Сборный SVG, ~17x5.5 см)
+// Pencil + cutter together (composite SVG, ~17×5.5 cm)
 export const ITEM_PENCIL_PLUS = { hl: 67, r: 32, kind: 'board', c: '#fed42d', imgSrc: 'items/pencil-plus-ready.svg' };
 
-// --- Циркули (в сложенном виде, ~15 см) ---
+// --- Compasses (folded, ~15 cm) ---
 export const ITEM_COMPASS_1 = { hl: 73, r: 15,  kind: 'knife', c: '#b5bcc2', imgSrc: 'items/compass-ready.svg' };
 export const ITEM_COMPASS_2 = { hl: 73, r: 15,  kind: 'knife', c: '#7db9d6', imgSrc: 'items/compass2-ready.svg' };
 
-// Транспортир (~12x6 см, капсула)
+// Protractor (~12×6 cm, capsule)
 export const ITEM_RULER = { hl: 35, r: 35, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-ready.svg' };
 
-// Сборка: Транспортир и циркуль (~15x10 см, широкая капсула)
+// Protractor + compass set (~15×10 cm, wide capsule)
 export const ITEM_COMPASS_RULER = { hl: 29, r: 58, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-plus-ready.svg' };
 
-// --- Канцелярия (дополнение) ---
-// Карандаш (~19 см)
+// --- Additional stationery ---
+// Pencil (~19 cm)
 export const ITEM_PENCIL_2 = { hl: 102, r: 9, kind: 'knife', c: '#fca311', imgSrc: 'items/pencil2-ready.svg' };
-// Ручка (~15 см)
+// Pen (~15 cm)
 export const ITEM_PEN_1 = { hl: 80, r: 9, kind: 'knife', c: '#437cd6', imgSrc: 'items/pen1-ready.svg' };
-// Ручка и карандаш вместе (~19x3 см)
+// Pen and pencil together (~19×3 cm)
 export const ITEM_PEN_PENCIL = { hl: 94, r: 17, kind: 'board', c: '#437cd6', imgSrc: 'items/pen-pencil-ready.svg' };
-// Длинная линейка (~30x3 см)
+// Long ruler (~30×3 cm)
 export const ITEM_RULER_LONG = { hl: 158, r: 17, kind: 'knife', c: '#f59e0b', imgSrc: 'items/ruler2-ready.svg' };
 
-// --- Инструменты (Мастерская) ---
-// Шуруповерт (~20x20 см)
+// --- Tools (Workshop) ---
+// Drill (~20×20 cm)
 export const ITEM_DRILL = { hl: 27, r: 90, kind: 'board', c: '#fca311', imgSrc: 'items/drill-ready.svg' };
-// Гаечный ключ рожковый (~15x3 см)
+// Open-end spanner (~15×3 cm)
 export const ITEM_WRENCH_1 = { hl: 70, r: 17, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench1-ready.svg' };
-// Разводной ключ (~20x5 см)
+// Adjustable spanner (~20×5 cm)
 export const ITEM_WRENCH_2 = { hl: 88, r: 29, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench2-ready.svg' };
-// Молоток (~30x12 см, капсула покрывает рукоять и боек)
+// Hammer (~30×12 cm, capsule covers handle and head)
 export const ITEM_HAMMER_1 = { hl: 120, r: 60, kind: 'knife', c: '#787676', imgSrc: 'items/hummer1-ready.svg' };
-// Отвертка 1 (красная рукоять, ~20x3 см)
+// Screwdriver 1 (red handle, ~20×3 cm)
 export const ITEM_SCREWDRIVER_1 = { hl: 100, r: 17, kind: 'knife', c: '#d94b4b', imgSrc: 'items/screwdriver1-ready.svg' };
-// Отвертка 2 (оранжевая рукоять, ~20x3 см)
+// Screwdriver 2 (orange handle, ~20×3 cm)
 export const ITEM_SCREWDRIVER_2 = { hl: 100, r: 17, kind: 'knife', c: '#eb7152', imgSrc: 'items/screwdriver2-ready.svg' };
 
-// --- Наборы инструментов ---
-// Набор 3 инструмента в ряд (~20x10 см)
+// --- Tool sets ---
+// Set of 3 tools in a row (~20×10 cm)
 export const ITEM_TOOLSET_1 = { hl: 59, r: 58, kind: 'board', c: '#cccccc', imgSrc: 'items/toolset1-ready.svg' };
-// Молоток и отвертка крестом (~25x25 см, круглый коллайдер)
+// Hammer and screwdriver crossed (~25×25 cm, round collider)
 export const ITEM_TOOLSET_2 = { hl: 0, r: 146, kind: 'plate', c: '#737373', imgSrc: 'items/toolset2-ready.svg' };
 
-// --- Разное (Мастерская / Быт) ---
+// --- Miscellaneous (Workshop / Household) ---
 
-// Расческа (~20x4 см)
+// Comb (~20×4 cm)
 export const ITEM_COMB = { hl: 94, r: 23, kind: 'knife', c: '#568ae5', imgSrc: 'items/comb-ready.svg' };
-// Рабочие перчатки (~25x20 см)
+// Work gloves (~25×20 cm)
 export const ITEM_GLOVES = { hl: 29, r: 117, kind: 'board', c: '#eed247', imgSrc: 'items/gloves1-ready.svg' };
-// Гвозди 3 шт. в ряд (~10x8 см)
+// 3 nails in a row (~10×8 cm)
 export const ITEM_NAILS_ROW = { hl: 12, r: 46, kind: 'board', c: '#ffd600', imgSrc: 'items/nails2-ready.svg' };
-// Гвозди крестом (~10x10 см, круглый коллайдер)
+// Nails crossed (~10×10 cm, round collider)
 export const ITEM_NAILS_CROSS = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
-// Подкова (~12x12 см, круглый коллайдер)
+// Horseshoe (~12×12 cm, round collider)
 export const ITEM_HORSESHOE = { hl: 0, r: 70, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };

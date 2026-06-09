@@ -68,7 +68,7 @@
   const mode      = trackId ? 'timeattack' : (params.get('mode') || 'sandbox');
   const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
 
-  // Кнопка «назад» ведёт на список трасс (если пришли оттуда) или на меню
+  // Back button leads to track list (if we came from there) or to the main menu
   document.getElementById('backLink').href = trackMeta ? 'tracks.html' : 'index.html';
 
   document.getElementById('mode-title').textContent =
@@ -88,11 +88,11 @@
     : 0;
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
-  // Масштаб намеренно выше текущих значений — оставляем запас для модификаций.
-  const SPEED_MAX_KMH  = 15;   // 10 клеток = 15 км/ч (физический предел 1:64-модели)
-  const STEER_MAX      = 5.0;  // макс. steer с учётом будущих апгрейдов
-  const LOWTURN_MAX    = 0.5;  // макс. lowSpeedTurn с учётом будущих апгрейдов
-  const THRUST_MAX     = 900;  // макс. thrust с учётом будущих апгрейдов
+  // Scale is intentionally above current values — headroom for future upgrades.
+  const SPEED_MAX_KMH  = 15;   // 10 cells = 15 km/h (physical limit of a 1:64 model)
+  const STEER_MAX      = 5.0;  // max steer accounting for future upgrades
+  const LOWTURN_MAX    = 0.5;  // max lowSpeedTurn accounting for future upgrades
+  const THRUST_MAX     = 900;  // max thrust accounting for future upgrades
 
   const speedRating = (d) =>
     Math.min(10, Math.round(d.maxSpeed * GU_TO_KMH / SPEED_MAX_KMH * 10));
@@ -133,25 +133,25 @@
     ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
     ctx.scale(M.flip ? -sc : sc, sc);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    // Neon glow — три секции: нос→передний мост | между мостами | задний мост→корма.
-    // 3% конец | 15.5% колесо | 58% между мостами | 15.5% колесо | 8% конец
-    // Рисуем в path-координатах (после scale+translate), до корпуса машины.
+    // Neon glow — three segments: nose→front axle | between axles | rear axle→tail.
+    // 3% end | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% end
+    // Drawn in path coordinates (after scale+translate), before the car body.
     if (neonColor) {
       const glowH = M.vh * 0.70;
       const gy    = (M.vh - glowH) / 2;
       const s1p = M.vw * 0.03, s2p = M.vw * 0.58, s3p = M.vw * 0.08;
-      const gpp = M.vw * 0.155;  // зазор на колесо
+      const gpp = M.vw * 0.155;  // gap per wheel
 
       ctx.shadowColor = neonColor;
       ctx.shadowBlur  = 18;
       ctx.globalAlpha = 0.65;
       ctx.fillStyle   = neonColor;
 
-      const ei_p = M.vw * 0.02;  // отступ от торцов пути
+      const ei_p = M.vw * 0.02;  // inset from path tips
       ctx.beginPath();
-      ctx.rect(ei_p,         gy, s1p - ei_p, glowH);  // конец 1 (не доходит до края)
-      ctx.rect(s1p + gpp,    gy, s2p,        glowH);  // между мостами
-      ctx.rect(M.vw - s3p,   gy, s3p - ei_p, glowH);  // конец 2 (не доходит до края)
+      ctx.rect(ei_p,         gy, s1p - ei_p, glowH);  // end 1 (inset from tip)
+      ctx.rect(s1p + gpp,    gy, s2p,        glowH);  // between axles
+      ctx.rect(M.vw - s3p,   gy, s3p - ei_p, glowH);  // end 2 (inset from tip)
       ctx.fill();
 
       ctx.globalAlpha = 1;

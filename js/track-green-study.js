@@ -1,13 +1,13 @@
-// Трасса «Green Study» — генерируется из tracks/green-study.svg.
-// Прокси-линии (<line id="ITEM_*">) задают позицию и угол предметов.
-// Использует top-level await (ES-модули, современные браузеры).
+// "Green Study" track — generated from tracks/green-study.svg.
+// Proxy lines (<line id="ITEM_*">) define item position and angle.
+// Uses top-level await (ES modules, modern browsers).
 
 import * as ITEMS from './items.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
-// ── Константы ────────────────────────────────────────────────────────────────
-// viewBox 0 0 14462 7829; stroke-width дорожки 800 → half = 400.
-// SCALE = TRACK_HALF / 400 = 100 / 400 = 0.25 (мир совпадает по размеру со старым треком).
+// ── Constants ─────────────────────────────────────────────────────────────────
+// viewBox 0 0 14462 7829; track stroke-width 800 → half = 400.
+// SCALE = TRACK_HALF / 400 = 100 / 400 = 0.25 (world matches size of the original track).
 const SVG_CX = 14462 / 2;
 const SVG_CY = 7829  / 2;
 const SCALE  = 0.25;
@@ -17,41 +17,41 @@ export const CONE_R     = 9;
 export const K          = 8;
 export const CP_R       = TRACK_HALF + 70;
 
-// ── Вспомогательные ─────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const toGame = (x, y) => ({ x: (x - SVG_CX) * SCALE, y: -(y - SVG_CY) * SCALE });
 
-// Разрешение layer-ID в ключ items.js:
-// 1) прямое совпадение; 2) обрезаем суффикс _N (номер экземпляра)
-function resolveKey(id) {
+// Resolve a layer ID to an items.js key:
+// 1) direct match; 2) strip trailing _N instance suffix
+const resolveKey = (id) => {
   if (id in ITEMS) return id;
   const stripped = id.replace(/_\d+$/, '');
   return stripped in ITEMS ? stripped : null;
-}
+};
 
-// ── Загрузка SVG ─────────────────────────────────────────────────────────────
+// ── SVG load ──────────────────────────────────────────────────────────────────
 const svgText = await fetch('./tracks/green-study.svg').then(r => r.text());
 const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
 
-// ── Центральная линия ────────────────────────────────────────────────────────
+// ── Centreline ────────────────────────────────────────────────────────────────
 const rawVerts  = parseSvgPath(_doc.getElementById('track_path').getAttribute('d'));
 let smoothPoly  = rawVerts.map(([x, y]) => toGame(x, y));
-for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly); // 26 → 416 точек
+for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly); // 26 → 416 points
 
 export const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
 
-// ── Конусы ───────────────────────────────────────────────────────────────────
+// ── Cones ─────────────────────────────────────────────────────────────────────
 export const cones = placeCones(outer, inner, 5);
 
-// ── TABLE: размер стола из реальных границ outer + отступ ───────────────────
-// Отступ 250 игровых единиц с каждой стороны (≈ 200–300 px на экране).
-// render.js прочитает T.TABLE в initRender и заменит глобальный TABLE из config.js.
+// ── TABLE: table size from actual outer bounds + margin ───────────────────────
+// 250 game-unit margin on each side (≈ 200–300 px on screen).
+// render.js reads T.TABLE in initRender and replaces the global TABLE from config.js.
 const TABLE_MARGIN = 250;
 let _maxX = 0, _maxY = 0;
 for (const o of outer) { _maxX = Math.max(_maxX, Math.abs(o.x)); _maxY = Math.max(_maxY, Math.abs(o.y)); }
 export const TABLE = { w: Math.round((_maxX + TABLE_MARGIN) * 2), h: Math.round((_maxY + TABLE_MARGIN) * 2), shape: 'rect' };
 
-// ── Предметы из прокси-линий ─────────────────────────────────────────────────
+// ── Items from proxy lines ────────────────────────────────────────────────────
 export const props = [];
 const addProp = (o) => { props.push(prepProp(o)); };
 
@@ -59,7 +59,7 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
   const key   = resolveKey(rawId);
   if (!key) {
-    console.warn(`[track-green-study] unknown item id "${rawId}" — не найден в items.js`);
+    console.warn(`[track-green-study] unknown item id "${rawId}" — not found in items.js`);
     return;
   }
   const item = ITEMS[key];
@@ -75,21 +75,21 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   addProp({ ...item, x: Math.round(gx), y: Math.round(gy), ang: parseFloat(ang.toFixed(3)) });
 });
 
-// ── Чекпоинты ────────────────────────────────────────────────────────────────
+// ── Checkpoints ───────────────────────────────────────────────────────────────
 export const checkpoints = sampleCheckpoints(center, K);
 
-// ── Старт ────────────────────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 const _c0 = center[0], _c1 = center[1];
 export const startPos   = { x: _c0.x, y: _c0.y };
 export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
 
 export const collectibles = [];
 
-export const id   = 'green-study'; // ключ для store.records()
-export const laps = 3;             // количество кругов по умолчанию
+export const id   = 'green-study'; // key for store.records()
+export const laps = 3;             // default lap count
 
-// Цветовая тема — передаётся в render.js через initRender(T).
-// Значения из tracks/track_themes.json → "green-study".palette
+// Colour theme — passed to render.js via initRender(T).
+// Values from tracks/track_themes.json → "green-study".palette
 export const theme = {
   background: '#14130e',
   table:      '#2f4034',

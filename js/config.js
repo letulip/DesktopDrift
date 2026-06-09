@@ -1,18 +1,18 @@
-// --- Параметры машинки ("ручки" для настройки) ---
+// --- Car parameters (tuning knobs) ---
 export const CFG = {
-  thrust: 550,          // ускорение вперёд (px/с^2)
-  maxSpeed: 400,        // макс. скорость (px/с)
-  steer: 2.5,           // острота руля (рад/с) — меньше = плавнее/тяжелее
-  steerSmooth: 6,       // инерция руля: меньше = «тяжелее», руль набирается медленнее
-  lowSpeedTurn: 0.25,   // минимальная поворотливость на низкой скорости (меньше = больше «веса»)
-  selfAlign: 1.0,       // самовыравнивание: машина стремится встать по движению
-  grip: 0.97,           // боковое сцепление: ближе к 1 = больше скольжения (норм. к PHYS_HZ)
-  rollFriction: 0.995,  // продольное трение качения за кадр
-  driftDrag: 0.004,     // потеря скорости в заносе
-  driftSteerBoost: 1.2  // острее руль в заносе (помогает перекладке)
+  thrust: 550,          // forward acceleration (px/s^2)
+  maxSpeed: 400,        // top speed (px/s)
+  steer: 2.5,           // steering sharpness (rad/s) — lower = smoother/heavier
+  steerSmooth: 6,       // steering inertia: lower = heavier, slower to build up
+  lowSpeedTurn: 0.25,   // minimum turn authority at low speed (lower = more weight)
+  selfAlign: 1.0,       // self-alignment: car tendency to face its velocity direction
+  grip: 0.97,           // lateral grip: closer to 1 = more slide (normalised to PHYS_HZ)
+  rollFriction: 0.995,  // longitudinal rolling friction per frame
+  driftDrag: 0.004,     // speed loss during a slide
+  driftSteerBoost: 1.2  // sharper steering during a drift (helps direction switches)
 };
 
-// Модели машинок (вид сверху). Векторные (примитивы) или по SVG-контуру (path).
+// Car models (top-down view). Vector (primitives) or SVG-path based.
 export const CARS = [
   { name: 'Bismark', len: 82, body: '#a4a4a4', stroke: '#222222', vw: 426, vh: 157, flip: true,
     drive: { thrust: 580, maxSpeed: 470, steer: 2.2, steerSmooth: 4.5, lowSpeedTurn: 0.20, selfAlign: 0.82, grip: 0.98, driftSteerBoost: 1.2 },
@@ -35,7 +35,7 @@ export const CARS = [
     ],
     path: 'M26.3471 13.0687H16.0083L11.5773 16.7654L7.8849 25.6374V43.3815M26.3471 13.0687L23.3932 43.3815M26.3471 13.0687L127.52 10.8507M23.3932 43.3815H13.0543M23.3932 43.3815H109.058M7.8849 43.3815V110.661M7.8849 43.3815H13.0543M26.3471 140.235H16.0083L11.5773 137.277L7.8849 129.145V110.661M26.3471 140.235L23.3932 110.661M26.3471 140.235L127.52 145.41M7.8849 110.661H13.0543M23.3932 110.661H13.0543M23.3932 110.661H109.058M13.0543 110.661V43.3815M4.93094 145.41L0.5 131.363V20.4621L4.93094 7.89336L52.1943 0.5H332.082L386.73 3.45735L397.808 7.89336L401.5 20.4621V135.059L397.808 148.367L386.73 152.803L332.082 156.5H52.1943L4.93094 145.41ZM131.951 10.8507L123.828 27.8555L117.181 76.6517L123.828 121.751L131.951 145.41L186.599 128.405L180.692 96.6137V61.8649L186.599 27.8555L131.951 10.8507ZM156.321 149.846V145.41L201.369 130.623H240.509L247.894 149.846H156.321Z' },
 ];
-// Инициализация Path2D и размеров (только в браузере — Path2D — браузерный API)
+// Initialise Path2D and dimensions (browser-only — Path2D is a browser API)
 for (const m of CARS) {
   if (m.path) {
     m._p2d = new Path2D(m.path);
@@ -46,18 +46,18 @@ for (const m of CARS) {
   m._drive = Object.assign({}, CFG, m.drive || {});
 }
 
-// --- Стол ---
+// --- Table ---
 export const TABLE = { w: 3400, h: 2900, shape: 'rect' };
 
-// --- Кадронезависимая физика (см. Gotchas в AGENTS.md) ---
-export const PHYS_HZ = 120;       // эталонная частота нормализации (120 = цепкое/идеальное)
-export const GRIP_WOBBLE  = 0.7;  // амплитуда дрожания сцепления (0 = ровный круг)
-export const STEER_WOBBLE = 0.16; // амплитуда «увода» курса, рад/с
+// --- Frame-rate-independent physics (see Gotchas in AGENTS.md) ---
+export const PHYS_HZ = 120;       // reference normalisation frequency (120 = crisp/ideal)
+export const GRIP_WOBBLE  = 0.7;  // grip breathe amplitude (0 = perfect circle)
+export const STEER_WOBBLE = 0.16; // heading drift amplitude, rad/s
 
-// --- Перевод скорости из игровых единиц в реальные ---
-// Откалиброваны по физической скорости реальных 1:64-моделей (до ~15 км/ч).
-// Bismark maxSpeed 470 gu/s → 10.8 км/ч; Panda 410 gu/s → 9.5 км/ч.
+// --- Speed conversion from game units to real-world units ---
+// Calibrated against the physical speed of real 1:64 scale models (up to ~15 km/h).
+// Bismark maxSpeed 470 gu/s → 10.8 km/h; Panda 410 gu/s → 9.5 km/h.
 export const GU_TO_KMH = 0.023;   // game units/s → km/h
 
-// Near-miss: зазор за радиусом столкновения, в котором считается «впритирку»
+// Near-miss: gap beyond the collision radius that counts as "just scraped by"
 export const NM_BAND = 42;

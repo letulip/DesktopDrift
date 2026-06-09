@@ -1,5 +1,5 @@
-// Юнит-тесты чистой логики скоринга (js/scoring.js). Раньше эти формулы жили
-// внутри замыкания startGame и были непокрываемы — теперь проверяемы напрямую.
+// Unit tests for pure scoring logic (js/scoring.js). Formulas were previously
+// buried inside the startGame closure and untestable — now verified directly.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,21 +10,21 @@ import {
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 
-test('isDrifting: нужен и большой снос, и достаточная скорость', () => {
+test('isDrifting: needs both large lateral slip and sufficient speed', () => {
   assert.equal(isDrifting(70, 200), true);
-  assert.equal(isDrifting(0, 200), false);   // нет сноса
-  assert.equal(isDrifting(70, 80), false);   // мало скорости
-  assert.equal(isDrifting(60, 200), false);  // граница строгая (> 60)
-  assert.equal(isDrifting(-70, 200), true);  // знак сноса не важен
+  assert.equal(isDrifting(0, 200), false);   // no slip
+  assert.equal(isDrifting(70, 80), false);   // too slow
+  assert.equal(isDrifting(60, 200), false);  // threshold is strict (> 60)
+  assert.equal(isDrifting(-70, 200), true);  // slip sign does not matter
 });
 
-test('driftQuality: нормировка slip×speed с потолком', () => {
-  near(driftQuality(160, 260), 1);          // референсные значения → 1
+test('driftQuality: normalised slip×speed with ceiling', () => {
+  near(driftQuality(160, 260), 1);          // reference values → 1
   near(driftQuality(0, 260), 0);
-  assert.equal(driftQuality(320, 520), QUALITY_MAX); // выше — клампится
+  assert.equal(driftQuality(320, 520), QUALITY_MAX); // above ref — clamped
 });
 
-test('comboMult: 1 + multBuild, потолок MULT_MAX', () => {
+test('comboMult: 1 + multBuild, capped at MULT_MAX', () => {
   near(comboMult(0), 1);
   near(comboMult(3), 4);
   assert.equal(comboMult(7), MULT_MAX);
@@ -37,16 +37,16 @@ test('comboGain: slip × speed × dt × mult × COMBO_RATE', () => {
   near(comboGain(0, 260, 1, 5), 0);
 });
 
-test('slipSign: +1 / -1 / 0 по порогу', () => {
+test('slipSign: +1 / -1 / 0 by threshold', () => {
   assert.equal(slipSign(60), 1);
   assert.equal(slipSign(-60), -1);
   assert.equal(slipSign(10), 0);
-  assert.equal(slipSign(50), 0);   // граница строгая
+  assert.equal(slipSign(50), 0);   // threshold is strict
   assert.equal(slipSign(-50), 0);
 });
 
-test('pointsPerSecond: очки / время, защита от деления на 0', () => {
+test('pointsPerSecond: points / time, protected against division by zero', () => {
   near(pointsPerSecond(45000, 36), 1250);
   near(pointsPerSecond(0, 36), 0);
-  near(pointsPerSecond(45000, 0), 0);  // totalTime=0 → 0, не Infinity
+  near(pointsPerSecond(45000, 0), 0);  // totalTime=0 → 0, not Infinity
 });

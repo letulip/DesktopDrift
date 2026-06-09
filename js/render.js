@@ -17,28 +17,28 @@ export const resize = () => {
 }
 window.addEventListener('resize', resize); resize();
 
-// --- Цветовая тема (устанавливается через initRender из T.theme) ---
-// Дефолт = dining-oak (текущая схема), чтобы старые треки не сломались.
+// --- Colour theme (set via initRender from T.theme) ---
+// Default = dining-oak scheme, so old tracks don't break.
 const THEME_DEFAULT = {
   background: '#0f0b08',
   table:      '#2e241a',
   tableEdge:  '#5a4a36',
   track:      '#43372a',
   skid:       'rgba(15,9,6,1)',
-  checkpoint: 'rgba(125,212,255,0.5)', // не используется в рендере напрямую — заменён универсальным
+  checkpoint: 'rgba(125,212,255,0.5)', // not used directly in render — replaced by universal colour
   cone:       '#ff7a1a',
 };
 let TH = THEME_DEFAULT;
-let _skidRgb = '15,9,6'; // RGB-часть TH.skid; заново парсится в initRender
+let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 
-// --- Данные трека (устанавливаются через initRender) ---
+// --- Track data (set via initRender) ---
 let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
 let MINI = null;
-// Кэш статичной геометрии: строится один раз в initRender, а не пересобирается
-// каждый кадр (раньше draw() заново тянул ~830 lineTo по краям, drawMini — ~416).
+// Static geometry cache: built once in initRender, not rebuilt every frame
+// (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
 
-// Вызывается из game-engine.js перед стартом игры
+// Called from game-engine.js before the game starts
 export const initRender = (T) => {
   center     = T.center;
   outer      = T.outer;
@@ -50,14 +50,14 @@ export const initRender = (T) => {
   TRACK_HALF = T.TRACK_HALF;
   CONE_R     = T.CONE_R;
   startAngle = T.startAngle;
-  // Трек может переопределить размер стола (TABLE из config.js — объект, мутируем на месте)
+  // Track can override the table size (TABLE from config.js is an object — mutated in place)
   if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
-  // Цветовая тема: T.theme переопределяет дефолт (dependency injection, как TABLE)
+  // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
   _skidRgb = _sm ? `${_sm[1]},${_sm[2]},${_sm[3]}` : '15,9,6';
 
-  // Мини-карта: трансформация мир → окошко
+  // Minimap: world → window transform
   const _pad = 12;
   let _ex = 0, _ey = 0;
   for (const o of outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
@@ -68,7 +68,7 @@ export const initRender = (T) => {
     Y: y => miniEl.height / 2 + y * _ms,
   };
 
-  // Полотно трассы (outer + реверс inner, заливка evenodd) — один Path2D на игру.
+  // Track polygon (outer + reversed inner, evenodd fill) — one Path2D per game session.
   trackPath = new Path2D();
   trackPath.moveTo(outer[0].x, outer[0].y);
   for (let i = 1; i < outer.length; i++) trackPath.lineTo(outer[i].x, outer[i].y);
@@ -78,24 +78,24 @@ export const initRender = (T) => {
   for (let i = 1; i < innerRev.length; i++) trackPath.lineTo(innerRev[i].x, innerRev[i].y);
   trackPath.closePath();
 
-  // Линия трассы для миникарты (в пиксельных координатах окошка) — тоже статична.
+  // Track centreline for minimap (pixel coords) — also static.
   miniTrackPath = new Path2D();
   miniTrackPath.moveTo(MINI.X(center[0].x), MINI.Y(center[0].y));
   for (let i = 1; i < center.length; i++) miniTrackPath.lineTo(MINI.X(center[i].x), MINI.Y(center[i].y));
   miniTrackPath.closePath();
 }
 
-// --- Вспомогательные примитивы ---
-// Следы шин: вместо отдельного fillRect на каждый след (до 1500/кадр) группируем
-// в SKID_LEVELS Path2D по уровням прозрачности и делаем по одной заливке на уровень.
-// Альфа квантуется на 6 ступеней — визуально неотличимо от исходного градиента.
+// --- Helper primitives ---
+// Skid marks: instead of one fillRect per mark (up to 1500/frame) we batch into
+// SKID_LEVELS Path2D buckets by alpha level — a few fill() calls instead of ≤1500.
+// Alpha is quantised to 6 levels — visually indistinguishable from the original gradient.
 const SKID_LEVELS = 6;
 const drawSkids = () => {
   if (!S.skids.length) return;
   const paths = [];
   for (let i = 0; i < SKID_LEVELS; i++) paths.push(new Path2D());
   for (const sk of S.skids) {
-    let b = (sk.a * 10) | 0;            // a∈[0,0.6] → корзина 0..6
+    let b = (sk.a * 10) | 0;            // a∈[0,0.6] → bucket 0..6
     if (b > SKID_LEVELS - 1) b = SKID_LEVELS - 1;
     paths[b].rect(sk.x - 3, sk.y - 3, 6, 6);
   }
@@ -124,7 +124,7 @@ const capPath = (hl, r) => {
   ctx.closePath();
 }
 
-// Машинка вид сверху (нос по +X)
+// Car top-down view (nose along +X)
 const drawCar = (M) => {
   if (M.path) {
     const s = M.len / M.vw;
@@ -152,18 +152,18 @@ const drawCar = (M) => {
   rrect(-hl * 0.9,  hw * 0.30, hl * 0.06, hw * 0.42, 2); ctx.fill();
 }
 
-// Предзагрузка SVG-изображений для предметов (вызывается из game-engine.js один раз при старте)
+// Pre-load SVG images for props (called once from game-engine.js at startup)
 export const initItems = (propList) => {
   for (const o of propList) {
     if (!o.imgSrc) continue;
     const img = new Image();
     img.onload  = () => { o.img = img; };
-    img.onerror = () => { /* используем процедурный рендер как запасной вариант */ };
+    img.onerror = () => { /* fall back to procedural render */ };
     img.src = o.imgSrc;
   }
 }
 
-// Кухонный объект на столе
+// Prop on the table
 const drawProp = (o) => {
   ctx.save();
   ctx.translate(o.x, o.y);
@@ -175,11 +175,11 @@ const drawProp = (o) => {
   }
   ctx.rotate(o.ang);
 
-  // SVG-изображение из items/ (если загружено)
-  // Портретные SVG (height > width) сохранены вертикально — длинная ось = Y в файле.
-  // Капсульный коллайдер ориентирован горизонтально (длинная ось = X после ctx.rotate).
-  // Поворот π/2 + swap fw/fh совмещают визуал с физикой для портретных SVG.
-  // Ландшафтные SVG (width >= height) рисуются напрямую — длинная ось уже горизонтальна.
+  // SVG image from items/ (if loaded).
+  // Portrait SVGs (height > width) are saved vertically — long axis = Y in the file.
+  // The capsule collider is horizontal (long axis = X after ctx.rotate).
+  // π/2 rotation + fw/fh swap aligns the visual with physics for portrait SVGs.
+  // Landscape SVGs (width >= height) are drawn directly — long axis is already horizontal.
   if (o.img) {
     const fw = o.hl > 0 ? (o.hl + o.r) * 2 : o.r * 2;
     const fh = o.r * 2;
@@ -229,23 +229,23 @@ const drawProp = (o) => {
   ctx.restore();
 }
 
-// --- Основной рендер ---
+// --- Main render ---
 export const draw = (speed) => {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   const camOffY = H * 0.10;
-  // На узких экранах (мобиль) отодвигаем камеру — показываем больше трассы.
-  // Менять только это число: 0.65 = видно в ~1.5× больше, 1.0 = без масштабирования.
+  // On narrow screens (mobile) zoom out — shows ~1.5× more of the track.
+  // Only change this number: 0.65 = 1.5× more visible, 1.0 = no scaling.
   const ZOOM = W < 640 ? 0.65 : 1.0;
   ctx.translate(W / 2, H / 2 + camOffY);
   ctx.scale(ZOOM, ZOOM);
   ctx.translate(-car.x, -car.y);
 
-  // пол — покрываем весь видимый мировой прямоугольник с небольшим запасом
+  // floor — covers the entire visible world rectangle with a small margin
   ctx.fillStyle = TH.background;
   ctx.fillRect(car.x - W / (2 * ZOOM), car.y - (H / 2 + camOffY) / ZOOM, W / ZOOM, H / ZOOM);
 
-  // стол
+  // table
   ctx.fillStyle = TH.table;
   if (TABLE.shape === 'round') {
     ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
@@ -257,30 +257,30 @@ export const draw = (speed) => {
     ctx.strokeRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
   }
 
-  // полотно трассы (кэшированный Path2D — без пересборки пути каждый кадр)
+  // track surface (cached Path2D — no path rebuild every frame)
   ctx.fillStyle = TH.track;
   ctx.fill(trackPath, 'evenodd');
 
-  // следы — батчем по уровням прозрачности (несколько заливок вместо ≤1500 fillRect)
+  // skid marks — batched by alpha level (a few fill() calls instead of ≤1500 fillRect/frame)
   drawSkids();
 
-  // старт/финиш — клетчатый флаг (2 ряда × N клеток поперёк трека)
+  // start/finish — chequered flag (2 rows × N cells across the track)
   {
     const c0 = center[0];
-    const cell = 10; // размер клетки в игровых единицах
-    const rows = 2;  // глубина вдоль трека
-    const cols = Math.ceil(TRACK_HALF * 2 / cell); // количество клеток поперёк
+    const cell = 10; // cell size in game units
+    const rows = 2;  // depth along the track
+    const cols = Math.ceil(TRACK_HALF * 2 / cell); // number of cells across
     ctx.save();
     ctx.translate(c0.x, c0.y);
-    ctx.rotate(startAngle); // X = направление движения, Y = поперёк трека
-    // Клетчатый флаг — всегда чёрно-белый, независимо от темы трека.
-    // Универсальный racing symbol; не требует поля startLine в теме.
+    ctx.rotate(startAngle); // X = direction of travel, Y = across the track
+    // Chequered flag — always black/white regardless of track theme.
+    // Universal racing symbol; no startLine field needed in the theme.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         ctx.fillStyle = (r + c) % 2 === 0 ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.82)';
         ctx.fillRect(
-          -rows * cell / 2 + r * cell, // вдоль трека
-          -TRACK_HALF + c * cell,       // поперёк трека
+          -rows * cell / 2 + r * cell, // along the track
+          -TRACK_HALF + c * cell,       // across the track
           cell, cell
         );
       }
@@ -288,9 +288,9 @@ export const draw = (speed) => {
     ctx.restore();
   }
 
-  // следующий чекпоинт (только промежуточные — финиш уже визуализирован клеткой)
-  // Фиксированный голубой + тёмная тень: на тёмных фонах голубой читается сам,
-  // на светлых — тёмное halo от shadowBlur даёт контур и контраст.
+  // next checkpoint (intermediate only — finish is already visualised by the chequered flag)
+  // Fixed cyan + dark shadow: cyan is self-visible on dark backgrounds;
+  // on light backgrounds the dark shadowBlur halo provides contrast.
   if (S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
     ctx.save();
@@ -302,37 +302,37 @@ export const draw = (speed) => {
     ctx.restore();
   }
 
-  // объекты на столе
+  // props
   for (const o of props) drawProp(o);
 
-  // конусы
+  // cones
   for (const c of cones) {
     if (c.knocked) {
-      // Сбитый: трапеция (усечённый конус на боку) + белая световозвращающая полоса.
-      // save/translate/rotate нужны — форма ориентирована по c.ang.
+      // Knocked: trapezoid (cone on its side) + white reflective stripe.
+      // save/translate/rotate needed — shape is oriented by c.ang.
       ctx.save();
       ctx.translate(c.x, c.y);
       ctx.rotate(c.ang);
 
-      const h     = CONE_R * 3;      // длина лежащего конуса
-      const rBase = CONE_R;          // полурадиус основания (широкий конец)
-      const rTip  = CONE_R * 0.25;  // полурадиус вершины (узкий конец)
+      const h     = CONE_R * 3;      // length of the lying cone
+      const rBase = CONE_R;          // half-radius at the base (wide end)
+      const rTip  = CONE_R * 0.25;  // half-radius at the tip (narrow end)
 
-      // Тень — та же трапеция со сдвигом (+2, +2)
+      // Shadow — same trapezoid shifted (+2, +2)
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ctx.beginPath();
       ctx.moveTo(-h/2 + 2, -rBase + 2); ctx.lineTo(h/2 + 2, -rTip + 2);
       ctx.lineTo( h/2 + 2,  rTip  + 2); ctx.lineTo(-h/2 + 2, rBase + 2);
       ctx.closePath(); ctx.fill();
 
-      // Тело конуса
+      // Cone body
       ctx.fillStyle = TH.cone;
       ctx.beginPath();
       ctx.moveTo(-h/2, -rBase); ctx.lineTo(h/2, -rTip);
       ctx.lineTo( h/2,  rTip);  ctx.lineTo(-h/2,  rBase);
       ctx.closePath(); ctx.fill();
 
-      // Белая полоса: 70% ширины конуса в каждой точке — гарантированно внутри тела
+      // White stripe: 70% of cone width at each x — guaranteed inside the body
       const x0 = -h * 0.05, w0 = (rBase + (rTip - rBase) * ((x0 + h/2) / h)) * 0.7;
       const x1 =  h * 0.22, w1 = (rBase + (rTip - rBase) * ((x1 + h/2) / h)) * 0.7;
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -343,24 +343,24 @@ export const draw = (speed) => {
 
       ctx.restore();
     } else {
-      // Стоящий: три arc в мировых координатах — без save/restore (166 конусов/кадр).
-      // Тень
+      // Standing: three arcs in world coordinates — no save/restore (166 cones/frame).
+      // Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath(); ctx.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // База
+      // Base
       ctx.fillStyle = TH.cone;
       ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // Бликовая точка: сдвиг (-1,-1) имитирует источник света сверху-слева
+      // Highlight: offset (-1,-1) simulates a top-left light source
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.beginPath(); ctx.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  // машинка
+  // car
   ctx.save();
   ctx.translate(car.x, car.y); ctx.rotate(car.angle);
   const M = CARS[S.carModel];
-  // тень машинки — убираем при активном неоне (нелогично совмещать)
+  // drop-shadow suppressed when neon is active (they look wrong together)
   if (!M.neonColor) {
     ctx.fillStyle = 'rgba(0,0,0,.35)'; rrect(-M.len / 2 + 2, -M.wid / 2 + 3, M.len, M.wid, M.wid * 0.7); ctx.fill();
   }
@@ -378,8 +378,8 @@ export const draw = (speed) => {
       ctx.restore();
     }
   }
-  // неоновое свечение — рисуем до корпуса, чтобы оно было под машиной.
-  // Три секции: нос→передний мост | между мостами | задний мост→корма
+  // neon underglow — drawn before the body so it sits underneath the car.
+  // Three segments: nose→front axle | between axles | rear axle→tail
   if (M.neonColor) {
     ctx.save();
     ctx.shadowColor = M.neonColor;
@@ -391,15 +391,15 @@ export const draw = (speed) => {
     const carWid = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
     const gH     = carWid * 0.70;
     const ghy    = -gH / 2;
-    // секции: 3% нос | 15.5% колесо | 58% между мостами | 15.5% колесо | 8% корма
+    // segments: 3% nose | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% tail
     const s1 = M.len * 0.03, s2 = M.len * 0.58, s3 = M.len * 0.08;
-    const gp = M.len * 0.155;  // ширина зазора на каждое колесо
+    const gp = M.len * 0.155;  // gap width per wheel
 
-    const ei = M.len * 0.02;  // отступ от торцов — блок не доходит до края машины
+    const ei = M.len * 0.02;  // inset from tips — block doesn't reach the car edge
     ctx.beginPath();
-    ctx.rect(hl - s1,           ghy, s1 - ei, gH);  // нос (не доходит до носа)
-    ctx.rect(hl - s1 - gp - s2, ghy, s2,      gH);  // между мостами (основная)
-    ctx.rect(-hl + ei,          ghy, s3 - ei,  gH);  // корма (не доходит до кормы)
+    ctx.rect(hl - s1,           ghy, s1 - ei, gH);  // nose (inset from tip)
+    ctx.rect(hl - s1 - gp - s2, ghy, s2,      gH);  // between axles (main segment)
+    ctx.rect(-hl + ei,          ghy, s3 - ei,  gH);  // tail (inset from tip)
     ctx.fill();
 
     ctx.restore();

@@ -1,7 +1,7 @@
-// Единственная точка сохранения и загрузки. Ни один другой модуль не трогает
-// localStorage напрямую — всё идёт через геттеры отсюда + save().
+// Single source of persistence — the only module that touches localStorage directly.
+// All reads/writes go through the getters here + save().
 //
-// При смене схемы: (1) увеличь VERSION, (2) добавь миграцию в _ensure() ниже.
+// Schema migrations: (1) increment VERSION, (2) add a migration block in _ensure() below.
 
 const KEY     = 'desktop-drift';
 const VERSION = 1;
@@ -21,19 +21,18 @@ const _ensure = () => {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (raw?.version === VERSION) { _s = raw; return; }
-    // Версия не совпала — сбрасываем.
-    // Добавь здесь миграцию (raw.version → VERSION) если данные надо сохранить.
+    // Version mismatch — reset to defaults.
+    // Add a migration here (raw.version → VERSION) if data should be preserved.
   } catch {}
   _s = defaults();
 };
 
-// Записывает текущее состояние в localStorage.
-// Вызывать после любой мутации возвращённых объектов.
+// Writes current state to localStorage. Call after any mutation of returned objects.
 export const save = () => {
   try { localStorage.setItem(KEY, JSON.stringify(_s)); } catch {}
 };
 
-// Геттеры возвращают живые объекты — мутируй нужные поля, затем вызывай save().
+// Getters return live objects — mutate the needed fields, then call save().
 export const settings     = () => { _ensure(); return _s.settings; };
 export const garage       = () => { _ensure(); return _s.garage; };
 export const records      = () => { _ensure(); return _s.records; };

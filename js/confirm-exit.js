@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Диалог подтверждения выхода — самодостаточный компонент без зависимостей.
+// Exit-confirmation dialog — self-contained component with no dependencies.
 //
-// Сам создаёт оверлей + карточку, вешает Escape и клик по подложке (cancel).
-// Вызывающий код передаёт колбэки onExit / onCancel в show().
-// Стили — в css/sandbox.css (#confirmExitOverlay).
+// Creates its own overlay + card, registers Escape and backdrop click (cancel).
+// Callers pass onExit / onCancel callbacks into show().
+// Styles — css/sandbox.css (#confirmExitOverlay).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const createConfirmExit = () => {
@@ -35,27 +35,27 @@ export const createConfirmExit = () => {
     overlay.classList.add('show');
   }
 
-  // ── Кнопка «Продолжить» ──
+  // ── "Keep racing" button ──
   document.getElementById('confirmCancelBtn').addEventListener('click', () => {
     const cb = pendingCancel; hide(); if (cb) cb();
   });
 
-  // ── Кнопка «Рестарт» ──
+  // ── "Restart" button ──
   document.getElementById('confirmRestartBtn').addEventListener('click', () => {
     const cb = pendingRestart; hide(); if (cb) cb();
   });
 
-  // ── Кнопка «Выйти» ──
+  // ── "Exit" button ──
   document.getElementById('confirmExitBtn').addEventListener('click', () => {
     const cb = pendingExit; hide(); if (cb) cb();
   });
 
-  // ── Клик по подложке (вне карточки) = отмена ──
+  // ── Click on backdrop (outside card) = cancel ──
   overlay.addEventListener('click', e => {
     if (e.target === overlay) { const cb = pendingCancel; hide(); if (cb) cb(); }
   });
 
-  // ── Escape = отмена ──
+  // ── Escape = cancel ──
   const onKey = e => {
     if (e.key === 'Escape' && overlay.classList.contains('show')) {
       e.preventDefault();
@@ -64,8 +64,8 @@ export const createConfirmExit = () => {
   };
   addEventListener('keydown', onKey);
 
-  // Разбирает компонент: снимает глобальный слушатель и удаляет свой DOM
-  // (кнопки внутри overlay уходят вместе с ним).
+  // Tears down the component: removes the global listener and its DOM
+  // (buttons inside overlay are removed with it).
   const destroy = () => {
     removeEventListener('keydown', onKey);
     overlay.remove();

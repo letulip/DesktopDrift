@@ -50,14 +50,14 @@
   const trackId = new URLSearchParams(location.search).get('track') ?? '';
   const meta    = TRACKS.find(t => t.id === trackId);
 
-  // Невалидный или отсутствующий track → обратно на выбор трасс
+  // Invalid or missing track → back to track selection
   if (!meta) { location.replace('tracks.html'); throw new Error('unknown track'); }
 
-  // Заголовок вкладки по имени из реестра
+  // Tab title from the registry name
   document.title = `Desktop Drift — ${meta.name}`;
 
-  // Динамический импорт: модуль содержит top-level await (fetch SVG),
-  // поэтому import() завершается только когда трасса полностью инициализирована.
+  // Dynamic import: the module contains a top-level await (SVG fetch),
+  // so import() resolves only once the track is fully initialised.
   const T = await import(`./js/track-${meta.id}.js`);
   startGame(T, { initItems: true });
 </script>

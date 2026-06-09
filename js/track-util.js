@@ -1,11 +1,10 @@
-// Чистые геометрические помощники для построения треков — без состояния,
-// без побочных эффектов, без браузерных API. Раньше эти циклы были скопированы
-// в track.js / track-workdesk.js (и частично track-oval.js) — теперь единый
-// источник правды, который можно покрыть юнит-тестами. Поведение идентично.
+// Pure geometric helpers for track construction — no state, no side effects, no browser APIs.
+// Previously these loops were duplicated in track.js / track-workdesk.js (and partly
+// track-oval.js) — now a single source of truth that can be unit-tested.
 
-// Разбор SVG path d: только M, L, H, V, Z (абсолютные координаты).
-// Возвращает массив пар [[x, y], ...].
-// Вынесено из track-модулей и tracks.html — раньше было три одинаковых копии.
+// Parse SVG path d: supports M, L, H, V, Z (absolute coordinates only).
+// Returns an array of pairs [[x, y], ...].
+// Consolidated from track modules and tracks.html — was three identical copies.
 export const parseSvgPath = (d) => {
   const pts = [];
   const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
@@ -24,8 +23,8 @@ export const parseSvgPath = (d) => {
   return pts;
 };
 
-// Алгоритм Chaikin — угловое отсечение, один проход (вызывается несколько раз).
-// n точек → 2n точек. Замкнутый контур (последняя соединяется с первой).
+// Chaikin corner-cutting — one pass (call multiple times for smoother result).
+// n points → 2n points. Closed contour (last connects back to first).
 export const chaikin = (pts) => {
   const n = pts.length, r = [];
   for (let i = 0; i < n; i++) {
@@ -36,9 +35,9 @@ export const chaikin = (pts) => {
   return r;
 };
 
-// Из центральной линии строит { center, outer, inner }: внешний и внутренний
-// края смещены на half вдоль перпендикуляра к касательной (по соседним точкам).
-// center — те же точки (по ссылке), как и было в track.js.
+// Builds { center, outer, inner } from a centerline: outer and inner edges are offset
+// by `half` along the perpendicular to the tangent (computed from neighbouring points).
+// center holds the same point references as centerPts (as in the original track.js).
 export const offsetEdges = (centerPts, half) => {
   const center = [], outer = [], inner = [];
   const N = centerPts.length;
@@ -48,7 +47,7 @@ export const offsetEdges = (centerPts, half) => {
     const next = centerPts[(i + 1) % N];
     const tx   = next.x - prev.x, ty = next.y - prev.y;
     const len  = Math.hypot(tx, ty) || 1;
-    const nx   = -ty / len, ny = tx / len; // перпендикуляр (левый нормаль)
+    const nx   = -ty / len, ny = tx / len; // left-hand normal
     center.push(c);
     outer.push({ x: c.x + nx * half, y: c.y + ny * half });
     inner.push({ x: c.x - nx * half, y: c.y - ny * half });
@@ -56,7 +55,7 @@ export const offsetEdges = (centerPts, half) => {
   return { center, outer, inner };
 };
 
-// Расставляет конусы вдоль внешнего и внутреннего краёв с шагом step.
+// Places cones along outer and inner edges every `step` indices.
 export const placeCones = (outer, inner, step = 5) => {
   const cones = [];
   for (let i = 0; i < outer.length; i += step) {
@@ -66,15 +65,15 @@ export const placeCones = (outer, inner, step = 5) => {
   return cones;
 };
 
-// K чекпоинтов, равномерно по индексам центральной линии.
+// K checkpoints, evenly distributed by index along the centerline.
 export const sampleCheckpoints = (center, K) => {
   const N = center.length, cps = [];
   for (let i = 0; i < K; i++) cps.push(center[Math.floor((i / K) * N)]);
   return cps;
 };
 
-// Готовит дескриптор предмета к рендеру/физике: hl по умолчанию 0, кэш cos/sin угла.
-// Мутирует и возвращает тот же объект (как прежний addProp).
+// Prepares a prop descriptor for render/physics: defaults hl to 0, caches cos/sin of angle.
+// Mutates and returns the same object (like the old addProp).
 export const prepProp = (o) => {
   o.hl   = o.hl || 0;
   o._cos = Math.cos(o.ang);

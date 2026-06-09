@@ -10,34 +10,34 @@ import {
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
 
-// Реестр активной игры — чтобы при повторном startGame снять прошлую
-// (слушатели + цикл) и не плодить дубли. Якорим на globalThis, а НЕ в module-scope:
-// если game-engine.js по какой-то причине загрузится двумя инстансами (двойная
-// отдача из SW в PWA, гонка навигации), обе копии делят один флаг → новый запуск
-// гарантированно гасит предыдущий и не оставляет задвоенных rAF/pointer-листенеров.
+// Active-game registry — ensures a second startGame call tears down the previous one
+// (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
+// module-scope: if game-engine.js loads as two instances (SW glitch in PWA, navigation
+// race) both copies share the same flag → the new start always kills the previous one
+// and never leaves orphaned rAF/pointer listeners.
 const getActive = () => globalThis.__ddActiveGame ?? null;
 const setActive = (v) => { globalThis.__ddActiveGame = v; };
 
-// Запускает игровой цикл с переданным треком.
-// T   — namespace-импорт трекового модуля (track.js или track-oval.js)
-// opts.initItems — true, если у трека есть SVG-пропсы для предзагрузки
-// Возвращает { stop } — снимает все слушатели и отменяет requestAnimationFrame.
+// Starts the game loop with the given track.
+// T   — namespace import of a track module (track.js or track-oval.js)
+// opts.initItems — true if the track has SVG props to pre-load
+// Returns { stop } — removes all listeners and cancels requestAnimationFrame.
 export const startGame = (T, opts = {}) => {
-  // не запускать вторую игру поверх живой; warn = сигнал, если это случилось
-  // неожиданно (напр. залипший инстанс в PWA — тот самый класс «двойного rAF»).
+  // Do not start a second game on top of a live one; warn = signal if this happens
+  // unexpectedly (e.g. stuck PWA instance — the classic "double rAF" class of bug).
   const prev = getActive();
   if (prev) {
-    console.warn('[game-engine] startGame: предыдущая игра ещё активна — снимаю её (возможна задвоенность движка)');
+    console.warn('[game-engine] startGame: a previous game is still active — stopping it (possible engine duplication)');
     prev.stop();
   }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
-  const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = бесконечно (sandbox)
+  const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
 
   initRender(T);
   initCar(T);
   if (opts.initItems) initItems(props);
 
-  // ─── Вспомогательные функции ───────────────────────────────────────────────
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const flash = (msg, color) => {
     S.flashMsg = msg;
@@ -63,11 +63,11 @@ export const startGame = (T, opts = {}) => {
     S.crashCd = 0.5; S.driftGrace = 1;
   }
 
-  // Ближайшая точка центральной линии. Раньше — O(N) полный скан КАЖДЫЙ кадр.
-  // Машина движется непрерывно по замкнутой линии, поэтому ищем только в окне
-  // ±NEAR_W вокруг прошлого индекса и запоминаем найденный. Для N≈300–416 это
-  // ~49 точек вместо всех — кратно дешевле, результат тот же (шаг машины за кадр
-  // ≪ ширины окна даже при clamp dt=0.05).
+  // Nearest centreline point. Previously an O(N) full scan every frame.
+  // The car moves continuously along the closed line, so we only search
+  // ±NEAR_W around the previous index. For N≈300–416 that's ~49 points
+  // instead of all of them — far cheaper, same result (car step per frame
+  // ≪ window width even at the clamped dt=0.05).
   const N_CENTER = center.length;
   const NEAR_W = 24;
   let nearIdx = 0;
@@ -130,7 +130,7 @@ export const startGame = (T, opts = {}) => {
     flash('Cone!  -100', '#ffb14d');
   }
 
-  // ─── Ввод ─────────────────────────────────────────────────────────────────
+  // ─── Input ────────────────────────────────────────────────────────────────────
 
   const updatePointerSteer = () => {
     let s = 0;
@@ -138,8 +138,8 @@ export const startGame = (T, opts = {}) => {
     S.steerInput = Math.sign(s);
   };
 
-  // Все слушатели вешаем через on(): он копит их в listeners[], чтобы stop()
-  // снял всё разом. Иначе при повторном запуске слушатели накапливались бы.
+  // All listeners go through on(): it accumulates them in listeners[] so stop()
+  // can remove them all at once. Without this they would pile up on restart.
   const listeners = [];
   const on = (target, type, handler, opts) => {
     target.addEventListener(type, handler, opts);
@@ -150,8 +150,8 @@ export const startGame = (T, opts = {}) => {
   const onKeyUp   = e => { keys[e.key] = false; };
   on(window, 'keydown', onKeyDown);
   on(window, 'keyup',   onKeyUp);
-  // passive: false + preventDefault() — не даёт iOS запустить выделение текста
-  // при долгом нажатии во время игры
+  // passive: false + preventDefault() — prevents iOS from starting text selection
+  // on long press during gameplay
   const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); };
   const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } };
   const onPointerUp     = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
@@ -160,19 +160,19 @@ export const startGame = (T, opts = {}) => {
   on(canvas, 'pointermove',   onPointerMove,   { passive: false });
   on(canvas, 'pointerup',     onPointerUp);
   on(canvas, 'pointercancel', onPointerCancel);
-  // Блокируем контекстное меню и выделение текста по всему документу
+  // Block context menu and text selection on the whole document
   const onContextMenu = e => e.preventDefault();
   const onSelectStart = e => e.preventDefault();
   on(document, 'contextmenu', onContextMenu);
   on(document, 'selectstart', onSelectStart);
 
-  // ─── UI ───────────────────────────────────────────────────────────────────
+  // ─── UI ───────────────────────────────────────────────────────────────────────
 
   const raceResults  = createRaceResults();
-  let raceFinished   = false; // флаг: stop() не разрушает raceResults после финиша
+  let raceFinished   = false; // flag: stop() must not destroy raceResults after a finish
 
-  // Кнопка «Меню» — сначала спрашиваем подтверждение, чтобы не выбросить игрока
-  // в меню случайным нажатием. Игра встаёт на паузу на время диалога.
+  // Menu button — ask for confirmation first so a stray tap doesn't eject the player.
+  // Game is paused for the duration of the dialog.
   const confirmExit = createConfirmExit();
   const onMenuClick = e => {
     e.preventDefault();
@@ -186,40 +186,40 @@ export const startGame = (T, opts = {}) => {
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);
 
-  // Счётчик кругов в HUD: «1/3» вместо «1/-» при режиме с ограниченными кругами
+  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode
   if (TOTAL_LAPS > 0) {
     const el = document.getElementById('lapCounter');
     if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
   }
 
-  // Машинка и цвет выбраны на экране гаража (select.html), читаем из store
+  // Car and colour chosen on the garage screen (select.html), read from store
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
   if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
   CARS[S.carModel].neonColor = g.neonColor || null;
 
-  // Единицы скорости: читаем один раз при старте — в игре не меняются.
-  // Пересчёт: game units/s → км/ч (GU_TO_KMH) или мили/ч (× 0.621371).
+  // Speed units: read once at startup — does not change mid-game.
+  // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).
   const isMph = settings().units === 'mph';
   const toDisplaySpeed = (s) => s * GU_TO_KMH * (isMph ? 0.621371 : 1);
   const spdUnitEl = document.getElementById('spdUnit');
   if (spdUnitEl) spdUnitEl.textContent = isMph ? 'mph' : 'km/h';
 
-  // ─── Пауза (изолированный компонент) ────────────────────────────────────────
-  // Движок только читает pause.isPaused(); при постановке на паузу отпускаем руль,
-  // чтобы машина не дёрнулась на возобновлении.
+  // ─── Pause (isolated component) ───────────────────────────────────────────────
+  // The engine only reads pause.isPaused(); on pause we release steering so the car
+  // doesn't lurch on resume.
   const pause = createPause({
     onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
   });
 
-  // ─── Финишная линия ─────────────────────────────────────────────────────────
-  // Детект пересечения по знаку проекции на ось трека (не кружок).
-  // prevFinishDot < 0 = машина ещё позади линии; смена знака = пересечение.
+  // ─── Finish line ──────────────────────────────────────────────────────────────
+  // Crossing detected by sign-change of the forward projection onto the track axis (not a circle).
+  // prevFinishDot < 0 = car is still behind the line; sign change = crossing.
   const finishCos = Math.cos(startAngle), finishSin = Math.sin(startAngle);
   const c0 = checkpoints[0];
-  let prevFinishDot = null; // null = ещё не отсчитали первую позицию в текущем подъезде
+  let prevFinishDot = null; // null = haven't registered the first position on this approach yet
 
-  // ─── Физика ───────────────────────────────────────────────────────────────
+  // ─── Physics ──────────────────────────────────────────────────────────────────
 
   let last = performance.now();
   let rafId = 0;
@@ -227,8 +227,8 @@ export const startGame = (T, opts = {}) => {
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
-    // Заморозка: ничего не считаем и не перерисовываем — последний кадр остаётся
-    // на canvas, оверлей его затемняет. last уже обновлён → нет скачка dt.
+    // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
+    // `last` is already updated → no dt spike on resume.
     if (pause.isPaused()) { rafId = requestAnimationFrame(frame); return; }
 
     if (S.startCd > 0) {
@@ -299,8 +299,8 @@ export const startGame = (T, opts = {}) => {
         const dAdj = Math.pow(0.9, fAdj);
         c.x += c.vx * dt; c.y += c.vy * dt;
 
-        // Коллизия сбитого конуса с пропами — та же формула капсулы, что для машины.
-        // Простой center-check (без hl) был бы неточен для досок/ножей/сковородки.
+        // Knocked cone vs prop collision — same capsule formula as car vs prop.
+        // A simple center-check (without hl) would be inaccurate for boards/knives/pans.
         for (const o of props) {
           let qx = o.x, qy = o.y;
           if (o.hl > 0) {
@@ -313,7 +313,7 @@ export const startGame = (T, opts = {}) => {
           const d2 = dx * dx + dy * dy;
           if (d2 < minD * minD) {
             const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
-            c.x = qx + nx * minD; c.y = qy + ny * minD; // вытолкнуть конус
+            c.x = qx + nx * minD; c.y = qy + ny * minD; // push cone out
             const vDotN = c.vx * nx + c.vy * ny;
             if (vDotN < 0) { c.vx -= vDotN * nx * 0.8; c.vy -= vDotN * ny * 0.8; c.spin *= -0.4; }
           }
@@ -324,7 +324,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (TABLE.shape === 'round') {
-      // Итерируем точки капсулы: фронт → центр → корма. Первое нарушение = реакция.
+      // Iterate capsule points: front → centre → rear. First violation = response.
       const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
       for (const [bpx, bpy] of bodyPts) {
         const bnx = bpx / rx, bny = bpy / ry;
@@ -336,13 +336,13 @@ export const startGame = (T, opts = {}) => {
           const px = ux / ul, py = uy / ul;
           const vn = car.vx * px + car.vy * py;
           if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) burnCombo('WALL!'); }
-          break; // одна реакция за кадр
+          break; // one response per frame
         }
       }
     } else {
-      // AABB капсулы: экстент по X/Y зависит от угла машины, а не от CR.
-      // Раньше использовался только CR (ширина), поэтому бампер "уходил в стену"
-      // на ~24 gu прежде чем срабатывала коллизия.
+      // Capsule AABB: extent along X/Y depends on car angle, not just CR.
+      // Previously only CR (width) was used, so the bumper would "enter the wall"
+      // ~24 gu before the collision triggered.
       const absExtX = Math.abs(hx) * nose + CR;
       const absExtY = Math.abs(hy) * nose + CR;
       const wallW = TABLE.w / 2, wallH = TABLE.h / 2;
@@ -355,7 +355,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     for (const o of props) {
-      // Ищем ближайшую точку капсулы машины к объекту (бампер/центр/корма)
+      // Find the closest capsule body point to the prop
       let bestD2 = Infinity, bestBpX = car.x, bestBpY = car.y;
       let bestQx = o.x, bestQy = o.y;
       for (const [bpx, bpy] of bodyPts) {
@@ -424,21 +424,22 @@ export const startGame = (T, opts = {}) => {
     if (S.lapStarted) S.lapTime += dt;
 
     if (S.nextCp === 0) {
-      // ── Финишная линия: пересечение по знаку проекции ──────────────────────
-      // Кружок убран — детект точный: время фиксируется в момент пересечения,
-      // а не въезда в зону радиуса CP_R.
+      // ── Finish line: crossing by sign of projection ────────────────────────────
+      // Circle removed — detection is exact: time is recorded at the moment of crossing,
+      // not on entry into a CP_R radius zone.
       const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
 
-      // Боковое ограничение убрано: машина могла объехать линию по краю стола и не получить
-      // зачёт. Направленного детекта (знак fDot) + пройденных промежуточных чекпоинтов
-      // достаточно — они уже гарантируют полный круг.
+      // Lateral constraint removed: the car could lap around the line at the table edge
+      // and not be credited. Direction detection (sign of fDot) + completed intermediate
+      // checkpoints is sufficient — they already guarantee a full lap.
       if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;
 
         if (TOTAL_LAPS > 0 && S.lapNum >= TOTAL_LAPS) {
-          // Последний круг: сначала банкуем комбо, потом фиксируем лапскор.
+          // Final lap: bank combo first, then record the lap score.
+          // Order is critical — reversing it would drop the last combo from both pts and the total.
           bankCombo();
           S.lapScores.push({ n: S.lapNum, pts: Math.round(S.score - S.lapScoreStart), t: S.lapTime });
           S.lapTime = 0; S.nextCp = 1;
@@ -473,16 +474,16 @@ export const startGame = (T, opts = {}) => {
         S.lapScoreStart = S.score;
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
         S.lapTime = 0; S.nextCp = 1;
-        // prevFinishDot остаётся null до следующего подъезда (выставляется ниже)
+        // prevFinishDot stays null until the next approach (reset below)
       } else {
         prevFinishDot = fDot;
       }
     } else {
-      // ── Промежуточные чекпоинты: кружок CP_R ───────────────────────────────
+      // ── Intermediate checkpoints: circle CP_R ─────────────────────────────────
       const cp = checkpoints[S.nextCp];
       if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
         S.nextCp = (S.nextCp + 1) % K;
-        if (S.nextCp === 0) prevFinishDot = null; // сбросить перед новым подъездом к финишу
+        if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
     }
 
@@ -491,16 +492,16 @@ export const startGame = (T, opts = {}) => {
     rafId = requestAnimationFrame(frame);
   }
 
-  // ─── Жизненный цикл ─────────────────────────────────────────────────────────
-  // stop() делает движок реентерабельным: снимает все слушатели, отменяет цикл,
-  // разбирает свои UI-компоненты. Основа под restart / results-screen / ghost.
+  // ─── Lifecycle ────────────────────────────────────────────────────────────────
+  // stop() makes the engine reentrant: removes all listeners, cancels the loop,
+  // and destroys its UI components. Foundation for restart / results-screen / ghost.
   const stop = () => {
     cancelAnimationFrame(rafId);
     for (const [t, type, h, o] of listeners) t.removeEventListener(type, h, o);
     listeners.length = 0;
     pause.destroy();
     confirmExit.destroy();
-    // raceResults остаётся живым после финиша заезда; убирается только при перезапуске
+    // raceResults stays alive after a race finish; only removed on restart
     if (!raceFinished) raceResults.destroy();
     if (getActive() === api) setActive(null);
   };

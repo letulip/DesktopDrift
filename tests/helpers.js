@@ -1,8 +1,8 @@
-// Тестовые помощники. Node не имеет localStorage — подменяем минимальной
-// Map-реализацией, чтобы store.js работал в чистом процессе без браузера.
+// Test helpers. Node has no localStorage — we substitute a minimal Map-based
+// implementation so store.js works in a clean process without a browser.
 
-// Ставит глобальный localStorage поверх Map. seed — начальное содержимое
-// (объект ключ→строка). Возвращает саму Map, чтобы тест мог заглянуть внутрь.
+// Installs a global localStorage backed by a Map. seed — initial contents
+// (object of key→string). Returns the Map so tests can inspect it directly.
 export const installLocalStorage = (seed = {}) => {
   const m = new Map(Object.entries(seed));
   globalThis.localStorage = {
