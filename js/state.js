@@ -1,14 +1,14 @@
-// Машинка — объект, поля мутируются напрямую
+// Car object — fields mutated in place
 export const car = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
 
-// Инициализация стартовой позиции из данных трека
+// Resets car to the track starting position/angle
 export const initCar = ({ startPos, startAngle }) => {
   car.x = startPos.x; car.y = startPos.y; car.angle = startAngle;
   car.vx = 0; car.vy = 0;
 }
 
-// Весь мутабельный игровой стейт — в одном объекте S.
-// Оба модуля (game-engine.js пишет, render.js читает) работают с одной ссылкой → нет проблемы ES-биндингов.
+// All mutable game state in one object S.
+// Both modules (game-engine.js writes, render.js reads) share one reference → no ES binding issues.
 export const S = {
   carModel:      0,
   steerSmooth:   0,
@@ -46,6 +46,6 @@ export const S = {
   skids:         [],
 };
 
-// Ввод
+// Input
 export const keys     = {};
 export const pointers = new Map();

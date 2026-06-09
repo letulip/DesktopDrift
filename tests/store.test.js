@@ -1,17 +1,17 @@
-// store.js — путь "чистого старта": нет сохранённых данных, отдаём defaults,
-// мутируем живые объекты, save() пишет корректный JSON.
+// store.js — "clean start" path: no persisted data, return defaults,
+// mutate live objects, save() writes correct JSON.
 //
-// ВАЖНО: store.js кэширует состояние в _s на уровне модуля после первого
-// _ensure(). Поэтому "загрузку готовых данных" проверяем в отдельном файле
-// (store-load.test.js) — node:test запускает каждый файл в своём процессе,
-// так что модуль грузится заново и кэш не протекает между сценариями.
+// IMPORTANT: store.js caches state in _s at module level after the first
+// _ensure(). Therefore the "load existing data" path is tested in a separate
+// file (store-load.test.js) — node:test runs each file in its own process,
+// so the module is freshly loaded and the cache does not leak between scenarios.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installLocalStorage } from './helpers.js';
 
-// localStorage должен существовать ДО импорта store.js (модуль трогает его лениво,
-// но getItem вызывается при первом геттере — ставим заранее, чтобы быть уверенными).
+// localStorage must exist BEFORE importing store.js (the module accesses it
+// lazily, but getItem is called on the first getter — install it upfront to be safe).
 const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save } =

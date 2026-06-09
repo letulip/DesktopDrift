@@ -1,5 +1,3 @@
-> Адаптировано из CLAUDE.md Андрея Карпати. Источник и контекст: [[карпати-claude-coding-rules]]
-
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
@@ -70,3 +68,7 @@ they win when they conflict:
 - Update roadmap with current state.
 - Update agents with actual structure and nuances.
 - Update sw.js if needed.
+
+## General
+
+- use only english throught the entire project.

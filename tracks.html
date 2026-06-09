@@ -52,7 +52,7 @@
   import { records } from './js/store.js';
   import { parseSvgPath, chaikin } from './js/track-util.js';
 
-  // ── Отрисовка превью трассы на канвасе ─────────────────────────────────────
+  // ── Track preview rendering on canvas ───────────────────────────────────────
   const SCALE    = 0.25;
   const TRACK_GU = 100;
 
@@ -115,17 +115,17 @@
       });
       cx.closePath();
       cx.stroke();
-    } catch { /* ошибка рендера — канвас остаётся с fallback-фоном */ }
+    } catch { /* render error — canvas keeps its fallback background */ }
   }
 
-  // ── Лучший PPS-рекорд из store ──────────────────────────────────────────────
+  // ── Best PPS record from store ───────────────────────────────────────────────
   function bestRecord(trackId) {
     const ta = records()?.[trackId]?.timeattack;
     if (ta?.bestPPS == null) return null;
     return { pps: Math.round(ta.bestPPS), total: ta.bestPPSTotal, time: ta.bestPPSTime };
   }
 
-  // ── Сборка карточек ─────────────────────────────────────────────────────────
+  // ── Build track cards ────────────────────────────────────────────────────────
   const container = document.getElementById('track-cards');
 
   for (const track of TRACKS) {
@@ -187,7 +187,7 @@
     drawThumb(canvas, track.svgSrc, track.theme);
   }
 
-  // Сбрасываем scroll после рендера (drawThumb async может сдвинуть позицию)
+  // Reset scroll after render (async drawThumb may shift the position)
   requestAnimationFrame(() => { container.scrollTop = 0; });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

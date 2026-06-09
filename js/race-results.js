@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Оверлей итогов заезда — самодостаточный компонент.
-// Показывается после финиша последнего круга Time Attack.
-// Стили — css/sandbox.css (#raceResultsOverlay).
+// Race-results overlay — self-contained component.
+// Shown after the final lap of a Time Attack race.
+// Styles — css/sandbox.css (#raceResultsOverlay).
 //
-// Важно: все querySelector вызываются на overlay, а не на document —
-// чтобы не конфликтовать с ID других экземпляров (тесты, hot-reload).
+// Important: all querySelector calls are scoped to the overlay element, not
+// document — to avoid collisions with IDs in other instances (tests, hot-reload).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const createRaceResults = () => {
@@ -24,9 +24,9 @@ export const createRaceResults = () => {
   `;
   document.body.appendChild(overlay);
 
-  // Кнопки внутри своего оверлея (не глобальный getElementById)
+  // Buttons scoped to their own overlay (not global getElementById)
   overlay.querySelector('#rr-restart').addEventListener('click', () => {
-    location.reload(); // перезагрузить game.html?track=<id> — чистый старт
+    location.reload(); // reload game.html?track=<id> — clean start
   });
   overlay.querySelector('#rr-back').addEventListener('click', () => {
     location.href = 'tracks.html';
@@ -34,7 +34,7 @@ export const createRaceResults = () => {
 
   // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
-  // pps: points per second (эффективность заезда)
+  // pps: points per second (race efficiency)
   const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime }) => {
     const ppsRounded = Math.round(pps);
     overlay.querySelector('#rr-score').innerHTML = `
@@ -59,7 +59,7 @@ export const createRaceResults = () => {
     overlay.classList.add('show');
   };
 
-  // destroy() вызывается из stop() когда игра стартует заново поверх живой
+  // destroy() is called from stop() when the game restarts on top of a live instance
   const destroy = () => { overlay.remove(); };
 
   return { show, destroy };

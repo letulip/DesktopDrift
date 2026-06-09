@@ -1,11 +1,11 @@
-// Кураторские палитры цветов — подобраны под тёмный контур (#222).
+// Curated colour palettes — chosen to look good against a dark outline (#222).
 //
-// PALETTE: 20 цветов кузова { hex, name }
-// NEON_PALETTE: 10 ярких электрических цветов для неон-андерглоу { hex, name }
+// PALETTE: 20 body colours { hex, name }
+// NEON_PALETTE: 10 vivid electric colours for neon underglow { hex, name }
 //
-// Масштабирование (Phase 2+): ливреи расширят схему до
+// Scaling (Phase 2+): liveries will extend the scheme to
 //   { name, body, stroke, details: [{ c, path }] }
-// и будут жить в отдельном массиве LIVERIES в этом же файле.
+// and will live in a separate LIVERIES array in this same file.
 export const PALETTE = [
   { hex: '#D32F2F', name: 'Rosso'   },  // deep red
   { hex: '#E64A19', name: 'Fuoco'   },  // orange-red
@@ -29,17 +29,17 @@ export const PALETTE = [
   { hex: '#FFB14D', name: 'Miele'   },  // honey (matches UI accent)
 ];
 
-// Неон-андерглоу: чистые электрические оттенки, без чёрных и серых.
-// Эти цвета выглядят ярко через ctx.shadowBlur на тёмном фоне трека.
+// Neon underglow: pure electric hues, no blacks or greys.
+// These colours look vivid through ctx.shadowBlur on a dark track background.
 export const NEON_PALETTE = [
   { hex: '#FF073A', name: 'Corsa'   },  // electric red
   { hex: '#FF6700', name: 'Fuoco'   },  // electric orange
   { hex: '#FFE600', name: 'Giallo'  },  // electric yellow
-  { hex: '#39FF14', name: 'Verde'   },  // neon green (классика)
+  { hex: '#39FF14', name: 'Verde'   },  // neon green (classic)
   { hex: '#00FF87', name: 'Acqua'   },  // neon mint
   { hex: '#00CFFF', name: 'Cielo'   },  // electric blue
   { hex: '#3D5AFE', name: 'Blu'     },  // electric indigo
   { hex: '#BF00FF', name: 'Viola'   },  // electric purple
-  { hex: '#FF00FF', name: 'Magenta' },  // neon magenta (классика)
+  { hex: '#FF00FF', name: 'Magenta' },  // neon magenta (classic)
   { hex: '#FFFFFF', name: 'Snow'    },  // neon white
 ];

@@ -1,5 +1,5 @@
-// Юнит-тесты чистой геометрии треков (js/track-util.js). Раньше эти циклы были
-// скопированы в три трек-модуля и не покрывались (side-effects на импорте).
+// Unit tests for pure track geometry (js/track-util.js). Loops were previously
+// duplicated across three track modules and untestable (side-effects on import).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,31 +9,31 @@ import {
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 
-test('parseSvgPath: M/L/H/V/Z → массив пар [x,y]', () => {
-  // Простой прямоугольник
+test('parseSvgPath: M/L/H/V/Z → array of [x,y] pairs', () => {
+  // Simple rectangle
   const pts = parseSvgPath('M10 20 L30 20 H50 V40 Z');
   assert.equal(pts.length, 4);
   assert.deepEqual(pts[0], [10, 20]);
   assert.deepEqual(pts[1], [30, 20]);
   assert.deepEqual(pts[2], [50, 20]); // H50 → x=50, y=20
   assert.deepEqual(pts[3], [50, 40]); // V40 → x=50, y=40
-  // Дробные координаты (как в реальных SVG треков)
+  // Fractional coordinates (as in real track SVGs)
   const pts2 = parseSvgPath('M11374.3 1531.75L6486.45 2177.88Z');
   assert.equal(pts2.length, 2);
   assert.ok(Math.abs(pts2[0][0] - 11374.3) < 0.01);
   assert.ok(Math.abs(pts2[1][1] - 2177.88) < 0.01);
 });
 
-test('chaikin: n точек → 2n, выпуклая комбинация соседей', () => {
+test('chaikin: n points → 2n, convex combination of neighbours', () => {
   const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
   const out = chaikin(sq);
   assert.equal(out.length, 8);
-  // первая новая точка = 0.75*a + 0.25*b
+  // first new point = 0.75*a + 0.25*b
   near(out[0].x, 0 * .75 + 10 * .25);
   near(out[0].y, 0);
 });
 
-test('offsetEdges: длины совпадают, края симметричны относительно центра', () => {
+test('offsetEdges: lengths match, edges are symmetric around the centre', () => {
   const center = [
     { x: -100, y: -100 }, { x: 100, y: -100 },
     { x: 100, y: 100 }, { x: -100, y: 100 },
@@ -44,24 +44,24 @@ test('offsetEdges: длины совпадают, края симметричн�
   assert.equal(outer.length, 4);
   assert.equal(inner.length, 4);
   for (let i = 0; i < 4; i++) {
-    // середина outer↔inner = центральная точка (края на противоположных нормалях)
+    // midpoint of outer↔inner = centre point (edges on opposite normals)
     near((outer[i].x + inner[i].x) / 2, center[i].x);
     near((outer[i].y + inner[i].y) / 2, center[i].y);
-    // расстояние от центра до края = half
+    // distance from centre to edge = half
     near(Math.hypot(outer[i].x - center[i].x, outer[i].y - center[i].y), half);
   }
 });
 
-test('placeCones: 2 конуса (внешний+внутренний) на каждый шаг', () => {
+test('placeCones: 2 cones (outer+inner) per step', () => {
   const outer = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 0 }));
   const inner = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 5 }));
-  const cones = placeCones(outer, inner, 5); // индексы 0,5 → 4 конуса
+  const cones = placeCones(outer, inner, 5); // indices 0,5 → 4 cones
   assert.equal(cones.length, 4);
   assert.equal(cones[0].knocked, false);
   assert.equal(cones[0].vx, 0);
 });
 
-test('sampleCheckpoints: K точек, первая = center[0]', () => {
+test('sampleCheckpoints: K points, first = center[0]', () => {
   const center = Array.from({ length: 16 }, (_, i) => ({ x: i, y: 0 }));
   const cps = sampleCheckpoints(center, 8);
   assert.equal(cps.length, 8);
@@ -69,7 +69,7 @@ test('sampleCheckpoints: K точек, первая = center[0]', () => {
   assert.equal(cps[1], center[2]); // floor(1/8*16)=2
 });
 
-test('prepProp: hl по умолчанию 0, кэш cos/sin', () => {
+test('prepProp: hl defaults to 0, caches cos/sin', () => {
   const a = prepProp({ ang: 0 });
   assert.equal(a.hl, 0);
   near(a._cos, 1);

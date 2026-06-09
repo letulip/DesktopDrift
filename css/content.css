@@ -4,7 +4,7 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
-  overflow-anchor: none;    /* async drawThumb не сдвигает scroll при загрузке */
+  overflow-anchor: none;    /* async drawThumb must not shift scroll on load */
   scrollbar-width: none;
   display: flex; flex-wrap: wrap; gap: 18px;
   justify-content: center;

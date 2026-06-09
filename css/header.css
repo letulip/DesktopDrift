@@ -1,6 +1,6 @@
 
 
-/* ── Header: обычный flex-элемент, не positioned ─────────────────────────── */
+/* ── Header: regular flex item, not positioned ───────────────────────────── */
 #ts-header {
   flex-shrink: 0;
   display: flex; flex-direction: column; align-items: center;

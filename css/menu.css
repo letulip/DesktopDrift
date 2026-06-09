@@ -1,4 +1,4 @@
-/* Стартовое меню (index.html) */
+/* Main menu (index.html) */
 #menu {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
@@ -15,11 +15,11 @@
 }
 .logo sup {
   font-size: .24em;
-  vertical-align: top;   /* прибит к верхней линии строки — не уходит из потока */
+  vertical-align: top;   /* pinned to the top line — stays in flow */
   margin-left: .1em;
   letter-spacing: 0;
-  /* Собственный градиент: background-clip родителя не покрывает top-aligned дочерний
-     элемент за пределами его нормальной позиции. */
+  /* Own gradient: the parent's background-clip does not cover a top-aligned child
+     that sits outside its normal position. */
   background: var(--accent-text);
   -webkit-background-clip: text;
   background-clip: text;
@@ -55,19 +55,19 @@
 }
 .settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
 
-/* Логотип-иконка (используется на index.html и donate.html) */
+/* Logo icon (used on index.html and donate.html) */
 .menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; margin-inline: auto; }
 
-/* Футер-ссылка «Support» */
+/* "Support" footer link */
 .menu-foot-support { margin-top: 28px; }
 .support-link {
   color: inherit; opacity: .75; text-decoration: none; transition: opacity .15s;
 }
 .support-link:hover { opacity: .95; }
 
-/* ── Оркестрованное появление при загрузке (DESIGN.md: один хороший page-load) ──
-   fill-mode: backwards — прячем элемент во время delay, но НЕ forwards, чтобы
-   после анимации вернуться к базовому состоянию и не ломать hover-трансформ плиток. */
+/* ── Orchestrated entrance animation on load (DESIGN.md: one good page-load) ──
+   fill-mode: backwards — hides the element during the delay, but NOT forwards,
+   so after the animation we return to the base state and don't break tile hover transforms. */
 @keyframes riseIn {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }

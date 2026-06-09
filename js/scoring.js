@@ -1,50 +1,50 @@
-// Чистая игровая логика скоринга дрифта — без состояния, без побочных эффектов.
-// Вынесено из game-engine.js, чтобы покрыть юнит-тестами (раньше формулы жили
-// внутри замыкания startGame и были непокрываемы). Поведение идентично прежнему.
+// Pure drift scoring logic — no state, no side effects.
+// Extracted from game-engine.js so it can be unit-tested (formulas were
+// previously buried inside the startGame closure and unreachable). Behaviour is identical.
 //
-// Именованные константы заменяют «магические числа» — это единственные ручки
-// настройки баланса комбо. Меняешь баланс — меняешь здесь, а не по коду движка.
+// Named constants replace magic numbers — these are the only combo balance knobs.
+// To tune balance, change values here rather than hunting through the engine.
 
-// Порог входа в занос (дрифт засчитывается)
-export const DRIFT_MIN_SLIP  = 60;   // боковая скорость |vS|, выше которой это занос
-export const DRIFT_MIN_SPEED = 90;   // общая скорость, ниже которой заноса нет
+// Drift entry thresholds
+export const DRIFT_MIN_SLIP  = 60;   // lateral speed |vS| above which a drift is counted
+export const DRIFT_MIN_SPEED = 90;   // total speed below which no drift is registered
 
-// Качество дрифта (нормировка slip/speed) и его потолок
+// Drift quality (slip/speed normalisation) and its ceiling
 export const QUALITY_SLIP_REF  = 160;
 export const QUALITY_SPEED_REF = 260;
 export const QUALITY_MAX        = 1.4;
 
-// Накопление множителя
-export const MULT_GAIN_PER_S      = 0.14;  // прирост multBuild за секунду чистого дрифта (× quality)
-export const MULT_TRANSITION_BONUS = 0.3;  // бонус к multBuild за перекладку
-export const MULT_NEARMISS_BONUS   = 0.28; // бонус к multBuild за near-miss
-export const MULT_MAX              = 8;    // потолок итогового множителя
+// Multiplier accumulation
+export const MULT_GAIN_PER_S      = 0.14;  // multBuild growth per second of clean drift (× quality)
+export const MULT_TRANSITION_BONUS = 0.3;  // multBuild bonus for a direction switch
+export const MULT_NEARMISS_BONUS   = 0.28; // multBuild bonus for a near-miss
+export const MULT_MAX              = 8;    // multiplier ceiling
 
-// Порог знака заноса (для детекта перекладки) и скорость набора очков
+// Slip sign threshold (for transition detection) and combo point rate
 export const SLIP_SIGN_THRESHOLD = 50;
 export const COMBO_RATE          = 0.0015; // slip × speed × dt × mult × COMBO_RATE
 
-// Идёт ли занос при данной боковой/общей скорости.
+// Whether a drift is active at the given lateral / total speed.
 export const isDrifting = (vS, speed) =>
   Math.abs(vS) > DRIFT_MIN_SLIP && speed > DRIFT_MIN_SPEED;
 
-// Качество текущего дрифта (0…QUALITY_MAX): чем больше snос и скорость, тем выше.
+// Drift quality at this instant (0…QUALITY_MAX): higher slip and speed → higher quality.
 export const driftQuality = (slip, speed) =>
   Math.min(QUALITY_MAX, (slip / QUALITY_SLIP_REF) * (speed / QUALITY_SPEED_REF));
 
-// Итоговый множитель из накопленного multBuild (1…MULT_MAX).
+// Final multiplier from accumulated multBuild (1…MULT_MAX).
 export const comboMult = (multBuild) =>
   Math.min(MULT_MAX, 1 + multBuild);
 
-// Прирост очков комбо за кадр.
+// Combo points gained this frame.
 export const comboGain = (slip, speed, dt, mult) =>
   slip * speed * dt * COMBO_RATE * mult;
 
-// Знак заноса: +1 / -1 / 0 (для детекта перекладки и накопления transitions).
+// Slip sign: +1 / -1 / 0 (for transition detection and transition counter).
 export const slipSign = (vS) =>
   vS > SLIP_SIGN_THRESHOLD ? 1 : (vS < -SLIP_SIGN_THRESHOLD ? -1 : 0);
 
-// Коэффициент эффективности: очки в секунду (PPS).
-// Знаменатель растёт непрерывно — дрифт на месте обрушает метрику.
+// Efficiency metric: points per second (PPS).
+// Denominator grows continuously — drifting in place collapses the metric.
 export const pointsPerSecond = (score, totalTime) =>
   totalTime > 0 ? score / totalTime : 0;

@@ -26,11 +26,11 @@ for (let i = 0; i < SAMPLES; i++) {
   inner.push({ x: c.x - nx * TRACK_HALF, y: c.y - ny * TRACK_HALF });
 }
 
-// Конусы вдоль краёв
+// Cones along the edges
 export const CONE_R = 9;
 export const cones = placeCones(outer, inner, 5);
 
-// Кухонные объекты на столе
+// Props on the table
 const distToTrackPoint = (x, y) => {
   let best = Infinity;
   for (const c of center) { const dx = x - c.x, dy = y - c.y; const d = dx * dx + dy * dy; if (d < best) best = d; }
@@ -38,7 +38,7 @@ const distToTrackPoint = (x, y) => {
 }
 export const props = [];
 const addProp = (o) => { props.push(prepProp(o)); }
-// 1) Круглая посуда в карманах трассы
+// 1) Round tableware in the track pockets
 const DISHES = [
   { kind: 'plate',  c: '#e6ebf0' },
   { kind: 'bowl',   c: '#3a6ea5' },
@@ -64,7 +64,7 @@ const DISHES = [
     addProp({ x: dirx * cd, y: diry * cd, ang: Math.atan2(diry, dirx), hl: 0, r: objR, kind: d.kind, c: d.c });
   }
 }
-// 2) Сервировка по углам стола
+// 2) Table-setting at the corners
 const SETTING = [
   { x: 1350,  y: -1000, ang: 0.5,  hl: 150, r: 120, kind: 'board', c: '#b07b46' },
   { x: -1350, y: -1000, ang: -0.5, hl: 150, r: 22,  kind: 'knife', c: '#c8ccd2' },
@@ -77,12 +77,12 @@ for (const o of SETTING) {
   if (distToTrackPoint(o.x, o.y) > TRACK_HALF + o.r + 40) addProp(o);
 }
 
-// Чекпоинты
+// Checkpoints
 export const K = 8, CP_R = TRACK_HALF + 70;
 export const checkpoints = [];
 for (let i = 0; i < K; i++) checkpoints.push(centerAt((i / K) * Math.PI * 2));
 
-// Стартовая позиция
+// Starting position
 const _start = centerAt(0), _startT = tangentAt(0);
 export const startPos   = { x: _start.x, y: _start.y };
 export const startAngle = Math.atan2(_startT.y, _startT.x);

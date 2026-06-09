@@ -1,4 +1,4 @@
-/* Игровой экран (sandbox.html): canvas + HUD-оверлей */
+/* Game screen (sandbox.html): canvas + HUD overlay */
 canvas { display: block; }
 #hud {
   position: fixed; top: 12px; left: 12px; right: 12px;
@@ -24,8 +24,8 @@ canvas { display: block; }
 #hint {
   position: fixed; bottom: 14px; left: 0; right: 0; text-align: center;
   font: 13px var(--font-body); color: var(--ink); opacity: .55;
-  /* text-shadow нужен для светлых тем (steel-kitchen, cafe-marble):
-     белый текст без подложки был невидим на светлом фоне. */
+  /* text-shadow needed for light themes (steel-kitchen, cafe-marble):
+     white text without a backdrop was invisible on a light background. */
   text-shadow: 0 1px 4px rgba(0,0,0,.85), 0 0 10px rgba(0,0,0,.5);
   pointer-events: none;
 }
@@ -35,14 +35,14 @@ canvas { display: block; }
 #scorePanel { width: 156px; box-sizing: border-box; font-variant-numeric: tabular-nums; text-align: right; }
 #spd { font-size: 16px; font-weight: 700; opacity: 1; }
 
-/* HUD layout columns (были инлайновые style= на безымянных div-ах) */
+/* HUD layout columns (previously inline style= on anonymous divs) */
 #hud-left  { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 #hud-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-/* #controls вынесен из stacking context #hud (position:fixed без z-index → auto ≈ 0)
-   как самостоятельный fixed-элемент — иначе pauseOverlay (z-index:30) его перекрывает. */
+/* #controls is outside the #hud stacking context (position:fixed with no z-index → auto ≈ 0)
+   as an independent fixed element — otherwise pauseOverlay (z-index:30) covers it. */
 #controls {
   position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-  z-index: 35; /* выше pauseOverlay (30), ниже confirmExit (50) */
+  z-index: 35; /* above pauseOverlay (30), below confirmExit (50) */
   display: flex; gap: 8px; align-items: center; pointer-events: auto;
 }
 #spdUnit   { font-size: .85em; opacity: .7; }
@@ -58,15 +58,15 @@ canvas { display: block; }
   background: rgba(0,0,0,.4); padding: 8px 12px; border-radius: var(--r-panel); pointer-events: auto;
 }
 
-/* --- Кнопка паузы (самодостаточный компонент, DOM создаёт js/pause.js) --- */
-/* Позиция задаётся ТОЛЬКО здесь — меняй top/left, чтобы перемещать кнопку.   */
-/* Сверху-центр, чуть ниже строки контролов, вне зон руления.                  */
+/* --- Pause button (self-contained component, DOM created by js/pause.js) --- */
+/* Position is set ONLY here — change top/left to move the button.              */
+/* Top-centre, just below the controls row, outside steering touch zones.       */
 #pauseBtn {
   position: fixed;
   top: 30%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;                 /* выше оверлея, чтобы оставаться кликабельной  */
+  z-index: 40;                 /* above overlay so it stays clickable */
   pointer-events: auto;
   display: flex; align-items: center; justify-content: center;
   width: 46px; height: 38px;
@@ -77,7 +77,7 @@ canvas { display: block; }
 }
 #pauseBtn:active { background: rgba(0,0,0,.6); }
 
-/* --- Оверлей паузы --- */
+/* --- Pause overlay --- */
 #pauseOverlay {
   position: fixed; inset: 0; z-index: 30;
   display: none; flex-direction: column;
@@ -95,8 +95,8 @@ canvas { display: block; }
   font: 600 18px var(--font-body); opacity: .8;
 }
 
-/* --- Диалог подтверждения выхода (js/confirm-exit.js) --- */
-/* z-index 50 — выше кнопки паузы (40) и оверлея паузы (30)  */
+/* --- Exit-confirmation dialog (js/confirm-exit.js) --- */
+/* z-index 50 — above pause button (40) and pause overlay (30) */
 #confirmExitOverlay {
   position: fixed; inset: 0; z-index: 50;
   display: none; align-items: center; justify-content: center;
@@ -118,7 +118,7 @@ canvas { display: block; }
 #confirmBtns {
   display: flex; flex-direction: column; gap: 10px;
 }
-/* «Продолжить» — основное действие, акцентный цвет */
+/* "Keep racing" — primary action, accent colour */
 #confirmCancelBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
@@ -126,7 +126,7 @@ canvas { display: block; }
   cursor: pointer; transition: background var(--ease), border-color var(--ease);
 }
 #confirmCancelBtn:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
-/* «Рестарт» — средний вес: белый, чётко кликабельный, но не конкурирует с Keep racing */
+/* "Restart" — medium weight: white, clearly clickable, but doesn't compete with Keep racing */
 #confirmRestartBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22);
@@ -134,7 +134,7 @@ canvas { display: block; }
   cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
 #confirmRestartBtn:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.38); color: #fff; }
-/* «Выйти» — деструктивное действие, приглушённый цвет */
+/* "Exit" — destructive action, muted colour */
 #confirmExitBtn {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
@@ -143,8 +143,8 @@ canvas { display: block; }
 }
 #confirmExitBtn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
 
-/* --- Итоги заезда (js/race-results.js) --- */
-/* z-index 60 — выше всех оверлеев паузы/выхода */
+/* --- Race results (js/race-results.js) --- */
+/* z-index 60 — above all pause/exit overlays */
 #raceResultsOverlay {
   position: fixed; inset: 0; z-index: 60;
   display: none; align-items: center; justify-content: center;
@@ -187,7 +187,7 @@ canvas { display: block; }
 .rr-lap {
   display: flex; justify-content: space-between; align-items: center;
   font: 14px var(--font-body); padding: 2px 4px;
-  /* без opacity — используем rgba на дочерних элементах без накопления */
+  /* no opacity — use rgba on children to avoid compounding */
 }
 .rr-lap-best .rr-lap-t { color: var(--accent); font-weight: 700; }
 .rr-lap-n   { color: rgba(255,255,255,.55); min-width: 44px; text-align: left; }
@@ -198,7 +198,7 @@ canvas { display: block; }
   font-variant-numeric: tabular-nums; letter-spacing: .2px;
 }
 #rr-actions { margin-top: 2px; display: flex; flex-direction: column; gap: 10px; }
-/* Restart — primary: amber, крупный, очевидное намерение */
+/* Restart — primary: amber, large, obvious intent */
 #rr-restart {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
@@ -206,7 +206,7 @@ canvas { display: block; }
   cursor: pointer; transition: background var(--ease), border-color var(--ease);
 }
 #rr-restart:hover { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
-/* Back to tracks — secondary: тихий, меньше, не конкурирует с restart */
+/* Back to tracks — secondary: quiet, smaller, does not compete with restart */
 #rr-back {
   padding: 13px 0; width: 100%; border-radius: 12px;
   background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10);
@@ -215,14 +215,14 @@ canvas { display: block; }
 }
 #rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,1); }
 
-/* --- Мобильная раскладка HUD --- */
+/* --- Mobile HUD layout --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }
-  /* кнопки управления в столбик под кнопкой меню */
+  /* controls in a column below the menu button */
   #controls { flex-direction: column; align-items: stretch; gap: 6px; }
   #controls button, #controls #bodyColor { width: 100%; }
   #controls #bodyColor { height: 30px; }
-  /* компактнее левый столбик, чтобы поместился счёт справа */
+  /* compact left column so the score panel fits on the right */
   #timePanel  { width: 120px; padding: 6px 9px; }
   #scorePanel { width: 120px; padding: 6px 9px; }
   #mini { width: 120px; height: 103px; }

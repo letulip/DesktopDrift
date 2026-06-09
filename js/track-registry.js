@@ -1,10 +1,10 @@
-// Реестр трасс Time Attack — единый источник правды.
-// Каждая запись: { id, name, desc, svgSrc, theme }
-//   id      — ключ для store.records()[id].timeattack; также определяет
-//             имя модуля js/track-${id}.js (dynamic import в game.html)
-//   svgSrc  — SVG-файл Figma (track_path + ITEM_* линии)
-// Добавляя трассу: создай track-модуль js/track-<id>.js + SVG, впиши сюда.
-// HTML-страница не нужна — game.html?track=<id> обслуживает все треки.
+// Time Attack track registry — single source of truth.
+// Each entry: { id, name, desc, svgSrc, theme }
+//   id      — key for store.records()[id].timeattack; also determines
+//             the module name js/track-${id}.js (dynamic import in game.html)
+//   svgSrc  — Figma SVG file (track_path + ITEM_* proxy lines)
+// To add a track: create js/track-<id>.js + SVG, add an entry here.
+// No HTML page needed — game.html?track=<id> serves all tracks.
 
 export const TRACKS = [
   {
