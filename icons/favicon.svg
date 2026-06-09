@@ -1,5 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#14110f"/>
-  <path d="M4 27 C 9 20 15 12 26 5" stroke="#ffb14d" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-  <path d="M11 28 C 16 21 21 14 28 8" stroke="#ffb14d" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".4"/>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_137_6842)">
+<circle cx="16" cy="16" r="16" fill="url(#paint0_linear_137_6842)"/>
+<g filter="url(#filter0_d_137_6842)">
+<circle cx="16" cy="16" r="10.0571" fill="#F9F5F6"/>
+</g>
+<circle cx="16" cy="16" r="8.11429" fill="#DDC388"/>
+<circle cx="16" cy="16" r="7.2" fill="url(#paint1_radial_137_6842)"/>
+<ellipse cx="20.4571" cy="20.0571" rx="1.48571" ry="1.42857" fill="#DDC388"/>
+<ellipse cx="20.4571" cy="20.0572" rx="0.693333" ry="0.666667" fill="#522A10"/>
+<path d="M23.7715 16.3428C23.7715 17.8577 22.7737 19.0857 21.5429 19.0857C20.3121 19.0857 19.3143 17.8577 19.3143 16.3428C19.3143 14.828 20.3121 13.5428 21.5429 13.5428C24.4 13.5428 23.7715 14 23.7715 16.3428Z" fill="#DDC388"/>
+<ellipse cx="20.6933" cy="17.2381" rx="0.693333" ry="0.666667" fill="#522A10"/>
+<ellipse cx="21.5502" cy="15.1241" rx="0.864571" ry="0.838286" fill="#522A10"/>
+<circle cx="22.3429" cy="16.8571" r="0.857143" fill="#DDC388"/>
+<circle cx="22.3429" cy="16.8572" r="0.4" fill="#522A10"/>
+<ellipse cx="9.71423" cy="14.5714" rx="1.48571" ry="1.42857" fill="#DDC388"/>
+<ellipse cx="9.71433" cy="14.5715" rx="0.693333" ry="0.666667" fill="#522A10"/>
+<circle cx="17.2" cy="21.4286" r="2.34286" fill="#DDC388"/>
+<circle cx="17.2001" cy="21.4286" r="1.42857" fill="#522A10"/>
+<circle cx="9.65719" cy="12.9714" r="0.857143" fill="#DDC388"/>
+<circle cx="9.65708" cy="12.9714" r="0.4" fill="#522A10"/>
+<circle cx="19.8286" cy="21.7715" r="0.857143" fill="#DDC388"/>
+<circle cx="19.8286" cy="21.7715" r="0.4" fill="#522A10"/>
+<rect x="21.4857" y="18.1714" width="1.37143" height="1.94286" fill="#DDC388"/>
+<path d="M1.02856 15.9429C1.02856 15.1539 1.66816 14.5143 2.45714 14.5143H6.05714V17.3714H2.45714C1.66816 17.3714 1.02856 16.7318 1.02856 15.9429V15.9429Z" fill="#F9F5F6"/>
+</g>
+<defs>
+<filter id="filter0_d_137_6842" x="4.94287" y="5.94287" width="21.1143" height="22.1143" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="-1" dy="2"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_137_6842"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_137_6842" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_137_6842" x1="26.6857" y1="4.4" x2="4.57143" y2="26.9143" gradientUnits="userSpaceOnUse">
+<stop offset="0.5" stop-color="#D8DDE0"/>
+<stop offset="0.5001" stop-color="#C5CAD0"/>
+</linearGradient>
+<radialGradient id="paint1_radial_137_6842" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 16) rotate(90) scale(7.2)">
+<stop stop-color="#7D4934"/>
+<stop offset="1" stop-color="#522A10"/>
+</radialGradient>
+<clipPath id="clip0_137_6842">
+<rect width="32" height="32" fill="white"/>
+</clipPath>
+</defs>
 </svg>
