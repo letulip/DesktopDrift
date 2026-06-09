@@ -463,6 +463,7 @@ export const startGame = (T, opts = {}) => {
 
           raceFinished = true;
           stop();
+          document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime });
           return;
         }

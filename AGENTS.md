@@ -9,8 +9,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
 - **Pages (7):**
-  - `index.html` — menu landing screen. Static markup only, no game logic.
-    Tiles: Sandbox → `select.html?mode=sandbox`; Time Attack → `tracks.html`.
+  - `index.html` — menu landing screen. Tiles: Sandbox → `select.html?mode=sandbox`;
+    Time Attack → `tracks.html`. Contains one inline `<script>` that reads
+    `localStorage` directly (no module import) to show the average PPS across all
+    time attack records in the Time Attack tile (`#ta-avg-pps`, styled `.tile-stat`).
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
     card per track from `js/track-registry.js`, each with a canvas preview rendered
     in the track's own `theme` colours. Preview uses **the same pipeline as the
@@ -176,7 +178,9 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     segment from both `pts` and the headline total. Calculates `pps = totalScore / totalTime`
     (Points Per Second), writes `bestPPS`/`bestPPSTotal`/`bestPPSTime` to
     `store.records()[T.id].timeattack` when a new record is set (via `save()`),
-    calls `stop()`, and shows the `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
+    calls `stop()`, manually updates `#score` DOM element to `totalScore` (the draw
+    loop was cancelled before it could run with the banked combo), and shows the
+    `race-results` overlay. `raceFinished` keeps that overlay alive past `stop()`.
     **Wall collision (rect):** uses capsule AABB — `absExtX = |hx|×nose + CR`,
     `absExtY = |hy|×nose + CR` — so the bumper, not the windshield, triggers the wall.
     **Wall collision (round/oval):** iterates body points, pushes car radially inward on

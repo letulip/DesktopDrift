@@ -32,12 +32,13 @@
     <div class="tiles">
       <a class="tile" href="select.html?mode=sandbox">
         <div class="tile-title">Sandbox</div>
-        <div class="tile-sub">Free roam the table circuit. No limits — just learn the slide.</div>
+        <div class="tile-sub">Free roam the table circuit.<br>No limits — just learn the slide.</div>
         <span class="tile-badge">▶ Play</span>
       </a>
       <a class="tile" href="tracks.html">
         <div class="tile-title">Time Attack</div>
         <div class="tile-sub">Chase your best lap. Choose a track.</div>
+        <div class="tile-stat" id="ta-avg-pps"></div>
         <span class="tile-badge">▶ Play</span>
       </a>
     </div>
@@ -48,6 +49,21 @@
     </div>
   </div>
 </div>
+<script>
+try {
+  const data = JSON.parse(localStorage.getItem('desktop-drift') || 'null');
+  if (data?.records) {
+    const ppsList = Object.values(data.records)
+      .map(t => t.timeattack?.bestPPS)
+      .filter(v => v != null);
+    if (ppsList.length > 0) {
+      const avg = Math.round(ppsList.reduce((a, b) => a + b, 0) / ppsList.length);
+      document.getElementById('ta-avg-pps').textContent =
+        'Avg ' + avg.toLocaleString() + ' PPS';
+    }
+  }
+} catch {}
+</script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>
 </html>

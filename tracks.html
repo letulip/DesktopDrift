@@ -149,10 +149,10 @@
     scorePanel.className = 'track-card-score';
     if (record) {
       scorePanel.innerHTML =
-        `<span class="tcs-label">Score</span>` +
+        `<span class="tcs-label">Best score</span>` +
         `<span class="tcs-pps">${record.pps.toLocaleString()} <span class="tcs-unit">PPS</span></span>` +
         `<span class="tcs-label">Total</span>` +
-        `<span class="tcs-total">${record.total.toLocaleString()}</span>` +
+        `<span class="tcs-total">${record.total.toLocaleString()} pts</span>` +
         `<span class="tcs-time">${record.time.toFixed(1)} s</span>`;
     } else {
       scorePanel.innerHTML = `<span class="tcs-none">—</span>`;
