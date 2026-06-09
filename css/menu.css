@@ -41,6 +41,7 @@
 .tile:active { transform: translateY(-1px); }
 .tile-title { font-family: var(--font-display); font-size: 19px; font-weight: 800; letter-spacing: .3px; margin-bottom: 8px; }
 .tile-sub { opacity: .65; font-size: 13px; }
+.tile-stat { margin-top: 5px; font-size: 12px; color: var(--accent); opacity: .8; font-weight: 800;}
 .tile.disabled { cursor: default; opacity: .4; pointer-events: none; }
 .tile-badge { display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: 1px;
   text-transform: uppercase; opacity: .7; }
