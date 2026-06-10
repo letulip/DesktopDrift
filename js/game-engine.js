@@ -9,7 +9,7 @@ import {
   isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
-import { capProgress, stepSweep } from './cola.js';
+import { stepSweep } from './cola.js';
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -41,10 +41,11 @@ export const startGame = (T, opts = {}) => {
   if (opts.initItems) initItems(props);
 
   // ─── Cola caps ────────────────────────────────────────────────────────────────
-  const CAP_INNER_R = 40;          // min distance from cap centre to count as "around" it
-  const CAP_OUTER_R = 160;         // max distance
+  const CAP_INNER_R = 40;               // min distance from cap centre to count as "around" it
+  const CAP_OUTER_R = 160;              // max distance
   const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
   const CAP_BONUS   = 500;
+  const CAP_LOOPS   = 2;               // full circles required to collect
 
   const collectibles = T.collectibles ?? [];
   // Preload images onto the descriptor (same pattern as _cos/_sin on props).
@@ -103,7 +104,7 @@ export const startGame = (T, opts = {}) => {
       // use ang as both args so the first frame in the donut contributes 0 delta.
       cap.sweep = stepSweep(cap.sweep, cap.prevAng ?? ang, ang, engaged, dt, CAP_DECAY);
       cap.prevAng = engaged ? ang : null;
-      if (capProgress(cap.sweep) >= 1) {
+      if (Math.abs(cap.sweep) >= Math.PI * 2 * CAP_LOOPS) {
         cap.collected = true;
         cap.pop       = 0.6;
         cap.sweep     = 0;

@@ -269,7 +269,7 @@ const drawCaps = () => {
     // Red fill overlay — wedge clip on the cap itself, fills clockwise from top.
     // Skipped when collected and a filled image is available (it speaks for itself).
     // collected without imgFull = always full red; otherwise proportional to |sweep| / 2π.
-    const progress = (collected && _imgFull) ? 0 : collected ? 1 : Math.min(1, Math.abs(sweep) / (Math.PI * 2));
+    const progress = (collected && _imgFull) ? 0 : collected ? 1 : Math.min(1, Math.abs(sweep) / (Math.PI * 4)); // 2 loops
     if (progress > 0) {
       const sweepAng = progress * Math.PI * 2;
       ctx.save();
