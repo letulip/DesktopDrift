@@ -37,3 +37,15 @@ export const settings     = () => { _ensure(); return _s.settings; };
 export const garage       = () => { _ensure(); return _s.garage; };
 export const records      = () => { _ensure(); return _s.records; };
 export const achievements = () => { _ensure(); return _s.achievements; };
+
+// stats — lazily self-initialised so adding it never bumps VERSION or resets
+// existing saves. Shape: { caps: { [trackId]: number } }
+export const stats = () => { _ensure(); if (!_s.stats) _s.stats = {}; return _s.stats; };
+
+// Record the number of caps collected on a track. Only persists when the new
+// count beats the stored one (so calling on every collection is safe).
+export const capsFor = (trackId, count) => {
+  const st = stats();
+  if (!st.caps) st.caps = {};
+  if ((st.caps[trackId] ?? 0) < count) { st.caps[trackId] = count; save(); }
+};
