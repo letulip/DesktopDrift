@@ -231,74 +231,56 @@ const drawProp = (o) => {
 }
 
 // Cola cap collectibles
-// Ring drawn at radius 100 (midpoint of the 40–160 donut physics zone).
-const CAP_RING_R = 100;
-const CAP_RING_W = 10;
-const CAP_POP_DUR = 0.6; // must match game-engine CAP_POP value
-
 const drawCaps = () => {
   for (let i = 0; i < collectibles.length; i++) {
     const state = S.caps[i];
     if (!state) continue;
-    const desc  = collectibles[i];
-    const { x, y, r, _img, c } = desc;
+    const desc = collectibles[i];
+    const { x, y, r, _img, _imgFull, c } = desc;
     const { sweep, collected, pop } = state;
 
     ctx.save();
     ctx.translate(x, y);
 
-    if (collected) {
-      // Expanding burst ring that fades out over pop duration
-      if (pop > 0) {
-        const t = 1 - pop / CAP_POP_DUR;           // 0 → 1 as burst plays out
-        ctx.globalAlpha = (1 - t) * 0.85;
-        ctx.strokeStyle = '#ff9999';
-        ctx.lineWidth   = CAP_RING_W * (1 - t * 0.5);
-        ctx.shadowColor = '#ff9999';
-        ctx.shadowBlur  = 16;
-        ctx.beginPath();
-        ctx.arc(0, 0, CAP_RING_R * (0.8 + t * 0.6), 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      // Dim image — cap is spent
-      ctx.globalAlpha = 0.22;
+    // Pop burst — expanding ring that fades out after collection
+    // pop counts down from 0.6 → 0 (matches game-engine cap.pop init value)
+    if (collected && pop > 0) {
+      const t = 1 - pop / 0.6;                   // 0 → 1 as burst plays out
+      ctx.globalAlpha = (1 - t) * 0.75;
+      ctx.strokeStyle = '#cc2200';
+      ctx.lineWidth   = 3;
+      ctx.shadowColor = '#ff3300';
+      ctx.shadowBlur  = 12;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.4 + t * 1.6), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha  = 1;
+      ctx.shadowBlur   = 0;
+      ctx.shadowColor  = 'transparent';
     }
 
-    // Cap image (or fallback circle)
-    if (_img?.complete && _img.naturalWidth > 0) {
-      ctx.drawImage(_img, -r, -r, r * 2, r * 2);
+    // Base image (empty cap) or fallback circle
+    const baseImg = collected ? (_imgFull ?? _img) : _img;
+    if (baseImg?.complete && baseImg.naturalWidth > 0) {
+      ctx.drawImage(baseImg, -r, -r, r * 2, r * 2);
     } else {
-      ctx.fillStyle   = c ?? '#ff9999';
-      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = c ?? '#ff9999';
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
     }
 
-    if (!collected) {
-      // Faint guide ring — shows the donut zone midpoint
-      ctx.strokeStyle = 'rgba(255,153,153,0.15)';
-      ctx.lineWidth   = CAP_RING_W;
-      ctx.shadowColor = 'transparent';
-      ctx.beginPath(); ctx.arc(0, 0, CAP_RING_R, 0, Math.PI * 2); ctx.stroke();
-
-      // Progress arc via wedge clip — only draws the swept portion of the ring
-      const progress = Math.min(1, Math.abs(sweep) / (Math.PI * 2));
-      if (progress > 0) {
-        const sweepAng = progress * Math.PI * 2;
-        ctx.save();
-        // Clip to a wedge sector so only the earned arc of the ring shows
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, CAP_RING_R + CAP_RING_W, -Math.PI / 2, -Math.PI / 2 + sweepAng);
-        ctx.closePath();
-        ctx.clip();
-        // Full ring inside clip → only the wedge slice is visible
-        ctx.strokeStyle = '#ff9999';
-        ctx.lineWidth   = CAP_RING_W;
-        ctx.shadowColor = '#ff9999';
-        ctx.shadowBlur  = 10;
-        ctx.beginPath(); ctx.arc(0, 0, CAP_RING_R, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
-      }
+    // Red fill overlay — wedge clip on the cap itself, fills clockwise from top.
+    // collected = always full; otherwise proportional to |sweep| / 2π.
+    const progress = collected ? 1 : Math.min(1, Math.abs(sweep) / (Math.PI * 2));
+    if (progress > 0) {
+      const sweepAng = progress * Math.PI * 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + sweepAng);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle   = '#cc2200';
+      ctx.globalAlpha = collected ? 0.88 : 0.72;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
 
     ctx.restore();

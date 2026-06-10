@@ -49,7 +49,8 @@ export const startGame = (T, opts = {}) => {
   const collectibles = T.collectibles ?? [];
   // Preload images onto the descriptor (same pattern as _cos/_sin on props).
   for (const cap of collectibles) {
-    if (cap.imgSrc && !cap._img) { const im = new Image(); im.src = cap.imgSrc; cap._img = im; }
+    if (cap.imgSrc  && !cap._img)     { const im = new Image(); im.src = cap.imgSrc;  cap._img     = im; }
+    if (cap.imgFull && !cap._imgFull) { const im = new Image(); im.src = cap.imgFull; cap._imgFull = im; }
   }
   // S.caps: pure runtime state only — static data stays in collectibles[].
   S.caps = {};
