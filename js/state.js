@@ -46,6 +46,7 @@ export const S = {
   skids:         [],
 
   zen:           false,
+  caps:          [],   // runtime cap descriptors — set by game-engine, read by render
 };
 
 // Input

@@ -9,6 +9,7 @@ import {
   isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
+import { capProgress, stepSweep } from './cola.js';
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -39,6 +40,22 @@ export const startGame = (T, opts = {}) => {
   initCar(T);
   if (opts.initItems) initItems(props);
 
+  // ─── Cola caps ────────────────────────────────────────────────────────────────
+  const CAP_INNER_R = 40;          // min distance from cap centre to count as "around" it
+  const CAP_OUTER_R = 160;         // max distance
+  const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
+  const CAP_BONUS   = 500;
+
+  const collectibles = T.collectibles ?? [];
+  for (const cap of collectibles) {
+    if (cap.imgSrc) { const img = new Image(); img.src = cap.imgSrc; cap._img = img; }
+    cap.sweep     = 0;
+    cap.prevAng   = null;
+    cap.collected = false;
+    cap.pop       = 0;       // collection burst timer (seconds), read by render
+  }
+  S.caps = collectibles;
+
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const flash = (msg, color) => {
@@ -64,6 +81,32 @@ export const startGame = (T, opts = {}) => {
     resetCombo();
     S.crashCd = 0.5; S.driftGrace = 1;
   }
+
+  const updateCaps = (dt, drifting) => {
+    for (const cap of collectibles) {
+      if (cap.collected) {
+        if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
+        continue;
+      }
+      const dx = car.x - cap.x, dy = car.y - cap.y;
+      const dist = Math.hypot(dx, dy);
+      const inDonut = dist > CAP_INNER_R && dist < CAP_OUTER_R;
+      const ang = Math.atan2(dy, dx);
+      const engaged = inDonut && drifting;
+      // prevAng is null when the car was last outside the donut;
+      // use ang as both args so the first frame in the donut contributes 0 delta.
+      cap.sweep = stepSweep(cap.sweep, cap.prevAng ?? ang, ang, engaged, dt, CAP_DECAY);
+      cap.prevAng = engaged ? ang : null;
+      if (capProgress(cap.sweep) >= 1) {
+        cap.collected = true;
+        cap.pop       = 0.6;
+        cap.sweep     = 0;
+        if (!ZEN) S.score += CAP_BONUS;
+        flash('CAP! +' + CAP_BONUS, '#ff9999');
+        // Step 5: persist cap collection via store.capsFor()
+      }
+    }
+  };
 
   // Nearest centreline point. Previously an O(N) full scan every frame.
   // The car moves continuously along the closed line, so we only search
@@ -256,6 +299,7 @@ export const startGame = (T, opts = {}) => {
     let vS = car.vx * side.x + car.vy * side.y;
     const speed = Math.hypot(car.vx, car.vy);
     const drifting = isDrifting(vS, speed);
+    updateCaps(dt, drifting);
 
     S.physT += dt;
     const wobSlow = Math.sin(S.physT * 0.8 + 1.7) + 0.5 * Math.sin(S.physT * 1.9 + 4.2);
