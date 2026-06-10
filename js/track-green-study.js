@@ -3,6 +3,7 @@
 // Uses top-level await (ES modules, modern browsers).
 
 import * as ITEMS from './items.js';
+import { COLA_CAP } from './collectibles.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -83,7 +84,13 @@ const _c0 = center[0], _c1 = center[1];
 export const startPos   = { x: _c0.x, y: _c0.y };
 export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
 
-export const collectibles = [];
+// Cola caps placed at wide corners (centerline coords; tune r/position in browser).
+// Array order = persisted cap index — do not reorder.
+export const collectibles = [
+  { ...COLA_CAP, x:  353, y: -175 },   // tight central corner
+  { ...COLA_CAP, x: -470, y: -677 },   // left bottom hairpin
+  { ...COLA_CAP, x: 1067, y: -383 },   // right side corner
+];
 
 export const id   = 'green-study'; // key for store.records()
 export const laps = 3;             // default lap count
