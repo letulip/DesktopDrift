@@ -14,7 +14,7 @@ import { installLocalStorage } from './helpers.js';
 // lazily, but getItem is called on the first getter — install it upfront to be safe).
 const store = installLocalStorage();
 
-const { settings, garage, records, achievements, save, stats, capsFor } =
+const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -38,19 +38,23 @@ test('stats: defaults to empty object', () => {
   assert.deepEqual(stats(), {});
 });
 
-test('capsFor: records cap count for a track', () => {
-  capsFor('green-study', 1);
-  assert.equal(stats().caps['green-study'], 1);
+test('collectedCaps: returns [] for unknown track', () => {
+  assert.deepEqual(collectedCaps('green-study'), []);
 });
 
-test('capsFor: does not downgrade an existing count', () => {
-  capsFor('green-study', 0);
-  assert.equal(stats().caps['green-study'], 1);
+test('capCollect: records a cap index', () => {
+  capCollect('green-study', 0);
+  assert.deepEqual(collectedCaps('green-study'), [0]);
 });
 
-test('capsFor: upgrades if new count is higher', () => {
-  capsFor('green-study', 3);
-  assert.equal(stats().caps['green-study'], 3);
+test('capCollect: no-op if index already recorded', () => {
+  capCollect('green-study', 0);
+  assert.deepEqual(collectedCaps('green-study'), [0]);
+});
+
+test('capCollect: appends new indices', () => {
+  capCollect('green-study', 2);
+  assert.deepEqual(collectedCaps('green-study'), [0, 2]);
 });
 
 test('mutate live object + save() persists correct JSON shape', () => {

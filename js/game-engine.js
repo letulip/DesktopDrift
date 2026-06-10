@@ -3,7 +3,7 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, capsFor } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
 import { createRaceResults } from './race-results.js';
 import {
   isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
@@ -53,9 +53,11 @@ export const startGame = (T, opts = {}) => {
     if (cap.imgFull && !cap._imgFull) { const im = new Image(); im.src = cap.imgFull; cap._imgFull = im; }
   }
   // S.caps: pure runtime state only — static data stays in collectibles[].
+  // Restore previously collected caps from store so they stay permanently collected.
+  const _prevCollected = new Set(collectedCaps(T.id ?? ''));
   S.caps = {};
   collectibles.forEach((_, i) => {
-    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: false, pop: 0 };
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(i), pop: 0 };
   });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -107,7 +109,7 @@ export const startGame = (T, opts = {}) => {
         cap.sweep     = 0;
         if (!ZEN) S.score += CAP_BONUS;
         flash('CAP! +' + CAP_BONUS, '#ff9999');
-        capsFor(T.id ?? '', Object.values(S.caps).filter(c => c.collected).length);
+        capCollect(T.id ?? '', i);
       }
     }
   };

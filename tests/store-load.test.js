@@ -17,7 +17,7 @@ installLocalStorage({
   }),
 });
 
-const { settings, garage, records, achievements, stats } =
+const { settings, garage, records, achievements, stats, collectedCaps } =
   await import('../js/store.js');
 
 test('loads persisted settings', () => {
@@ -36,6 +36,10 @@ test('loads persisted records / achievements', () => {
 test('stats: missing slice lazily initialises to {} on existing save', () => {
   // The seeded save above has no stats field — existing users must not lose their data.
   assert.deepEqual(stats(), {});
+});
+
+test('collectedCaps: returns [] when stats slice absent from save', () => {
+  assert.deepEqual(collectedCaps('green-study'), []);
 });
 
 // version mismatch → reset to defaults (guard against incompatible schema)
