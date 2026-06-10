@@ -47,14 +47,11 @@ export const startGame = (T, opts = {}) => {
   const CAP_BONUS   = 500;
 
   const collectibles = T.collectibles ?? [];
-  for (const cap of collectibles) {
-    if (cap.imgSrc) { const img = new Image(); img.src = cap.imgSrc; cap._img = img; }
-    cap.sweep     = 0;
-    cap.prevAng   = null;
-    cap.collected = false;
-    cap.pop       = 0;       // collection burst timer (seconds), read by render
-  }
-  S.caps = collectibles;
+  S.caps = {};
+  collectibles.forEach((cap, i) => {
+    const img = cap.imgSrc ? (() => { const im = new Image(); im.src = cap.imgSrc; return im; })() : null;
+    S.caps[i] = { trackId: T.id ?? '', ...cap, _img: img, sweep: 0, prevAng: null, collected: false, pop: 0 };
+  });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +80,7 @@ export const startGame = (T, opts = {}) => {
   }
 
   const updateCaps = (dt, drifting) => {
-    for (const cap of collectibles) {
+    for (const cap of Object.values(S.caps)) {
       if (cap.collected) {
         if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
         continue;
