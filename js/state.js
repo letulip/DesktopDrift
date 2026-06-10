@@ -44,6 +44,8 @@ export const S = {
   physT:         0,
 
   skids:         [],
+
+  zen:           false,
 };
 
 // Input
