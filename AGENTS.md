@@ -1,7 +1,8 @@
 # Desktop Drift
 
 Top-down arcade drift-racing game that takes place on a kitchen table. Pure
-client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
+client-side HTML5 Canvas 2D. Build step minifies JS + CSS for production; source
+stays readable. No framework, no bundler.
 
 ## Overview
 
@@ -250,10 +251,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 
 | Task | Command | Notes |
 |------|---------|-------|
-| install | — (none) | No dependencies. |
-| dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Static file server. |
-| build | — (none) | No build step. |
-| test | `npm test` | `node --test tests/*.test.js`. Unit tests for pure logic. Must be green before every commit. |
+| install | `npm install` | Installs `terser` + `clean-css` devDeps. |
+| dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Serves source directly — no build needed for local dev. |
+| build | `npm run build` | Minifies `js/*.js` + `sw.js` + `css/*.css` → `dist/`. Runs via `scripts/build.js`. |
+| test | `npm test` | `node --test tests/*.test.js`. Must be green before every commit. |
 | syntax check | `node --check js/*.js && echo OK` | Run before every commit (all ES modules). |
 
 ## Architecture
@@ -469,9 +470,9 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
 
 - **Branch → environment:** `main` → GitHub Pages (`github-pages` environment).
   No staging branch.
-- **CI/CD:** GitHub Actions `.github/workflows/static.yml` — deploys whole repo
-  on push to `main`. No build step, no lint/test in CI — run `npm test` + smoke
-  test locally first.
+- **CI/CD:** GitHub Actions `.github/workflows/static.yml` — on push to `main`:
+  `npm ci` → `npm run build` (minifies JS + CSS → `dist/`) → deploys `dist/` to
+  Pages. Run `npm test` + smoke test locally before merging; CI has no test step.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` / `fix/*` / `chore/*`
   branches, merged to `main` via PR when ready.
