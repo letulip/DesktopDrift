@@ -67,14 +67,18 @@
 
   const params    = new URLSearchParams(location.search);
   const trackId   = params.get('track');                          // e.g. 'green-study'
-  const mode      = trackId ? 'timeattack' : (params.get('mode') || 'sandbox');
+  const rawMode   = params.get('mode');                           // 'zen', 'sandbox', or null
+  const isZen     = rawMode === 'zen';
+  const mode      = trackId ? 'timeattack' : (rawMode || 'sandbox');
   const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
 
   // Back button leads to track list (if we came from there) or to the main menu
-  document.getElementById('backLink').href = trackMeta ? 'tracks.html' : 'index.html';
+  document.getElementById('backLink').href = isZen ? 'zen.html' : trackMeta ? 'tracks.html' : 'index.html';
 
   document.getElementById('mode-title').textContent =
     trackMeta ? trackMeta.name : mode === 'sandbox' ? 'Sandbox' : 'Time Attack';
+
+  if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
 
   // ── Restore from store ───────────────────────────────────────────────────────
   const g = garage();
@@ -292,7 +296,8 @@
     g.bodyColor = CARS[sel].body;
     g.neonColor = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
     save();
-    location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
+    if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
+    else location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
   });
 
   // ── Initial render ───────────────────────────────────────────────────────────

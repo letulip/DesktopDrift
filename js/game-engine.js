@@ -32,6 +32,7 @@ export const startGame = (T, opts = {}) => {
   }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
+  const ZEN = !!opts.zen;
 
   initRender(T);
   initCar(T);
@@ -52,7 +53,7 @@ export const startGame = (T, opts = {}) => {
 
   const bankCombo = () => {
     if (S.comboPoints < 1) { resetCombo(); return; }
-    S.score += Math.round(S.comboPoints);
+    if (!ZEN) S.score += Math.round(S.comboPoints);
     flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
     resetCombo();
   };
@@ -126,7 +127,7 @@ export const startGame = (T, opts = {}) => {
     c.vy = car.vy * 0.6 - (dy / d) * 80;
     c.spin = (Math.random() - 0.5) * 18;
     car.vx *= 0.96; car.vy *= 0.96;
-    S.score = Math.max(0, S.score - 100);
+    if (!ZEN) S.score = Math.max(0, S.score - 100);
     flash('Cone!  -100', '#ffb14d');
   }
 
@@ -421,9 +422,9 @@ export const startGame = (T, opts = {}) => {
       if (S.skids.length > 1500) S.skids.splice(0, 2);
     }
 
-    if (S.lapStarted) S.lapTime += dt;
+    if (!ZEN && S.lapStarted) S.lapTime += dt;
 
-    if (S.nextCp === 0) {
+    if (!ZEN && S.nextCp === 0) {
       // ── Finish line: crossing by sign of projection ────────────────────────────
       // Circle removed — detection is exact: time is recorded at the moment of crossing,
       // not on entry into a CP_R radius zone.

@@ -215,6 +215,10 @@ canvas { display: block; }
 }
 #rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,1); }
 
+/* --- Zen Drift: hide all HUD panels --- */
+body.zen #hud-left,
+body.zen #hud-right { display: none; }
+
 /* --- Mobile HUD layout --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }

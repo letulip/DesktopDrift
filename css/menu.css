@@ -5,7 +5,7 @@
   background: var(--bg-screen);
   font: 14px/1.4 var(--font-body); color: var(--ink);
 }
-.menu-inner { text-align: center; padding: 24px; max-width: 760px; width: 100%; }
+.menu-inner { text-align: center; padding: 14px; max-width: 760px; width: 100%; }
 .logo {
   margin: 0; font-family: var(--font-display); font-weight: 800; letter-spacing: 1px;
   font-size: clamp(30px, 7.2vw, 58px); line-height: 1;
@@ -33,6 +33,7 @@
   border-radius: var(--r-card); padding: 20px; color: var(--ink); cursor: pointer; text-decoration: none;
   display: block; font: inherit;
   transition: transform var(--ease) ease, border-color var(--ease) ease, background var(--ease) ease;
+  position: relative; /* for badge absolute positioning */
 }
 .tile:hover {
   transform: translateY(-3px); border-color: var(--accent-glow); background: var(--accent-tint);
@@ -43,9 +44,19 @@
 .tile-sub { opacity: .65; font-size: 13px; }
 .tile-stat { margin-top: 5px; font-size: 12px; color: var(--accent); opacity: .8; font-weight: 800;}
 .tile.disabled { cursor: default; opacity: .4; pointer-events: none; }
-.tile-badge { display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: 1px;
-  text-transform: uppercase; opacity: .7; }
-.menu-foot { margin-top: 26px; opacity: .45; font-size: 12px; }
+.tile-badge {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: .7;
+  position: absolute;
+  right: 0px;
+  transform: rotate(90deg);
+  top: calc(50% - 15px);
+}
+.menu-foot { margin-top: 24px; opacity: .45; font-size: 12px; }
 .settings-link {
   display: inline-flex; align-items: center; gap: 5px;
   margin-top: 20px; padding: 7px 16px; border-radius: 20px;
@@ -59,7 +70,7 @@
 .menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; margin-inline: auto; }
 
 /* "Support" footer link */
-.menu-foot-support { margin-top: 28px; }
+.menu-foot-support { margin-top: 24px; }
 .support-link {
   color: inherit; opacity: .75; text-decoration: none; transition: opacity .15s;
 }

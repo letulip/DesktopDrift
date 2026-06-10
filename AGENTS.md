@@ -8,11 +8,11 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
 - **Stack:** Single-page static site. Plain HTML + CSS + vanilla JavaScript
   (ES2020, native ES modules, no transpiler). Rendering via Canvas 2D
   (`requestAnimationFrame` loop). No framework, no bundler, no npm.
-- **Pages (7):**
+- **Pages (8):**
   - `index.html` — menu landing screen. Tiles: Sandbox → `select.html?mode=sandbox`;
-    Time Attack → `tracks.html`. Contains one inline `<script>` that reads
-    `localStorage` directly (no module import) to show the average PPS across all
-    time attack records in the Time Attack tile (`#ta-avg-pps`, styled `.tile-stat`).
+    Time Attack → `tracks.html`; Zen Drift → `zen.html`. Contains one inline `<script>`
+    that reads `localStorage` directly (no module import) to show the average PPS across
+    all time attack records in the Time Attack tile (`#ta-avg-pps`, styled `.tile-stat`).
   - `tracks.html` — **track selection screen** for Time Attack mode. Shows a
     card per track from `js/track-registry.js`, each with a canvas preview rendered
     in the track's own `theme` colours. Preview uses **the same pipeline as the
@@ -22,6 +22,10 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     Shows PPS record ("Score: 1250 PPS (Total: 45,000 · 36.0 s)")
     from `store.records()[id].timeattack.{bestPPS, bestPPSTotal, bestPPSTime}`.
     Clicking a card → `select.html?track=<id>`. `noindex`.
+  - `zen.html` — **track selection screen for Zen Drift mode**. Identical card-rendering
+    pipeline to `tracks.html` (same drawThumb helper, same `parseSvgPath`+`chaikin`
+    preview) but no score panel — cards show only the canvas preview, name, and desc.
+    Clicking a card → `select.html?track=<id>&mode=zen`. `noindex`.
   - `select.html` — **garage / car-selection screen** shown between menu and game.
     Renders live canvas previews of all cars using `CARS[*]._p2d` from `config.js`.
     Each card shows three 10-cell stat bars: **spd** (amber, absolute 0–15 km/h),
@@ -30,14 +34,18 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `THRUST_MAX=900`) are intentionally above current car values — headroom for mods.
     Player picks car + body colour + neon, saves `{ carIndex, bodyColor, neonColor }`
     to `localStorage` and navigates to target game page.
-    URL params: `?mode=sandbox` → `sandbox.html`; `?track=<id>` → `game.html?track=<id>`.
-    Back link goes to `tracks.html` when `?track` is set, otherwise `index.html`.
-  - `game.html` — **universal Time Attack game page**. Single page for all tracks;
-    reads `?track=<id>` from URL, validates against `TRACKS` registry (redirect to
-    `tracks.html` on unknown ID), then `await import(\`./js/track-${meta.id}.js\`)`.
-    Top-level `await` on `import()` waits for the track module's own top-level await
-    (SVG fetch) to complete before `startGame` is called. `document.title` is set
-    from `meta.name`. Adding a new track never requires a new HTML file. `noindex`.
+    URL params: `?mode=sandbox` → `sandbox.html`; `?track=<id>` → `game.html?track=<id>`;
+    `?track=<id>&mode=zen` → `game.html?track=<id>&mode=zen`.
+    Back link: `zen.html` when `mode=zen`, `tracks.html` when `?track` is set, else `index.html`.
+    Race button label changes to "Start Zen" when `mode=zen`.
+  - `game.html` — **universal Time Attack / Zen Drift game page**. Reads `?track=<id>`
+    and optional `?mode=zen` from URL. Validates track against `TRACKS` registry (redirect
+    to `zen.html` or `tracks.html` on unknown ID). Adds `body.zen` class when mode=zen,
+    which hides `#hud-left` and `#hud-right` via `css/sandbox.css`.
+    Passes `{ initItems: true, zen: true }` to `startGame` when in zen mode. `noindex`.
+  - `sandbox.html` — free-drive mode on the parametric oval track. Inline
+    `<script type="module">` imports `track-oval.js` and calls
+    `startGame(T)` (no items).
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
@@ -156,10 +164,13 @@ client-side HTML5 Canvas 2D — no build step, no dependencies, no backend.
     `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
     Imported only by `select.html`. Designed to grow: Phase 2 liveries will add
     a `LIVERIES` array with `{ name, body, stroke, details }` entries here.
-  - `js/game-engine.js` — sole entry point for both game modes. Exports
+  - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
     `opts.initItems` is true. All physics/input/scoring logic lives here.
+    `opts.zen = true` activates Zen Drift: skips `S.score` accumulation, cone
+    penalties, and the entire lap-detection block (no lap times, no race finish).
+    Flash notifications (combo banked, crashes, TRANSITION!, NEAR MISS!) still fire.
     On init reads `garage()` from `store.js` to apply the chosen car model,
     body colour, and neon colour (`CARS[S.carModel].neonColor`).
     Also reads `settings().units` once to compute `speedFactor` (1 for km/h,
