@@ -41,6 +41,7 @@
         <div class="tile-title">Time Attack</div>
         <div class="tile-sub">Chase your best lap. Choose a track.</div>
         <div class="tile-stat" id="ta-avg-pps">No records yet</div>
+        <div class="tile-stat" id="ta-caps" style="display:none"></div>
         <span class="tile-badge">▶ Play</span>
       </a>
       <a class="tile" href="zen.html">
@@ -67,6 +68,15 @@ try {
       const avg = Math.round(ppsList.reduce((a, b) => a + b, 0) / ppsList.length);
       document.getElementById('ta-avg-pps').textContent =
         'Avg ' + avg.toLocaleString() + ' PPS';
+    }
+  }
+  if (data?.stats?.caps) {
+    const total = Object.values(data.stats.caps)
+      .reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+    if (total > 0) {
+      const el = document.getElementById('ta-caps');
+      el.textContent = total === 1 ? '1 cap collected' : total + ' caps collected';
+      el.style.display = '';
     }
   }
 } catch {}

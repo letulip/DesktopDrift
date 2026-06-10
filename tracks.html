@@ -51,7 +51,7 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records } from './js/store.js';
+  import { records, collectedCaps } from './js/store.js';
   import { parseSvgPath, chaikin } from './js/track-util.js';
 
   // ── Track preview rendering on canvas ───────────────────────────────────────
@@ -144,6 +144,15 @@
     canvas.width  = 260;
     canvas.height = 140;
     top.appendChild(canvas);
+
+    // Cap collectible badge — only shown on tracks that have caps
+    if (track.caps > 0) {
+      const collected = collectedCaps(track.id).length;
+      const badge = document.createElement('div');
+      badge.className = 'track-cap-badge' + (collected >= track.caps ? ' is-done' : '');
+      badge.textContent = collected + ' / ' + track.caps + ' cap' + (track.caps !== 1 ? 's' : '');
+      top.appendChild(badge);
+    }
 
     const record = bestRecord(track.id);
 
