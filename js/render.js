@@ -291,7 +291,7 @@ export const draw = (speed) => {
   // next checkpoint (intermediate only — finish is already visualised by the chequered flag)
   // Fixed cyan + dark shadow: cyan is self-visible on dark backgrounds;
   // on light backgrounds the dark shadowBlur halo provides contrast.
-  if (S.nextCp !== 0) {
+  if (!S.zen && S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.7)';

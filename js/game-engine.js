@@ -33,6 +33,7 @@ export const startGame = (T, opts = {}) => {
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
   const ZEN = !!opts.zen;
+  S.zen = ZEN;
 
   initRender(T);
   initCar(T);
