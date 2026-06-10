@@ -40,7 +40,12 @@
       <a class="tile" href="tracks.html">
         <div class="tile-title">Time Attack</div>
         <div class="tile-sub">Chase your best lap. Choose a track.</div>
-        <div class="tile-stat" id="ta-avg-pps"></div>
+        <div class="tile-stat" id="ta-avg-pps">No records yet</div>
+        <span class="tile-badge">▶ Play</span>
+      </a>
+      <a class="tile" href="zen.html">
+        <div class="tile-title">Zen Drift</div>
+        <div class="tile-sub">No score, no timer, no pressure.<br>Just drift.</div>
         <span class="tile-badge">▶ Play</span>
       </a>
     </div>
@@ -58,7 +63,7 @@ try {
     const ppsList = Object.values(data.records)
       .map(t => t.timeattack?.bestPPS)
       .filter(v => v != null);
-    if (ppsList.length > 0) {
+    if (ppsList && ppsList.length > 0) {
       const avg = Math.round(ppsList.reduce((a, b) => a + b, 0) / ppsList.length);
       document.getElementById('ta-avg-pps').textContent =
         'Avg ' + avg.toLocaleString() + ' PPS';

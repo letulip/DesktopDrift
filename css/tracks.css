@@ -137,6 +137,10 @@
     aspect-ratio: 267 / 146;
   }
 
+  .track-thumb--full {
+    flex: 1 1 100%;
+  }
+
   .track-card-score {
     flex: 1;
     display: flex; flex-direction: column;

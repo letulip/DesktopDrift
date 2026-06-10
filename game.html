@@ -49,19 +49,23 @@
   import { TRACKS }    from './js/track-registry.js';
   import { startGame } from './js/game-engine.js';
 
-  const trackId = new URLSearchParams(location.search).get('track') ?? '';
+  const params  = new URLSearchParams(location.search);
+  const trackId = params.get('track') ?? '';
+  const isZen   = params.get('mode') === 'zen';
   const meta    = TRACKS.find(t => t.id === trackId);
 
   // Invalid or missing track → back to track selection
-  if (!meta) { location.replace('tracks.html'); throw new Error('unknown track'); }
+  if (!meta) { location.replace(isZen ? 'zen.html' : 'tracks.html'); throw new Error('unknown track'); }
 
   // Tab title from the registry name
   document.title = `Desktop Drift — ${meta.name}`;
 
+  if (isZen) document.body.classList.add('zen');
+
   // Dynamic import: the module contains a top-level await (SVG fetch),
   // so import() resolves only once the track is fully initialised.
   const T = await import(`./js/track-${meta.id}.js`);
-  startGame(T, { initItems: true });
+  startGame(T, { initItems: true, zen: isZen });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>

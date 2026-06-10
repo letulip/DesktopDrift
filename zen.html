@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Desktop Drift — Zen Drift</title>
+  <meta name="description" content="Zen Drift mode in Desktop Drift. Pick a track and drift with no timers, no scores, no pressure.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#14110f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/tracks.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/content.css">
+</head>
+<body>
+<div id="track-select">
+
+  <header id="ts-header">
+    <h1 id="ts-title">Zen Drift</h1>
+    <p  id="ts-sub">Choose a track — just drift</p>
+  </header>
+
+  <div id="content">
+    <div id="track-cards"></div>
+  </div>
+
+  <footer id="ts-footer">
+    <a href="index.html" class="ts-back">← Back to menu</a>
+  </footer>
+
+</div>
+
+<script type="module">
+  import { TRACKS } from './js/track-registry.js';
+  import { parseSvgPath, chaikin } from './js/track-util.js';
+
+  const SCALE    = 0.25;
+  const TRACK_GU = 100;
+
+  async function drawThumb(canvas, svgSrc, theme) {
+    const th = {
+      background: theme?.background ?? '#0b0907',
+      table:      theme?.table      ?? '#2e241a',
+      tableEdge:  theme?.tableEdge  ?? '#5a4a36',
+      track:      theme?.track      ?? '#ffb14d',
+    };
+
+    let text;
+    try { text = await fetch(svgSrc).then(r => r.text()); }
+    catch { return; }
+
+    try {
+      const doc   = new DOMParser().parseFromString(text, 'image/svg+xml');
+      const d     = doc.getElementById('track_path')?.getAttribute('d');
+      if (!d) return;
+
+      const vb    = doc.querySelector('svg').getAttribute('viewBox').trim().split(/\s+/).map(Number);
+      const svgCX = vb[2] / 2, svgCY = vb[3] / 2;
+
+      let pts = parseSvgPath(d).map(([x, y]) => ({ x: (x - svgCX) * SCALE, y: -(y - svgCY) * SCALE }));
+      for (let i = 0; i < 4; i++) pts = chaikin(pts);
+
+      const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      const extW = maxX - minX + TRACK_GU * 2;
+      const extH = maxY - minY + TRACK_GU * 2;
+      const pad  = 10;
+      const sx   = (canvas.width  - pad * 2) / extW;
+      const sy   = (canvas.height - pad * 2) / extH;
+      const s    = Math.min(sx, sy);
+      const ox   = (canvas.width  - extW * s) / 2 + TRACK_GU * s;
+      const oy   = (canvas.height - extH * s) / 2 + TRACK_GU * s;
+      const toC  = p => ({ x: (p.x - minX) * s + ox, y: (p.y - minY) * s + oy });
+
+      const cx = canvas.getContext('2d');
+
+      cx.fillStyle = th.background;
+      cx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const ti = 5, tr = 5;
+      cx.beginPath();
+      cx.roundRect(ti, ti, canvas.width - ti * 2, canvas.height - ti * 2, tr);
+      cx.fillStyle = th.table; cx.fill();
+      cx.strokeStyle = th.tableEdge; cx.lineWidth = 2; cx.stroke();
+
+      cx.lineWidth   = TRACK_GU * 2 * s;
+      cx.strokeStyle = th.track;
+      cx.lineCap     = 'round';
+      cx.lineJoin    = 'round';
+      cx.beginPath();
+      pts.forEach((p, idx) => {
+        const { x, y } = toC(p);
+        idx === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+      });
+      cx.closePath();
+      cx.stroke();
+    } catch { /* render error — canvas keeps its fallback background */ }
+  }
+
+  const container = document.getElementById('track-cards');
+
+  for (const track of TRACKS) {
+    const link = document.createElement('a');
+    link.className = 'track-card';
+    link.href = `select.html?track=${encodeURIComponent(track.id)}&mode=zen`;
+
+    const top = document.createElement('div');
+    top.className = 'track-card-top';
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'track-thumb track-thumb--full';
+    canvas.width  = 260;
+    canvas.height = 140;
+    top.appendChild(canvas);
+    link.appendChild(top);
+
+    const body = document.createElement('div');
+    body.className = 'track-card-body';
+
+    const name = document.createElement('div');
+    name.className   = 'track-card-name';
+    name.textContent = track.name;
+
+    const desc = document.createElement('div');
+    desc.className   = 'track-card-desc';
+    desc.textContent = track.desc;
+
+    body.appendChild(name);
+    body.appendChild(desc);
+    link.appendChild(body);
+    container.appendChild(link);
+
+    drawThumb(canvas, track.svgSrc, track.theme);
+  }
+
+  requestAnimationFrame(() => { container.scrollTop = 0; });
+</script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>
