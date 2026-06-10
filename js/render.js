@@ -32,7 +32,7 @@ let TH = THEME_DEFAULT;
 let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 
 // --- Track data (set via initRender) ---
-let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
+let center, outer, inner, cones, props, collectibles, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
 let MINI = null;
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
@@ -43,9 +43,10 @@ export const initRender = (T) => {
   center     = T.center;
   outer      = T.outer;
   inner      = T.inner;
-  cones      = T.cones;
-  props      = T.props;
-  checkpoints = T.checkpoints;
+  cones        = T.cones;
+  props        = T.props;
+  collectibles = T.collectibles ?? [];
+  checkpoints  = T.checkpoints;
   CP_R       = T.CP_R;
   TRACK_HALF = T.TRACK_HALF;
   CONE_R     = T.CONE_R;
@@ -229,6 +230,81 @@ const drawProp = (o) => {
   ctx.restore();
 }
 
+// Cola cap collectibles
+// Ring drawn at radius 100 (midpoint of the 40–160 donut physics zone).
+const CAP_RING_R = 100;
+const CAP_RING_W = 10;
+const CAP_POP_DUR = 0.6; // must match game-engine CAP_POP value
+
+const drawCaps = () => {
+  for (let i = 0; i < collectibles.length; i++) {
+    const state = S.caps[i];
+    if (!state) continue;
+    const desc  = collectibles[i];
+    const { x, y, r, _img, c } = desc;
+    const { sweep, collected, pop } = state;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (collected) {
+      // Expanding burst ring that fades out over pop duration
+      if (pop > 0) {
+        const t = 1 - pop / CAP_POP_DUR;           // 0 → 1 as burst plays out
+        ctx.globalAlpha = (1 - t) * 0.85;
+        ctx.strokeStyle = '#ff9999';
+        ctx.lineWidth   = CAP_RING_W * (1 - t * 0.5);
+        ctx.shadowColor = '#ff9999';
+        ctx.shadowBlur  = 16;
+        ctx.beginPath();
+        ctx.arc(0, 0, CAP_RING_R * (0.8 + t * 0.6), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Dim image — cap is spent
+      ctx.globalAlpha = 0.22;
+    }
+
+    // Cap image (or fallback circle)
+    if (_img?.complete && _img.naturalWidth > 0) {
+      ctx.drawImage(_img, -r, -r, r * 2, r * 2);
+    } else {
+      ctx.fillStyle   = c ?? '#ff9999';
+      ctx.shadowColor = 'transparent';
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    if (!collected) {
+      // Faint guide ring — shows the donut zone midpoint
+      ctx.strokeStyle = 'rgba(255,153,153,0.15)';
+      ctx.lineWidth   = CAP_RING_W;
+      ctx.shadowColor = 'transparent';
+      ctx.beginPath(); ctx.arc(0, 0, CAP_RING_R, 0, Math.PI * 2); ctx.stroke();
+
+      // Progress arc via wedge clip — only draws the swept portion of the ring
+      const progress = Math.min(1, Math.abs(sweep) / (Math.PI * 2));
+      if (progress > 0) {
+        const sweepAng = progress * Math.PI * 2;
+        ctx.save();
+        // Clip to a wedge sector so only the earned arc of the ring shows
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, CAP_RING_R + CAP_RING_W, -Math.PI / 2, -Math.PI / 2 + sweepAng);
+        ctx.closePath();
+        ctx.clip();
+        // Full ring inside clip → only the wedge slice is visible
+        ctx.strokeStyle = '#ff9999';
+        ctx.lineWidth   = CAP_RING_W;
+        ctx.shadowColor = '#ff9999';
+        ctx.shadowBlur  = 10;
+        ctx.beginPath(); ctx.arc(0, 0, CAP_RING_R, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    ctx.restore();
+  }
+};
+
 // --- Main render ---
 export const draw = (speed) => {
   ctx.clearRect(0, 0, W, H);
@@ -304,6 +380,9 @@ export const draw = (speed) => {
 
   // props
   for (const o of props) drawProp(o);
+
+  // cola cap collectibles
+  drawCaps();
 
   // cones
   for (const c of cones) {
