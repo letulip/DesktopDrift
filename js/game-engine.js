@@ -47,10 +47,14 @@ export const startGame = (T, opts = {}) => {
   const CAP_BONUS   = 500;
 
   const collectibles = T.collectibles ?? [];
+  // Preload images onto the descriptor (same pattern as _cos/_sin on props).
+  for (const cap of collectibles) {
+    if (cap.imgSrc && !cap._img) { const im = new Image(); im.src = cap.imgSrc; cap._img = im; }
+  }
+  // S.caps: pure runtime state only — static data stays in collectibles[].
   S.caps = {};
-  collectibles.forEach((cap, i) => {
-    const img = cap.imgSrc ? (() => { const im = new Image(); im.src = cap.imgSrc; return im; })() : null;
-    S.caps[i] = { trackId: T.id ?? '', ...cap, _img: img, sweep: 0, prevAng: null, collected: false, pop: 0 };
+  collectibles.forEach((_, i) => {
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: false, pop: 0 };
   });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -80,12 +84,14 @@ export const startGame = (T, opts = {}) => {
   }
 
   const updateCaps = (dt, drifting) => {
-    for (const cap of Object.values(S.caps)) {
+    for (let i = 0; i < collectibles.length; i++) {
+      const cap = S.caps[i];
       if (cap.collected) {
         if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
         continue;
       }
-      const dx = car.x - cap.x, dy = car.y - cap.y;
+      const { x, y } = collectibles[i];
+      const dx = car.x - x, dy = car.y - y;
       const dist = Math.hypot(dx, dy);
       const inDonut = dist > CAP_INNER_R && dist < CAP_OUTER_R;
       const ang = Math.atan2(dy, dx);
