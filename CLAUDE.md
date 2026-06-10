@@ -5,6 +5,32 @@ Full architecture and conventions are documented in **AGENTS.md**.
 Development rules and coding principles are in **rules.md**.
 UI/visual work follows **DESIGN.md** (see AGENTS.md → Design language for tokens).
 
+## ▶ Start here — every session (read first)
+
+The user will just say what to do. Before editing, in this order:
+
+1. **Use the skills, don't re-derive the workflow.** Any code/asset change →
+   follow the **desktopdrift-pr** skill (branch → `npm test` + `node --check` →
+   browser-verify with SW cleared → bump SW cache → PR). Adding a Time Attack
+   track → **desktopdrift-new-track** skill. They are concise; lean on them.
+2. **Context is precious — don't read files whole.** AGENTS.md is 500+ lines:
+   `grep` the section you need (`## Gotchas`, the module you're touching), don't
+   cat it. Same for any file — read by offset/grep, not end to end.
+3. **State a 1–3 line plan before editing** so a wrong direction is caught early.
+
+### Hard rules (breaking these breaks production)
+- **NEVER push to `main`** — it is the live GitHub Pages deploy. Always a new
+  branch (`feat/ fix/ chore/ refactor/ perf/`) → PR. Never commit on `main`.
+- **Before any commit:** `npm test` green **+** `node --check js/*.js`.
+- **Changed JS/CSS/HTML/SVG?** Bump `const CACHE='desktop-drift-vN'` in `sw.js`
+  (SW is stale-while-revalidate). A new JS module → also add it to `ASSETS`.
+  Clear the SW before browser-verifying (snippet in the pr skill) or you see stale code.
+- **All code is English** — comments, identifiers, strings (rules.md: "use only
+  english throughout the entire project"). No Russian, no exceptions.
+- **Minimal diff** — exactly what was asked, no speculative abstractions/features.
+- **New pure logic ships with a unit test** in the same change (`tests/`, `node --test`).
+- If anything is ambiguous, **ask — don't guess silently.**
+
 ## Quick-start
 
 ```bash
@@ -16,7 +42,7 @@ python3 -m http.server 8777   # serve from inside DesktopDrift/
 
 ```bash
 npm test   # node --test tests/*.test.js — must be green
-node --check js/store.js js/palette.js js/config.js js/items.js js/collectibles.js js/track.js js/track-oval.js js/state.js js/render.js js/game-engine.js js/pause.js js/confirm-exit.js && echo OK
+node --check js/*.js && echo OK
 ```
 
 ## Branch policy
