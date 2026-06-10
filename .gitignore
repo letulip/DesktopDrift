@@ -5,3 +5,9 @@
 .claude/settings.local.json
 
 items/raw
+
+# Build output
+dist/
+
+# Node
+node_modules/
