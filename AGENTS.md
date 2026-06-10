@@ -395,8 +395,10 @@ After adding the page:
 - **Indentation:** 2 spaces. Semicolons used. `const`/`let` (no `var`).
 - **Naming:** `camelCase` for vars/functions; `UPPER_SNAKE` for constants
   (`CFG`, `TABLE`, `TRACK_HALF`, `CONE_R`, `MINI`, `ITEM_*`).
-- **Comments:** In-code comments are in **Russian**. Keep new comments
-  consistent with surrounding code.
+- **Language:** **English throughout** — comments, identifiers, and strings
+  (rules.md: "use only english throughout the entire project"). No Russian.
+  *(Some legacy comments are still Russian; convert them to English when you
+  touch that code, don't add new Russian.)*
 - **No circular deps:** The one-way chain must be preserved:
   `config → items → track*(+track-util) → state/render → game-engine(+scoring) → pause → [HTML inline script]`
 - **Do not add npm packages** or a bundler without explicit instruction.

@@ -17,8 +17,9 @@ aesthetics skill, not a game design doc).
 1. **Fresh main + branch.** `git fetch origin` → `git switch main` →
    `git merge --ff-only origin/main` → `git switch -c <type>/<short>`
    (`feat/`, `fix/`, `refactor/`, `perf/`, `chore/`). New branch per logical change.
-2. **Edit** — minimal, per `rules.md` (KISS/DRY/YAGNI/SoC). In-code comments in Russian
-   to match. New pure logic ships with a unit test in the same change.
+2. **Edit** — minimal, per `rules.md` (KISS/DRY/YAGNI/SoC). All code is English —
+   comments, identifiers, strings (rules.md: "use only english throughout"). No
+   Russian. New pure logic ships with a unit test in the same change.
 3. **Tests + syntax** (run before every commit):
    - `npm test` — `node --test tests/*.test.js`, must be green.
    - `node --check` on every touched `js/*.js`.
