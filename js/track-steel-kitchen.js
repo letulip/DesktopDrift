@@ -3,6 +3,7 @@
 // Uses top-level await (ES modules, modern browsers).
 
 import * as ITEMS from './items.js';
+import { COLA_CAP } from './collectibles.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -51,11 +52,23 @@ export const TABLE = { w: Math.round((_maxX + TABLE_MARGIN) * 2), h: Math.round(
 
 // ── Items from proxy lines ────────────────────────────────────────────────────
 export const props = [];
+export const collectibles = [];
 const addProp = (o) => { props.push(prepProp(o)); };
 
 _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
   const rawId = el.id;
-  const key   = resolveKey(rawId);
+
+  if (rawId === 'ITEM_COLA_CAP') {
+    const x1 = parseFloat(el.getAttribute('x1'));
+    const y1 = parseFloat(el.getAttribute('y1'));
+    const x2 = parseFloat(el.getAttribute('x2'));
+    const y2 = parseFloat(el.getAttribute('y2'));
+    const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
+    collectibles.push({ ...COLA_CAP, x: Math.round(x), y: Math.round(y) });
+    return;
+  }
+
+  const key = resolveKey(rawId);
   if (!key) {
     console.warn(`[track-steel-kitchen] unknown item id "${rawId}" — not found in items.js`);
     return;
@@ -80,8 +93,6 @@ export const checkpoints = sampleCheckpoints(center, K);
 const _c0 = center[0], _c1 = center[1];
 export const startPos   = { x: _c0.x, y: _c0.y };
 export const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
-
-export const collectibles = [];
 
 export const id   = 'steel-kitchen';
 export const laps = 3;
