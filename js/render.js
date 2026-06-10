@@ -265,7 +265,7 @@ export const draw = (speed) => {
   drawSkids();
 
   // start/finish — chequered flag (2 rows × N cells across the track)
-  if (!S.zen) {
+  {
     const c0 = center[0];
     const cell = 10; // cell size in game units
     const rows = 2;  // depth along the track
