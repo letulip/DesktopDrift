@@ -14,4 +14,5 @@ export const COLA_CAP = {
   r:      18,
   c:      '#ff9999',
   imgSrc: 'objects/cola.svg',
+  imgFull: 'objects/cola-filled.svg'
 };
