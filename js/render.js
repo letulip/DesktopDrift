@@ -37,6 +37,17 @@ let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 // maintaining their own copies, so there is only one source of truth.
 let _T   = null;
 let MINI = null;
+
+// Effective table dimensions for this session — set from T.TABLE in initRender.
+// Kept separately so we never mutate the shared TABLE singleton from config.js.
+let _TABLE = null;
+
+// Session-specific car paint: garage body colour and neon colour.
+// Written by setCarPaint() (called from game-engine after carModel is resolved),
+// read by draw() — never written back to the CARS descriptor.
+let _carBody = null;
+let _carNeon = null;
+export const setCarPaint = (body, neon) => { _carBody = body ?? null; _carNeon = neon ?? null; };
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
@@ -44,8 +55,9 @@ let trackPath = null, miniTrackPath = null;
 // Called from game-engine.js before the game starts
 export const initRender = (T) => {
   _T = T; // single source of truth — draw functions access track fields via _T
-  // Track can override the table size (TABLE from config.js is an object — mutated in place)
-  if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
+  // Effective table dimensions: use the track's own TABLE, fall back to the config default.
+  // Never mutate the shared TABLE singleton from config.js.
+  _TABLE = T.TABLE ?? TABLE;
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -125,7 +137,7 @@ const drawCar = (M) => {
     ctx.save();
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    ctx.fillStyle = M.body; ctx.fill(M._p2d);
+    ctx.fillStyle = _carBody ?? M.body; ctx.fill(M._p2d);
     if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
     ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = M.stroke;
     ctx.stroke(M._p2d);
@@ -134,7 +146,7 @@ const drawCar = (M) => {
     return;
   }
   const hl = M.len / 2, hw = M.wid / 2;
-  ctx.fillStyle = M.body; rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
+  ctx.fillStyle = _carBody ?? M.body; rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
   ctx.strokeStyle = M.accent; ctx.lineWidth = 1.5; rrect(-hl + 2, -hw + 2, M.len - 4, M.wid - 4, hw * 0.6); ctx.stroke();
   ctx.fillStyle = M.glass; rrect(-hl * 0.5, -hw * 0.82, hl * 0.78, hw * 1.64, hw * 0.45); ctx.fill();
   ctx.fillStyle = M.roof; rrect(-hl * 0.34, -hw * 0.66, hl * 0.46, hw * 1.32, hw * 0.4); ctx.fill();
@@ -301,14 +313,14 @@ export const draw = (speed) => {
 
   // table
   ctx.fillStyle = TH.table;
-  if (TABLE.shape === 'round') {
-    ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+  if (_TABLE.shape === 'round') {
+    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
   } else {
-    ctx.fillRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
+    ctx.fillRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
     ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.strokeRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
+    ctx.strokeRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
   }
 
   // track surface (cached Path2D — no path rebuild every frame)
@@ -418,7 +430,7 @@ export const draw = (speed) => {
   ctx.translate(car.x, car.y); ctx.rotate(car.angle);
   const M = CARS[S.carModel];
   // drop-shadow suppressed when neon is active (they look wrong together)
-  if (!M.neonColor) {
+  if (!_carNeon) {
     ctx.fillStyle = 'rgba(0,0,0,.35)'; rrect(-M.len / 2 + 2, -M.wid / 2 + 3, M.len, M.wid, M.wid * 0.7); ctx.fill();
   }
 
@@ -437,12 +449,12 @@ export const draw = (speed) => {
   }
   // neon underglow — drawn before the body so it sits underneath the car.
   // Three segments: nose→front axle | between axles | rear axle→tail
-  if (M.neonColor) {
+  if (_carNeon) {
     ctx.save();
-    ctx.shadowColor = M.neonColor;
+    ctx.shadowColor = _carNeon;
     ctx.shadowBlur  = 22;
     ctx.globalAlpha = 0.65;
-    ctx.fillStyle   = M.neonColor;
+    ctx.fillStyle   = _carNeon;
 
     const hl     = M.len / 2;
     const carWid = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid

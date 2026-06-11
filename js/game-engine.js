@@ -1,6 +1,6 @@
-import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
+import { CARS, TABLE as TABLE_CFG, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
-import { canvas, W, draw, initItems, initRender } from './render.js';
+import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
@@ -32,6 +32,9 @@ export const startGame = (T, opts = {}) => {
     prev.stop();
   }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
+  // Effective table bounds for this session — track's own TABLE, or the config default.
+  // Local const shadows the module-level import so the shared singleton is never mutated.
+  const TABLE = T.TABLE ?? TABLE_CFG;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
   const ZEN = !!opts.zen;
   S.zen = ZEN;
@@ -247,11 +250,11 @@ export const startGame = (T, opts = {}) => {
     if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
   }
 
-  // Car and colour chosen on the garage screen (select.html), read from store
+  // Car and colour chosen on the garage screen (select.html), read from store.
+  // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
-  CARS[S.carModel].neonColor = g.neonColor || null;
+  setCarPaint(g.bodyColor ?? null, g.neonColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).
