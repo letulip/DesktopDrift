@@ -41,9 +41,8 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { parseSvgPath, chaikin } from './js/track-util.js';
+  import { svgToCentreline } from './js/track-util.js';
 
-  const SCALE    = 0.25;
   const TRACK_GU = 100;
 
   async function drawThumb(canvas, svgSrc, theme) {
@@ -59,15 +58,8 @@
     catch { return; }
 
     try {
-      const doc   = new DOMParser().parseFromString(text, 'image/svg+xml');
-      const d     = doc.getElementById('track_path')?.getAttribute('d');
-      if (!d) return;
-
-      const vb    = doc.querySelector('svg').getAttribute('viewBox').trim().split(/\s+/).map(Number);
-      const svgCX = vb[2] / 2, svgCY = vb[3] / 2;
-
-      let pts = parseSvgPath(d).map(([x, y]) => ({ x: (x - svgCX) * SCALE, y: -(y - svgCY) * SCALE }));
-      for (let i = 0; i < 4; i++) pts = chaikin(pts);
+      const pts = svgToCentreline(text);
+      if (!pts) return;
 
       const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
       const minX = Math.min(...xs), maxX = Math.max(...xs);

@@ -7,9 +7,34 @@ export const ctx    = canvas.getContext('2d');
 const miniEl = document.getElementById('mini');
 const mctx   = miniEl.getContext('2d');
 
+// --- HUD element refs (cached once — avoid getElementById on every frame) ---
+const _hudLap       = document.getElementById('lap');
+const _hudLapNum    = document.getElementById('lapNum');
+const _hudLast      = document.getElementById('last');
+const _hudBest      = document.getElementById('best');
+const _hudScore     = document.getElementById('score');
+const _hudLapScores = document.getElementById('lapScores');
+const _hudSpd       = document.getElementById('spd');
+const _hudCombo     = document.getElementById('combo');
+const _hudFlash     = document.getElementById('flash');
+const _hudCount     = document.getElementById('count');
+
+// Previous values for rarely-changing fields — only write DOM when the value changes.
+// lapTime and speed are skipped (they change every frame; a prev-check would add overhead
+// for zero benefit).
+let _prevLapNum    = -1;
+let _prevLastLap   = undefined;
+let _prevBestLap   = undefined;
+let _prevScore     = -1;
+let _prevLapScoresLen = -1;
+
 export let W, H, DPR;
 export const resize = () => {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap at 1.5 instead of 2: ~1.78× fewer fragment ops on DPR=2 devices;
+  // on DPR=3 (iPhone / Android flagships) it also gives a sharper result
+  // (2× exact upscale vs the 1.5× non-integer upscale of cap=2).
+  // Visual difference is imperceptible for flat vector content in motion.
+  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
@@ -31,28 +56,64 @@ const THEME_DEFAULT = {
 let TH = THEME_DEFAULT;
 let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 
-// --- Track data (set via initRender) ---
-let center, outer, inner, cones, props, collectibles, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
+// --- Track data ---
+// Single reference to the track module — set once by initRender, read by all draw functions.
+// draw() / drawMini() / drawCaps() destructure what they need at call time rather than
+// maintaining their own copies, so there is only one source of truth.
+let _T   = null;
 let MINI = null;
+
+// Effective table dimensions for this session — set from T.TABLE in initRender.
+// Kept separately so we never mutate the shared TABLE singleton from config.js.
+let _TABLE = null;
+
+// Session-specific car paint: garage body colour and neon colour.
+// Written by setCarPaint() (called from game-engine after carModel is resolved),
+// read by draw() — never written back to the CARS descriptor.
+let _carBody = null;
+let _carNeon = null;
+export const setCarPaint = (body, neon) => { _carBody = body ?? null; _carNeon = neon ?? null; };
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
 
+// Standing-cone cache: three Path2Ds (shadow / body / highlight).
+// Rebuilt only when a cone is knocked — typically a handful of times per game,
+// not every frame. Knocked cones are few and dynamic; they are drawn individually.
+let _conesShadow = null, _conesBody = null, _conesHighlight = null;
+let _coneKnockedCount = 0;  // number of knocked cones when paths were last built
+
+// Build three Path2Ds for standing cones (called from initRender and on each knock event).
+// Reads _T directly — must be called after _T is assigned.
+// Each arc is preceded by moveTo at its natural start point (cx+r, cy) so that
+// Canvas begins a fresh subpath instead of drawing a connecting line from the
+// previous arc's end. Without moveTo, 166 circles become one giant connected
+// polygon that fills the entire enclosed area — causing solid visual artifacts.
+const _buildStandingCones = () => {
+  const { cones, CONE_R } = _T;
+  _conesShadow    = new Path2D();
+  _conesBody      = new Path2D();
+  _conesHighlight = new Path2D();
+  for (const c of cones) {
+    if (c.knocked) continue;
+    _conesShadow.moveTo(c.x + 2 + CONE_R, c.y + 2);
+    _conesShadow.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2);
+    _conesBody.moveTo(c.x + CONE_R, c.y);
+    _conesBody.arc(c.x, c.y, CONE_R, 0, Math.PI * 2);
+    _conesHighlight.moveTo(c.x - 1 + CONE_R * 0.35, c.y - 1);
+    _conesHighlight.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2);
+  }
+};
+
 // Called from game-engine.js before the game starts
 export const initRender = (T) => {
-  center     = T.center;
-  outer      = T.outer;
-  inner      = T.inner;
-  cones        = T.cones;
-  props        = T.props;
-  collectibles = T.collectibles ?? [];
-  checkpoints  = T.checkpoints;
-  CP_R       = T.CP_R;
-  TRACK_HALF = T.TRACK_HALF;
-  CONE_R     = T.CONE_R;
-  startAngle = T.startAngle;
-  // Track can override the table size (TABLE from config.js is an object — mutated in place)
-  if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
+  _T = T; // single source of truth — draw functions access track fields via _T
+  // Effective table dimensions: use the track's own TABLE, fall back to the config default.
+  // Never mutate the shared TABLE singleton from config.js.
+  _TABLE = T.TABLE ?? TABLE;
+  // Reset HUD prev-value guards so the first draw() after init always writes all fields.
+  _prevLapNum = -1; _prevLastLap = undefined; _prevBestLap = undefined;
+  _prevScore = -1; _prevLapScoresLen = -1;
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -61,7 +122,7 @@ export const initRender = (T) => {
   // Minimap: world → window transform
   const _pad = 12;
   let _ex = 0, _ey = 0;
-  for (const o of outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
+  for (const o of T.outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
   const _ms = Math.min((miniEl.width - _pad * 2) / (2 * _ex), (miniEl.height - _pad * 2) / (2 * _ey));
   MINI = {
     s:  _ms,
@@ -71,19 +132,23 @@ export const initRender = (T) => {
 
   // Track polygon (outer + reversed inner, evenodd fill) — one Path2D per game session.
   trackPath = new Path2D();
-  trackPath.moveTo(outer[0].x, outer[0].y);
-  for (let i = 1; i < outer.length; i++) trackPath.lineTo(outer[i].x, outer[i].y);
+  trackPath.moveTo(T.outer[0].x, T.outer[0].y);
+  for (let i = 1; i < T.outer.length; i++) trackPath.lineTo(T.outer[i].x, T.outer[i].y);
   trackPath.closePath();
-  const innerRev = inner.slice().reverse();
+  const innerRev = T.inner.slice().reverse();
   trackPath.moveTo(innerRev[0].x, innerRev[0].y);
   for (let i = 1; i < innerRev.length; i++) trackPath.lineTo(innerRev[i].x, innerRev[i].y);
   trackPath.closePath();
 
   // Track centreline for minimap (pixel coords) — also static.
   miniTrackPath = new Path2D();
-  miniTrackPath.moveTo(MINI.X(center[0].x), MINI.Y(center[0].y));
-  for (let i = 1; i < center.length; i++) miniTrackPath.lineTo(MINI.X(center[i].x), MINI.Y(center[i].y));
+  miniTrackPath.moveTo(MINI.X(T.center[0].x), MINI.Y(T.center[0].y));
+  for (let i = 1; i < T.center.length; i++) miniTrackPath.lineTo(MINI.X(T.center[i].x), MINI.Y(T.center[i].y));
   miniTrackPath.closePath();
+
+  // Standing-cone paths: all cones are upright at game start.
+  _coneKnockedCount = 0;
+  _buildStandingCones();
 }
 
 // --- Helper primitives ---
@@ -132,7 +197,7 @@ const drawCar = (M) => {
     ctx.save();
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    ctx.fillStyle = M.body; ctx.fill(M._p2d);
+    ctx.fillStyle = _carBody ?? M.body; ctx.fill(M._p2d);
     if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
     ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = M.stroke;
     ctx.stroke(M._p2d);
@@ -141,7 +206,7 @@ const drawCar = (M) => {
     return;
   }
   const hl = M.len / 2, hw = M.wid / 2;
-  ctx.fillStyle = M.body; rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
+  ctx.fillStyle = _carBody ?? M.body; rrect(-hl, -hw, M.len, M.wid, hw * 0.7); ctx.fill();
   ctx.strokeStyle = M.accent; ctx.lineWidth = 1.5; rrect(-hl + 2, -hw + 2, M.len - 4, M.wid - 4, hw * 0.6); ctx.stroke();
   ctx.fillStyle = M.glass; rrect(-hl * 0.5, -hw * 0.82, hl * 0.78, hw * 1.64, hw * 0.45); ctx.fill();
   ctx.fillStyle = M.roof; rrect(-hl * 0.34, -hw * 0.66, hl * 0.46, hw * 1.32, hw * 0.4); ctx.fill();
@@ -232,6 +297,7 @@ const drawProp = (o) => {
 
 // Cola cap collectibles
 const drawCaps = () => {
+  const collectibles = _T.collectibles ?? [];
   for (let i = 0; i < collectibles.length; i++) {
     const state = S.caps[i];
     if (!state) continue;
@@ -290,6 +356,7 @@ const drawCaps = () => {
 
 // --- Main render ---
 export const draw = (speed) => {
+  const { center, cones, props, checkpoints, TRACK_HALF, CONE_R, CP_R, startAngle } = _T;
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   const camOffY = H * 0.10;
@@ -306,14 +373,14 @@ export const draw = (speed) => {
 
   // table
   ctx.fillStyle = TH.table;
-  if (TABLE.shape === 'round') {
-    ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+  if (_TABLE.shape === 'round') {
+    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.ellipse(0, 0, TABLE.w / 2, TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
   } else {
-    ctx.fillRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
+    ctx.fillRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
     ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.strokeRect(-TABLE.w / 2, -TABLE.h / 2, TABLE.w, TABLE.h);
+    ctx.strokeRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
   }
 
   // track surface (cached Path2D — no path rebuild every frame)
@@ -348,17 +415,14 @@ export const draw = (speed) => {
   }
 
   // next checkpoint (intermediate only — finish is already visualised by the chequered flag)
-  // Fixed cyan + dark shadow: cyan is self-visible on dark backgrounds;
-  // on light backgrounds the dark shadowBlur halo provides contrast.
+  // Double-stroke for contrast on both dark and light tracks: a wider dark ring drawn
+  // first peeks out 2 px on each side of the cyan stroke — no shadowBlur needed.
+  // shadowBlur forces a separate raster buffer + Gaussian pass; double-stroke is free.
   if (!S.zen && S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur  = 14;
-    ctx.strokeStyle = '#7dd4ff';
-    ctx.lineWidth   = 5;
-    ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
+    ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 9; ctx.stroke();
+    ctx.strokeStyle = '#7dd4ff';           ctx.lineWidth = 5; ctx.stroke();
   }
 
   // props
@@ -367,18 +431,33 @@ export const draw = (speed) => {
   // cola cap collectibles
   drawCaps();
 
-  // cones
-  for (const c of cones) {
-    if (c.knocked) {
-      // Knocked: trapezoid (cone on its side) + white reflective stripe.
+  // cones — standing batch (3 fill() calls total) + per-cone draw for knocked ones
+  {
+    // Rebuild standing-cone paths if any cone was newly knocked this frame.
+    let knockedNow = 0;
+    for (const c of cones) if (c.knocked) knockedNow++;
+    if (knockedNow !== _coneKnockedCount) {
+      _buildStandingCones();
+      _coneKnockedCount = knockedNow;
+    }
+
+    // All standing cones: 3 fill() calls instead of (N × 3) beginPath/arc/fill.
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';       ctx.fill(_conesShadow);
+    ctx.fillStyle = TH.cone;                  ctx.fill(_conesBody);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(_conesHighlight);
+
+    // Knocked cones: few and dynamic — drawn individually every frame.
+    for (const c of cones) {
+      if (!c.knocked) continue;
+      // Trapezoid (cone on its side) + white reflective stripe.
       // save/translate/rotate needed — shape is oriented by c.ang.
       ctx.save();
       ctx.translate(c.x, c.y);
       ctx.rotate(c.ang);
 
-      const h     = CONE_R * 3;      // length of the lying cone
-      const rBase = CONE_R;          // half-radius at the base (wide end)
-      const rTip  = CONE_R * 0.25;  // half-radius at the tip (narrow end)
+      const h     = CONE_R * 3;     // length of the lying cone
+      const rBase = CONE_R;         // half-radius at the base (wide end)
+      const rTip  = CONE_R * 0.25; // half-radius at the tip (narrow end)
 
       // Shadow — same trapezoid shifted (+2, +2)
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -404,17 +483,6 @@ export const draw = (speed) => {
       ctx.closePath(); ctx.fill();
 
       ctx.restore();
-    } else {
-      // Standing: three arcs in world coordinates — no save/restore (166 cones/frame).
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
-      ctx.beginPath(); ctx.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // Base
-      ctx.fillStyle = TH.cone;
-      ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // Highlight: offset (-1,-1) simulates a top-left light source
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.beginPath(); ctx.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -423,7 +491,7 @@ export const draw = (speed) => {
   ctx.translate(car.x, car.y); ctx.rotate(car.angle);
   const M = CARS[S.carModel];
   // drop-shadow suppressed when neon is active (they look wrong together)
-  if (!M.neonColor) {
+  if (!_carNeon) {
     ctx.fillStyle = 'rgba(0,0,0,.35)'; rrect(-M.len / 2 + 2, -M.wid / 2 + 3, M.len, M.wid, M.wid * 0.7); ctx.fill();
   }
 
@@ -442,12 +510,12 @@ export const draw = (speed) => {
   }
   // neon underglow — drawn before the body so it sits underneath the car.
   // Three segments: nose→front axle | between axles | rear axle→tail
-  if (M.neonColor) {
+  if (_carNeon) {
     ctx.save();
-    ctx.shadowColor = M.neonColor;
+    ctx.shadowColor = _carNeon;
     ctx.shadowBlur  = 22;
     ctx.globalAlpha = 0.65;
-    ctx.fillStyle   = M.neonColor;
+    ctx.fillStyle   = _carNeon;
 
     const hl     = M.len / 2;
     const carWid = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
@@ -470,34 +538,50 @@ export const draw = (speed) => {
   ctx.restore();
   ctx.restore();
 
-  // HUD
-  document.getElementById('lap').textContent = S.lapTime.toFixed(2);
-  document.getElementById('lapNum').textContent = S.lapNum + 1;
-  document.getElementById('last').textContent = S.lastLap === null ? '—' : S.lastLap.toFixed(2) + ' s';
-  document.getElementById('best').textContent = S.bestLap === null ? '—' : S.bestLap.toFixed(2) + ' s';
-  document.getElementById('score').textContent = Math.round(S.score);
-  document.getElementById('lapScores').innerHTML =
-    S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
-  document.getElementById('spd').textContent = speed.toFixed(1);
+  // HUD — use cached element refs; guard rarely-changing fields with prev-value checks
+  // so DOM writes (and their associated style recalc) only happen when values actually change.
+  // lapTime and speed update every frame regardless (they always change).
+  _hudLap.textContent = S.lapTime.toFixed(2);
+  _hudSpd.textContent = speed.toFixed(1);
 
-  const comboEl = document.getElementById('combo');
-  if (S.comboPoints > 0) { comboEl.style.opacity = 1; comboEl.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
-  else comboEl.style.opacity = 0;
+  const lapNum = S.lapNum + 1;
+  if (lapNum !== _prevLapNum) { _hudLapNum.textContent = lapNum; _prevLapNum = lapNum; }
 
-  const flashEl = document.getElementById('flash');
-  flashEl.style.opacity = Math.max(0, S.flashT / 0.9);
-  flashEl.style.color = S.flashColor;
-  flashEl.textContent = S.flashMsg;
+  if (S.lastLap !== _prevLastLap) {
+    _hudLast.textContent = S.lastLap === null ? '—' : S.lastLap.toFixed(2) + ' s';
+    _prevLastLap = S.lastLap;
+  }
+  if (S.bestLap !== _prevBestLap) {
+    _hudBest.textContent = S.bestLap === null ? '—' : S.bestLap.toFixed(2) + ' s';
+    _prevBestLap = S.bestLap;
+  }
 
-  const countEl = document.getElementById('count');
-  if (S.startCd > 0) { countEl.style.opacity = 1; countEl.style.color = '#fff'; countEl.textContent = Math.ceil(S.startCd); }
-  else if (S.goT > 0) { countEl.style.opacity = Math.min(1, S.goT / 0.4); countEl.style.color = '#9dff8f'; countEl.textContent = 'GO!'; }
-  else countEl.style.opacity = 0;
+  const sc = Math.round(S.score);
+  if (sc !== _prevScore) { _hudScore.textContent = sc; _prevScore = sc; }
+
+  // lapScores: slice/reverse/map/join + innerHTML are expensive — only rebuild on new lap.
+  if (S.lapScores.length !== _prevLapScoresLen) {
+    _hudLapScores.innerHTML =
+      S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
+    _prevLapScoresLen = S.lapScores.length;
+  }
+
+  if (S.comboPoints > 0) { _hudCombo.style.opacity = 1; _hudCombo.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
+  else _hudCombo.style.opacity = 0;
+
+  _hudFlash.style.opacity = Math.max(0, S.flashT / 0.9);
+  _hudFlash.style.color   = S.flashColor;
+  _hudFlash.textContent   = S.flashMsg;
+
+  if (S.startCd > 0) { _hudCount.style.opacity = 1; _hudCount.style.color = '#fff'; _hudCount.textContent = Math.ceil(S.startCd); }
+  else if (S.goT > 0) { _hudCount.style.opacity = Math.min(1, S.goT / 0.4); _hudCount.style.color = '#9dff8f'; _hudCount.textContent = 'GO!'; }
+  else _hudCount.style.opacity = 0;
 
   drawMini();
 }
 
 export const drawMini = () => {
+  const { props, TRACK_HALF } = _T;
   mctx.clearRect(0, 0, miniEl.width, miniEl.height);
   mctx.lineJoin = mctx.lineCap = 'round';
   mctx.strokeStyle = 'rgba(255,255,255,.22)';

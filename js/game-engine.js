@@ -1,6 +1,6 @@
-import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
+import { CARS, TABLE as TABLE_CFG, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
-import { canvas, W, draw, initItems, initRender } from './render.js';
+import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
@@ -32,6 +32,9 @@ export const startGame = (T, opts = {}) => {
     prev.stop();
   }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
+  // Effective table bounds for this session — track's own TABLE, or the config default.
+  // Local const shadows the module-level import so the shared singleton is never mutated.
+  const TABLE = T.TABLE ?? TABLE_CFG;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
   const ZEN = !!opts.zen;
   S.zen = ZEN;
@@ -58,7 +61,11 @@ export const startGame = (T, opts = {}) => {
   const _prevCollected = new Set(collectedCaps(T.id ?? ''));
   S.caps = {};
   collectibles.forEach((c, i) => {
-    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(c.capId ?? i), pop: 0 };
+    // Two-format lookup: new saves use a coordinate string capId; saves made before
+    // the capId migration used a plain numeric index. Accept either so legacy saves
+    // don't silently lose their collected state.
+    const wasCollected = _prevCollected.has(c.capId ?? i) || _prevCollected.has(i);
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
 
   // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.
@@ -247,11 +254,11 @@ export const startGame = (T, opts = {}) => {
     if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
   }
 
-  // Car and colour chosen on the garage screen (select.html), read from store
+  // Car and colour chosen on the garage screen (select.html), read from store.
+  // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
-  CARS[S.carModel].neonColor = g.neonColor || null;
+  setCarPaint(g.bodyColor ?? null, g.neonColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).
@@ -276,21 +283,32 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Physics ──────────────────────────────────────────────────────────────────
 
+  // 60 fps cap: physics and rendering are skipped on rAF ticks that arrive too early.
+  // rAF is always re-registered (so the browser can composite overlays), but the frame
+  // body bails out until ≥ FRAME_MS has elapsed since the last real frame.
+  // Physics uses dt-based normalisation (fAdj = dt * PHYS_HZ) so it is identical at
+  // any frame rate — the cap has zero effect on simulation results.
+  // `last` updates only inside the real-frame path; skipped ticks leave it unchanged
+  // so the next real frame receives the correct accumulated dt, not a spike.
+  const FRAME_MS = 1000 / 60; // target: 60 fps
+  let lastFrame  = 0;          // timestamp of the last executed frame
   let last = performance.now();
   let rafId = 0;
   const frame = (now) => {
+    rafId = requestAnimationFrame(frame);
+    if (now - lastFrame < FRAME_MS - 1) return;  // -1 ms tolerance for timer jitter
+    lastFrame = now;
+
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
     // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
-    // `last` is already updated → no dt spike on resume.
-    if (pause.isPaused()) { rafId = requestAnimationFrame(frame); return; }
+    if (pause.isPaused()) return;
 
     if (S.startCd > 0) {
       S.startCd -= dt;
       if (S.startCd <= 0) S.goT = 1.0;
       draw(0);
-      rafId = requestAnimationFrame(frame);
       return;
     }
     if (S.goT > 0) S.goT -= dt;
@@ -548,7 +566,6 @@ export const startGame = (T, opts = {}) => {
 
     if (S.flashT > 0) S.flashT -= dt;
     draw(toDisplaySpeed(speed));
-    rafId = requestAnimationFrame(frame);
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
