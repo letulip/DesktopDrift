@@ -31,8 +31,11 @@ const THEME_DEFAULT = {
 let TH = THEME_DEFAULT;
 let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 
-// --- Track data (set via initRender) ---
-let center, outer, inner, cones, props, collectibles, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
+// --- Track data ---
+// Single reference to the track module — set once by initRender, read by all draw functions.
+// draw() / drawMini() / drawCaps() destructure what they need at call time rather than
+// maintaining their own copies, so there is only one source of truth.
+let _T   = null;
 let MINI = null;
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
@@ -40,17 +43,7 @@ let trackPath = null, miniTrackPath = null;
 
 // Called from game-engine.js before the game starts
 export const initRender = (T) => {
-  center     = T.center;
-  outer      = T.outer;
-  inner      = T.inner;
-  cones        = T.cones;
-  props        = T.props;
-  collectibles = T.collectibles ?? [];
-  checkpoints  = T.checkpoints;
-  CP_R       = T.CP_R;
-  TRACK_HALF = T.TRACK_HALF;
-  CONE_R     = T.CONE_R;
-  startAngle = T.startAngle;
+  _T = T; // single source of truth — draw functions access track fields via _T
   // Track can override the table size (TABLE from config.js is an object — mutated in place)
   if (T.TABLE) { TABLE.w = T.TABLE.w; TABLE.h = T.TABLE.h; TABLE.shape = T.TABLE.shape ?? TABLE.shape; }
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
@@ -61,7 +54,7 @@ export const initRender = (T) => {
   // Minimap: world → window transform
   const _pad = 12;
   let _ex = 0, _ey = 0;
-  for (const o of outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
+  for (const o of T.outer) { _ex = Math.max(_ex, Math.abs(o.x)); _ey = Math.max(_ey, Math.abs(o.y)); }
   const _ms = Math.min((miniEl.width - _pad * 2) / (2 * _ex), (miniEl.height - _pad * 2) / (2 * _ey));
   MINI = {
     s:  _ms,
@@ -71,18 +64,18 @@ export const initRender = (T) => {
 
   // Track polygon (outer + reversed inner, evenodd fill) — one Path2D per game session.
   trackPath = new Path2D();
-  trackPath.moveTo(outer[0].x, outer[0].y);
-  for (let i = 1; i < outer.length; i++) trackPath.lineTo(outer[i].x, outer[i].y);
+  trackPath.moveTo(T.outer[0].x, T.outer[0].y);
+  for (let i = 1; i < T.outer.length; i++) trackPath.lineTo(T.outer[i].x, T.outer[i].y);
   trackPath.closePath();
-  const innerRev = inner.slice().reverse();
+  const innerRev = T.inner.slice().reverse();
   trackPath.moveTo(innerRev[0].x, innerRev[0].y);
   for (let i = 1; i < innerRev.length; i++) trackPath.lineTo(innerRev[i].x, innerRev[i].y);
   trackPath.closePath();
 
   // Track centreline for minimap (pixel coords) — also static.
   miniTrackPath = new Path2D();
-  miniTrackPath.moveTo(MINI.X(center[0].x), MINI.Y(center[0].y));
-  for (let i = 1; i < center.length; i++) miniTrackPath.lineTo(MINI.X(center[i].x), MINI.Y(center[i].y));
+  miniTrackPath.moveTo(MINI.X(T.center[0].x), MINI.Y(T.center[0].y));
+  for (let i = 1; i < T.center.length; i++) miniTrackPath.lineTo(MINI.X(T.center[i].x), MINI.Y(T.center[i].y));
   miniTrackPath.closePath();
 }
 
@@ -232,6 +225,7 @@ const drawProp = (o) => {
 
 // Cola cap collectibles
 const drawCaps = () => {
+  const collectibles = _T.collectibles ?? [];
   for (let i = 0; i < collectibles.length; i++) {
     const state = S.caps[i];
     if (!state) continue;
@@ -290,6 +284,7 @@ const drawCaps = () => {
 
 // --- Main render ---
 export const draw = (speed) => {
+  const { center, cones, props, checkpoints, TRACK_HALF, CONE_R, CP_R, startAngle } = _T;
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   const camOffY = H * 0.10;
@@ -498,6 +493,7 @@ export const draw = (speed) => {
 }
 
 export const drawMini = () => {
+  const { props, TRACK_HALF } = _T;
   mctx.clearRect(0, 0, miniEl.width, miniEl.height);
   mctx.lineJoin = mctx.lineCap = 'round';
   mctx.strokeStyle = 'rgba(255,255,255,.22)';
