@@ -7,6 +7,27 @@ export const ctx    = canvas.getContext('2d');
 const miniEl = document.getElementById('mini');
 const mctx   = miniEl.getContext('2d');
 
+// --- HUD element refs (cached once — avoid getElementById on every frame) ---
+const _hudLap       = document.getElementById('lap');
+const _hudLapNum    = document.getElementById('lapNum');
+const _hudLast      = document.getElementById('last');
+const _hudBest      = document.getElementById('best');
+const _hudScore     = document.getElementById('score');
+const _hudLapScores = document.getElementById('lapScores');
+const _hudSpd       = document.getElementById('spd');
+const _hudCombo     = document.getElementById('combo');
+const _hudFlash     = document.getElementById('flash');
+const _hudCount     = document.getElementById('count');
+
+// Previous values for rarely-changing fields — only write DOM when the value changes.
+// lapTime and speed are skipped (they change every frame; a prev-check would add overhead
+// for zero benefit).
+let _prevLapNum    = -1;
+let _prevLastLap   = undefined;
+let _prevBestLap   = undefined;
+let _prevScore     = -1;
+let _prevLapScoresLen = -1;
+
 export let W, H, DPR;
 export const resize = () => {
   // Cap at 1.5 instead of 2: ~1.78× fewer fragment ops on DPR=2 devices;
@@ -90,6 +111,9 @@ export const initRender = (T) => {
   // Effective table dimensions: use the track's own TABLE, fall back to the config default.
   // Never mutate the shared TABLE singleton from config.js.
   _TABLE = T.TABLE ?? TABLE;
+  // Reset HUD prev-value guards so the first draw() after init always writes all fields.
+  _prevLapNum = -1; _prevLastLap = undefined; _prevBestLap = undefined;
+  _prevScore = -1; _prevLapScoresLen = -1;
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -514,29 +538,44 @@ export const draw = (speed) => {
   ctx.restore();
   ctx.restore();
 
-  // HUD
-  document.getElementById('lap').textContent = S.lapTime.toFixed(2);
-  document.getElementById('lapNum').textContent = S.lapNum + 1;
-  document.getElementById('last').textContent = S.lastLap === null ? '—' : S.lastLap.toFixed(2) + ' s';
-  document.getElementById('best').textContent = S.bestLap === null ? '—' : S.bestLap.toFixed(2) + ' s';
-  document.getElementById('score').textContent = Math.round(S.score);
-  document.getElementById('lapScores').innerHTML =
-    S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
-  document.getElementById('spd').textContent = speed.toFixed(1);
+  // HUD — use cached element refs; guard rarely-changing fields with prev-value checks
+  // so DOM writes (and their associated style recalc) only happen when values actually change.
+  // lapTime and speed update every frame regardless (they always change).
+  _hudLap.textContent = S.lapTime.toFixed(2);
+  _hudSpd.textContent = speed.toFixed(1);
 
-  const comboEl = document.getElementById('combo');
-  if (S.comboPoints > 0) { comboEl.style.opacity = 1; comboEl.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
-  else comboEl.style.opacity = 0;
+  const lapNum = S.lapNum + 1;
+  if (lapNum !== _prevLapNum) { _hudLapNum.textContent = lapNum; _prevLapNum = lapNum; }
 
-  const flashEl = document.getElementById('flash');
-  flashEl.style.opacity = Math.max(0, S.flashT / 0.9);
-  flashEl.style.color = S.flashColor;
-  flashEl.textContent = S.flashMsg;
+  if (S.lastLap !== _prevLastLap) {
+    _hudLast.textContent = S.lastLap === null ? '—' : S.lastLap.toFixed(2) + ' s';
+    _prevLastLap = S.lastLap;
+  }
+  if (S.bestLap !== _prevBestLap) {
+    _hudBest.textContent = S.bestLap === null ? '—' : S.bestLap.toFixed(2) + ' s';
+    _prevBestLap = S.bestLap;
+  }
 
-  const countEl = document.getElementById('count');
-  if (S.startCd > 0) { countEl.style.opacity = 1; countEl.style.color = '#fff'; countEl.textContent = Math.ceil(S.startCd); }
-  else if (S.goT > 0) { countEl.style.opacity = Math.min(1, S.goT / 0.4); countEl.style.color = '#9dff8f'; countEl.textContent = 'GO!'; }
-  else countEl.style.opacity = 0;
+  const sc = Math.round(S.score);
+  if (sc !== _prevScore) { _hudScore.textContent = sc; _prevScore = sc; }
+
+  // lapScores: slice/reverse/map/join + innerHTML are expensive — only rebuild on new lap.
+  if (S.lapScores.length !== _prevLapScoresLen) {
+    _hudLapScores.innerHTML =
+      S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
+    _prevLapScoresLen = S.lapScores.length;
+  }
+
+  if (S.comboPoints > 0) { _hudCombo.style.opacity = 1; _hudCombo.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
+  else _hudCombo.style.opacity = 0;
+
+  _hudFlash.style.opacity = Math.max(0, S.flashT / 0.9);
+  _hudFlash.style.color   = S.flashColor;
+  _hudFlash.textContent   = S.flashMsg;
+
+  if (S.startCd > 0) { _hudCount.style.opacity = 1; _hudCount.style.color = '#fff'; _hudCount.textContent = Math.ceil(S.startCd); }
+  else if (S.goT > 0) { _hudCount.style.opacity = Math.min(1, S.goT / 0.4); _hudCount.style.color = '#9dff8f'; _hudCount.textContent = 'GO!'; }
+  else _hudCount.style.opacity = 0;
 
   drawMini();
 }
