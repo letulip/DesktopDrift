@@ -5,6 +5,12 @@
 // Parse SVG path d: supports M, L, H, V, Z (absolute coordinates only).
 // Returns an array of pairs [[x, y], ...].
 // Consolidated from track modules and tracks.html — was three identical copies.
+//
+// Deduplicates the closing vertex: track SVGs commonly end with an explicit
+// "L start_x start_y Z" which makes the last parsed point equal to the first.
+// That zero-length closing edge produces 2^n coincident Chaikin points (n=passes),
+// destabilising the tangent normal and displacing the inner/outer edges near
+// start/finish.  Drop the duplicate if dist(first, last) < 0.5 SVG units.
 export const parseSvgPath = (d) => {
   const pts = [];
   const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
@@ -19,6 +25,11 @@ export const parseSvgPath = (d) => {
     } else if (cmd === 'H') { x = v; i++; pts.push([x, y]); }
     else if (cmd === 'V')   { y = v; i++; pts.push([x, y]); }
     else i++;
+  }
+  // Remove duplicate closing vertex (explicit "L back-to-start Z" pattern).
+  if (pts.length > 1) {
+    const [f, l] = [pts[0], pts[pts.length - 1]];
+    if (Math.hypot(l[0] - f[0], l[1] - f[1]) < 0.5) pts.pop();
   }
   return pts;
 };
@@ -38,7 +49,16 @@ export const chaikin = (pts) => {
 // Builds { center, outer, inner } from a centerline: outer and inner edges are offset
 // by `half` along the perpendicular to the tangent (computed from neighbouring points).
 // center holds the same point references as centerPts (as in the original track.js).
-export const offsetEdges = (centerPts, half) => {
+//
+// On hairpins the naive ±half offset inverts when the local radius of curvature R < half
+// (inner edge crosses the centre of curvature → self-intersecting loop).  This function
+// estimates R as the circumradius of the (prev, curr, next) triangle and clamps the inner
+// offset to min(half, R − minInnerGap) so the inner edge stays on the correct side.
+// The outer offset is never clamped — outer radius R+half is always > half.
+//
+// minInnerGap: minimum distance from the estimated centre of curvature to the inner edge.
+// Default 10 GU keeps the inner arc open without noticeably shrinking the track.
+export const offsetEdges = (centerPts, half, minInnerGap = 10) => {
   const center = [], outer = [], inner = [];
   const N = centerPts.length;
   for (let i = 0; i < N; i++) {
@@ -48,30 +68,49 @@ export const offsetEdges = (centerPts, half) => {
     const tx   = next.x - prev.x, ty = next.y - prev.y;
     const len  = Math.hypot(tx, ty) || 1;
     const nx   = -ty / len, ny = tx / len; // left-hand normal
+
+    // Circumradius of the prev–curr–next triangle ≈ local radius of curvature.
+    // Formula: R = (|AB|·|BC|·|CA|) / (2·|area|).  Collinear → R = ∞ (straight).
+    const ax = prev.x - c.x, ay = prev.y - c.y;
+    const bx = next.x - c.x, by = next.y - c.y;
+    const cross = ax * by - ay * bx;           // 2 × signed triangle area
+    const R = cross === 0 ? Infinity
+      : (Math.hypot(ax, ay) * Math.hypot(bx, by) * Math.hypot(ax - bx, ay - by))
+        / (2 * Math.abs(cross));
+    // Clamp inner offset: never let the inner point pass the centre of curvature.
+    const innerHalf = Math.min(half, Math.max(R - minInnerGap, minInnerGap));
+
     center.push(c);
-    outer.push({ x: c.x + nx * half, y: c.y + ny * half });
-    inner.push({ x: c.x - nx * half, y: c.y - ny * half });
+    outer.push({ x: c.x + nx * half,      y: c.y + ny * half });
+    inner.push({ x: c.x - nx * innerHalf, y: c.y - ny * innerHalf });
   }
   return { center, outer, inner };
 };
 
 // Places cones along outer and inner edges at equal arc-length intervals.
-// minSpacing: minimum world-unit distance between consecutive cone pairs.
-// Arc-length sampling gives uniform density regardless of how Chaikin smoothing
-// distributes points — which clusters them in corners and thins them on straights,
-// causing crowding in bends and gaps up to ~1750 GU on the old index-step approach.
-export const placeCones = (outer, inner, minSpacing = 120) => {
+// minSpacing: minimum world-unit distance between consecutive cones on each edge.
+// Each edge uses its own accumulator, so outer and inner are sampled independently.
+// In a corner the outer arc is longer (larger radius) → outer receives proportionally
+// more cones, eliminating the large gaps that appeared when both edges were driven by
+// a single shared accumulator (symmetric pairing).  On straights outer ≈ inner so the
+// two edges remain roughly aligned.  Arc-length sampling also avoids Chaikin-corner
+// crowding — the old index-step approach gave gaps up to ~1750 GU on straights.
+export const placeCones = (outer, inner, minSpacing = 160) => {
   const cones = [];
   const N = outer.length;
-  let acc = 0;
+  let outerAcc = 0, innerAcc = 0;
   for (let i = 0; i < N; i++) {
     const next = (i + 1) % N;
-    if (i === 0 || acc >= minSpacing) {
+    if (i === 0 || outerAcc >= minSpacing) {
       cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-      acc = 0;
+      outerAcc = 0;
     }
-    acc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
+    if (i === 0 || innerAcc >= minSpacing) {
+      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      innerAcc = 0;
+    }
+    outerAcc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
+    innerAcc += Math.hypot(inner[next].x - inner[i].x, inner[next].y - inner[i].y);
   }
   return cones;
 };

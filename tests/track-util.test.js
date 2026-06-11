@@ -24,6 +24,20 @@ test('parseSvgPath: M/L/H/V/Z → array of [x,y] pairs', () => {
   assert.ok(Math.abs(pts2[1][1] - 2177.88) < 0.01);
 });
 
+test('parseSvgPath: deduplicates explicit closing vertex (L back-to-start Z)', () => {
+  // All three shipped track SVGs use "M x y L ... L x y Z" — the last L repeats
+  // the start point.  Without dedup, Chaikin 4× produces 16 coincident points near
+  // start/finish, destabilising normals and displacing inner edge cones.
+  const pts = parseSvgPath('M10 20 L30 20 L50 40 L10 20 Z');
+  // Last vertex (10,20) equals first → should be dropped → 3 unique vertices
+  assert.equal(pts.length, 3);
+  assert.deepEqual(pts[0], [10, 20]);
+  assert.deepEqual(pts[2], [50, 40]); // last kept vertex is the one before the dup
+  // Non-closing path (last != first) must not be trimmed
+  const pts2 = parseSvgPath('M10 20 L30 20 L50 40 Z');
+  assert.equal(pts2.length, 3);
+});
+
 test('chaikin: n points → 2n, convex combination of neighbours', () => {
   const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
   const out = chaikin(sq);
@@ -33,7 +47,8 @@ test('chaikin: n points → 2n, convex combination of neighbours', () => {
   near(out[0].y, 0);
 });
 
-test('offsetEdges: lengths match, edges are symmetric around the centre', () => {
+test('offsetEdges: gentle curve (R >> half) — edges symmetric, outer = half from centre', () => {
+  // Square with corner R ≈ 141 GU >> half=40 → no clamping, classic symmetric offset.
   const center = [
     { x: -100, y: -100 }, { x: 100, y: -100 },
     { x: 100, y: 100 }, { x: -100, y: 100 },
@@ -52,11 +67,30 @@ test('offsetEdges: lengths match, edges are symmetric around the centre', () => 
   }
 });
 
-test('placeCones: arc-length spacing — uniform points give same result as old index step', () => {
-  // 10 points at x=0..9, spacing=1 GU.  minSpacing=5 → cones at i=0 (acc=0) and i=5
-  // (acc reaches 5 after 5 segments of length 1) → 2 pairs = 4 cones.
-  // On non-uniform point distributions (real tracks) arc-length sampling avoids
-  // the corner-crowding and straight-gap problems of the old index-step approach.
+test('offsetEdges: hairpin (R < half) — inner offset clamped, no self-intersection', () => {
+  // Three points on a circle of radius R=40, angles −60°/0°/+60°.
+  // half=80 > R: without clamping the inner edge would cross the centre of curvature
+  // and produce a self-intersecting loop (observed on green-study / workbench hairpins).
+  // The fix clamps innerHalf to ≤ R − minInnerGap so the inner arc stays on the correct side.
+  const R = 40, half = 80;
+  const pts = [
+    { x: R * Math.cos(-Math.PI / 3), y: R * Math.sin(-Math.PI / 3) },
+    { x: R,                            y: 0 },
+    { x: R * Math.cos( Math.PI / 3), y: R * Math.sin( Math.PI / 3) },
+  ];
+  const { outer, inner } = offsetEdges(pts, half);
+  // Outer displacement must equal half (outer is never clamped).
+  near(Math.hypot(outer[1].x - pts[1].x, outer[1].y - pts[1].y), half);
+  // Inner displacement must be clamped to < half at the apex.
+  const d = Math.hypot(inner[1].x - pts[1].x, inner[1].y - pts[1].y);
+  assert.ok(d < half, `inner offset at apex ${d.toFixed(1)} should be < ${half} (clamped)`);
+});
+
+test('placeCones: independent arc-length accumulators — uniform edges give equal count', () => {
+  // 10 points at x=0..9, spacing=1 GU on both edges.  minSpacing=5 →
+  // each edge places a cone at i=0 and i=5 (accumulator hits 5 after 5 steps) → 2+2=4 cones.
+  // On non-uniform tracks each edge samples its OWN arc: the outer (longer in corners)
+  // gets more cones than the inner, eliminating gaps on the outer radius of bends.
   const outer = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 0 }));
   const inner = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 5 }));
   const cones = placeCones(outer, inner, 5); // minSpacing=5 GU, point spacing=1 GU → 4 cones
