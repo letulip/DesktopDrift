@@ -64,7 +64,15 @@
 
   // Dynamic import: the module contains a top-level await (SVG fetch),
   // so import() resolves only once the track is fully initialised.
-  const T = await import(`./js/track-${meta.id}.js`);
+  // On any failure (network error, bad SVG, etc.) redirect back to selection.
+  let T;
+  try {
+    T = await import(`./js/track-${meta.id}.js`);
+  } catch (err) {
+    console.error('[game] failed to load track:', err);
+    location.replace(isZen ? 'zen.html' : 'tracks.html');
+    throw err;   // stop further execution
+  }
   startGame(T, { initItems: true, zen: isZen });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
