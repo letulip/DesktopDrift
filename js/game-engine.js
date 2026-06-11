@@ -61,7 +61,11 @@ export const startGame = (T, opts = {}) => {
   const _prevCollected = new Set(collectedCaps(T.id ?? ''));
   S.caps = {};
   collectibles.forEach((c, i) => {
-    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(c.capId ?? i), pop: 0 };
+    // Two-format lookup: new saves use a coordinate string capId; saves made before
+    // the capId migration used a plain numeric index. Accept either so legacy saves
+    // don't silently lose their collected state.
+    const wasCollected = _prevCollected.has(c.capId ?? i) || _prevCollected.has(i);
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
 
   // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.

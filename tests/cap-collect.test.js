@@ -71,11 +71,18 @@ const freshCap = () => ({ sweep: 0, prevAng: null, collected: false });
 describe('P0: capId stable across SVG reorder / insert / delete', () => {
   // Mirrors the restore loop in game-engine.js:
   //   const prev = new Set(storedCapIds);
-  //   collectibles.forEach((c, i) => { caps[i] = { collected: prev.has(c.capId ?? i) }; });
+  //   collectibles.forEach((c, i) => {
+  //     const wasCollected = prev.has(c.capId ?? i) || prev.has(i);
+  //     caps[i] = { collected: wasCollected };
+  //   });
+  // Two-format lookup: new saves store a coordinate string; saves made before
+  // the capId migration stored a plain numeric index. Accept either.
   const restore = (storedCapIds, collectibles) => {
     const prev = new Set(storedCapIds);
     const caps = {};
-    collectibles.forEach((c, i) => { caps[i] = { collected: prev.has(c.capId ?? i) }; });
+    collectibles.forEach((c, i) => {
+      caps[i] = { collected: prev.has(c.capId ?? i) || prev.has(i) };
+    });
     return caps;
   };
 
@@ -122,6 +129,18 @@ describe('P0: capId stable across SVG reorder / insert / delete', () => {
     const caps         = restore(stored, collectibles);
     assert.ok(!caps[0].collected, 'index 0 not in stored list');
     assert.ok(caps[1].collected,  'index 1 is in stored list');
+  });
+
+  it('cap with capId reads legacy numeric save (pre-migration)', () => {
+    // Cap was collected before the capId migration: stored value is numeric index 0,
+    // not the coordinate string. After migration the collectible gains a capId field,
+    // but the stored entry is still the old number.
+    // Reproduces the "Midnight Deadline pale cap" bug: prev.has("42,-100") is false
+    // when the Set only contains 0, so the fallback prev.has(0) must save it.
+    const stored       = [0]; // old-format: numeric index
+    const collectibles = [{ capId: '42,-100' }]; // now has a capId
+    const caps         = restore(stored, collectibles);
+    assert.ok(caps[0].collected, 'legacy numeric save must still mark the cap as collected');
   });
 });
 
