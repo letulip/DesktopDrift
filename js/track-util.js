@@ -56,22 +56,29 @@ export const offsetEdges = (centerPts, half) => {
 };
 
 // Places cones along outer and inner edges at equal arc-length intervals.
-// minSpacing: minimum world-unit distance between consecutive cone pairs.
-// Arc-length sampling gives uniform density regardless of how Chaikin smoothing
-// distributes points — which clusters them in corners and thins them on straights,
-// causing crowding in bends and gaps up to ~1750 GU on the old index-step approach.
-export const placeCones = (outer, inner, minSpacing = 120) => {
+// minSpacing: minimum world-unit distance between consecutive cones on each edge.
+// Each edge uses its own accumulator, so outer and inner are sampled independently.
+// In a corner the outer arc is longer (larger radius) → outer receives proportionally
+// more cones, eliminating the large gaps that appeared when both edges were driven by
+// a single shared accumulator (symmetric pairing).  On straights outer ≈ inner so the
+// two edges remain roughly aligned.  Arc-length sampling also avoids Chaikin-corner
+// crowding — the old index-step approach gave gaps up to ~1750 GU on straights.
+export const placeCones = (outer, inner, minSpacing = 160) => {
   const cones = [];
   const N = outer.length;
-  let acc = 0;
+  let outerAcc = 0, innerAcc = 0;
   for (let i = 0; i < N; i++) {
     const next = (i + 1) % N;
-    if (i === 0 || acc >= minSpacing) {
+    if (i === 0 || outerAcc >= minSpacing) {
       cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-      acc = 0;
+      outerAcc = 0;
     }
-    acc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
+    if (i === 0 || innerAcc >= minSpacing) {
+      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      innerAcc = 0;
+    }
+    outerAcc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
+    innerAcc += Math.hypot(inner[next].x - inner[i].x, inner[next].y - inner[i].y);
   }
   return cones;
 };

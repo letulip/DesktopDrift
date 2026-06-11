@@ -52,11 +52,11 @@ test('offsetEdges: lengths match, edges are symmetric around the centre', () => 
   }
 });
 
-test('placeCones: arc-length spacing — uniform points give same result as old index step', () => {
-  // 10 points at x=0..9, spacing=1 GU.  minSpacing=5 → cones at i=0 (acc=0) and i=5
-  // (acc reaches 5 after 5 segments of length 1) → 2 pairs = 4 cones.
-  // On non-uniform point distributions (real tracks) arc-length sampling avoids
-  // the corner-crowding and straight-gap problems of the old index-step approach.
+test('placeCones: independent arc-length accumulators — uniform edges give equal count', () => {
+  // 10 points at x=0..9, spacing=1 GU on both edges.  minSpacing=5 →
+  // each edge places a cone at i=0 and i=5 (accumulator hits 5 after 5 steps) → 2+2=4 cones.
+  // On non-uniform tracks each edge samples its OWN arc: the outer (longer in corners)
+  // gets more cones than the inner, eliminating gaps on the outer radius of bends.
   const outer = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 0 }));
   const inner = Array.from({ length: 10 }, (_, i) => ({ x: i, y: 5 }));
   const cones = placeCones(outer, inner, 5); // minSpacing=5 GU, point spacing=1 GU → 4 cones
