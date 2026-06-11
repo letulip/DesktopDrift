@@ -9,7 +9,11 @@ const mctx   = miniEl.getContext('2d');
 
 export let W, H, DPR;
 export const resize = () => {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap at 1.5 instead of 2: ~1.78× fewer fragment ops on DPR=2 devices;
+  // on DPR=3 (iPhone / Android flagships) it also gives a sharper result
+  // (2× exact upscale vs the 1.5× non-integer upscale of cap=2).
+  // Visual difference is imperceptible for flat vector content in motion.
+  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
