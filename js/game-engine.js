@@ -61,6 +61,9 @@ export const startGame = (T, opts = {}) => {
     S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(c.capId ?? i), pop: 0 };
   });
 
+  // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.
+  let capBonus = 0;
+
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const flash = (msg, color) => {
@@ -108,7 +111,7 @@ export const startGame = (T, opts = {}) => {
         cap.collected = true;
         cap.pop       = 0.6;
         cap.sweep     = 0;
-        if (!ZEN) S.score += CAP_BONUS;
+        if (!ZEN) { S.score += CAP_BONUS; capBonus += CAP_BONUS; }
         flash('CAP! +' + CAP_BONUS, '#ff9999');
         capCollect(T.id ?? '', collectibles[i].capId ?? i);
       }
@@ -499,7 +502,10 @@ export const startGame = (T, opts = {}) => {
 
           const totalScore = Math.round(S.score);
           const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
-          const pps        = pointsPerSecond(totalScore, totalTime);
+          // Strip one-time cap bonuses from PPS so they don't inflate the record
+          // versus runs where the cap was already collected (or not present).
+          const ppsScore   = Math.max(0, totalScore - capBonus);
+          const pps        = pointsPerSecond(ppsScore, totalTime);
 
           let isNewRecord = false;
           if (T.id) {
