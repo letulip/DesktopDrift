@@ -52,6 +52,29 @@ export const setCarPaint = (body, neon) => { _carBody = body ?? null; _carNeon =
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
 
+// Standing-cone cache: three Path2Ds (shadow / body / highlight).
+// Rebuilt only when a cone is knocked — typically a handful of times per game,
+// not every frame. Knocked cones are few and dynamic; they are drawn individually.
+let _conesShadow = null, _conesBody = null, _conesHighlight = null;
+let _coneKnockedCount = 0;  // number of knocked cones when paths were last built
+
+// Build three Path2Ds for standing cones (called from initRender and on each knock event).
+// Reads _T directly — must be called after _T is assigned.
+// arc() calls with no preceding moveTo produce implicit connecting lines between circles,
+// but those lines are 1D (zero area) and invisible when the path is filled.
+const _buildStandingCones = () => {
+  const { cones, CONE_R } = _T;
+  _conesShadow    = new Path2D();
+  _conesBody      = new Path2D();
+  _conesHighlight = new Path2D();
+  for (const c of cones) {
+    if (c.knocked) continue;
+    _conesShadow.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2);
+    _conesBody.arc(c.x, c.y, CONE_R, 0, Math.PI * 2);
+    _conesHighlight.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2);
+  }
+};
+
 // Called from game-engine.js before the game starts
 export const initRender = (T) => {
   _T = T; // single source of truth — draw functions access track fields via _T
@@ -89,6 +112,10 @@ export const initRender = (T) => {
   miniTrackPath.moveTo(MINI.X(T.center[0].x), MINI.Y(T.center[0].y));
   for (let i = 1; i < T.center.length; i++) miniTrackPath.lineTo(MINI.X(T.center[i].x), MINI.Y(T.center[i].y));
   miniTrackPath.closePath();
+
+  // Standing-cone paths: all cones are upright at game start.
+  _coneKnockedCount = 0;
+  _buildStandingCones();
 }
 
 // --- Helper primitives ---
@@ -374,18 +401,33 @@ export const draw = (speed) => {
   // cola cap collectibles
   drawCaps();
 
-  // cones
-  for (const c of cones) {
-    if (c.knocked) {
-      // Knocked: trapezoid (cone on its side) + white reflective stripe.
+  // cones — standing batch (3 fill() calls total) + per-cone draw for knocked ones
+  {
+    // Rebuild standing-cone paths if any cone was newly knocked this frame.
+    let knockedNow = 0;
+    for (const c of cones) if (c.knocked) knockedNow++;
+    if (knockedNow !== _coneKnockedCount) {
+      _buildStandingCones();
+      _coneKnockedCount = knockedNow;
+    }
+
+    // All standing cones: 3 fill() calls instead of (N × 3) beginPath/arc/fill.
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';       ctx.fill(_conesShadow);
+    ctx.fillStyle = TH.cone;                  ctx.fill(_conesBody);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(_conesHighlight);
+
+    // Knocked cones: few and dynamic — drawn individually every frame.
+    for (const c of cones) {
+      if (!c.knocked) continue;
+      // Trapezoid (cone on its side) + white reflective stripe.
       // save/translate/rotate needed — shape is oriented by c.ang.
       ctx.save();
       ctx.translate(c.x, c.y);
       ctx.rotate(c.ang);
 
-      const h     = CONE_R * 3;      // length of the lying cone
-      const rBase = CONE_R;          // half-radius at the base (wide end)
-      const rTip  = CONE_R * 0.25;  // half-radius at the tip (narrow end)
+      const h     = CONE_R * 3;     // length of the lying cone
+      const rBase = CONE_R;         // half-radius at the base (wide end)
+      const rTip  = CONE_R * 0.25; // half-radius at the tip (narrow end)
 
       // Shadow — same trapezoid shifted (+2, +2)
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -411,17 +453,6 @@ export const draw = (speed) => {
       ctx.closePath(); ctx.fill();
 
       ctx.restore();
-    } else {
-      // Standing: three arcs in world coordinates — no save/restore (166 cones/frame).
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
-      ctx.beginPath(); ctx.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // Base
-      ctx.fillStyle = TH.cone;
-      ctx.beginPath(); ctx.arc(c.x, c.y, CONE_R, 0, Math.PI * 2); ctx.fill();
-      // Highlight: offset (-1,-1) simulates a top-left light source
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.beginPath(); ctx.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2); ctx.fill();
     }
   }
 
