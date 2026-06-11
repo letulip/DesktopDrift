@@ -45,7 +45,7 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
   for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
 
   const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
-  const cones = placeCones(outer, inner, 5);
+  const cones = placeCones(outer, inner);
 
   // ── TABLE ───────────────────────────────────────────────────────────────────
   let _maxX = 0, _maxY = 0;

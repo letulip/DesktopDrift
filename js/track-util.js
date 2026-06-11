@@ -55,12 +55,23 @@ export const offsetEdges = (centerPts, half) => {
   return { center, outer, inner };
 };
 
-// Places cones along outer and inner edges every `step` indices.
-export const placeCones = (outer, inner, step = 5) => {
+// Places cones along outer and inner edges at equal arc-length intervals.
+// minSpacing: minimum world-unit distance between consecutive cone pairs.
+// Arc-length sampling gives uniform density regardless of how Chaikin smoothing
+// distributes points — which clusters them in corners and thins them on straights,
+// causing crowding in bends and gaps up to ~1750 GU on the old index-step approach.
+export const placeCones = (outer, inner, minSpacing = 80) => {
   const cones = [];
-  for (let i = 0; i < outer.length; i += step) {
-    cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
-    cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+  const N = outer.length;
+  let acc = 0;
+  for (let i = 0; i < N; i++) {
+    const next = (i + 1) % N;
+    if (i === 0 || acc >= minSpacing) {
+      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      acc = 0;
+    }
+    acc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
   }
   return cones;
 };
