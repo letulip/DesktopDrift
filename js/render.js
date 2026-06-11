@@ -391,17 +391,14 @@ export const draw = (speed) => {
   }
 
   // next checkpoint (intermediate only — finish is already visualised by the chequered flag)
-  // Fixed cyan + dark shadow: cyan is self-visible on dark backgrounds;
-  // on light backgrounds the dark shadowBlur halo provides contrast.
+  // Double-stroke for contrast on both dark and light tracks: a wider dark ring drawn
+  // first peeks out 2 px on each side of the cyan stroke — no shadowBlur needed.
+  // shadowBlur forces a separate raster buffer + Gaussian pass; double-stroke is free.
   if (!S.zen && S.nextCp !== 0) {
     const cp = checkpoints[S.nextCp];
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur  = 14;
-    ctx.strokeStyle = '#7dd4ff';
-    ctx.lineWidth   = 5;
-    ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
+    ctx.beginPath(); ctx.arc(cp.x, cp.y, CP_R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 9; ctx.stroke();
+    ctx.strokeStyle = '#7dd4ff';           ctx.lineWidth = 5; ctx.stroke();
   }
 
   // props
