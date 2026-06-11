@@ -58,8 +58,9 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    into the `collectibles` export (NOT `props`, so no collision). Everything else is
    automatic: `game-engine.js` `updateCaps` handles the drift-to-collect mechanic + scoring
    + persistence (`store.capCollect`), `render.js` `drawCaps` fills the cap, and the
-   `index.html` / `tracks.html` badges show progress. Keep cap order stable (the persisted
-   index = position in `collectibles`). See AGENTS.md → **Cola-cap collectibles**.
+   `index.html` / `tracks.html` badges show progress. Each cap is keyed by `capId`
+   (`"${cx},${cy}"`) — a stable coordinate key so adding/reordering caps in the SVG later
+   won't corrupt previously saved collection state. See `js/track-green-study.js`.
 6. **Register** — add/uncomment the `{ id, name, desc, svgSrc, caps, theme }` entry in
    `js/track-registry.js`. `name`/`desc` are player-facing (English); `caps` = the number
    of `ITEM_COLA_CAP` lines you placed in the SVG (0 if none — it's the badge denominator).

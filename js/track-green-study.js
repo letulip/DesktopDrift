@@ -67,7 +67,8 @@ _doc.querySelectorAll('line[id^="ITEM_"]').forEach(el => {
     const x2 = parseFloat(el.getAttribute('x2'));
     const y2 = parseFloat(el.getAttribute('y2'));
     const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
-    collectibles.push({ ...COLA_CAP, x: Math.round(x), y: Math.round(y) });
+    const cx = Math.round(x), cy = Math.round(y);
+    collectibles.push({ ...COLA_CAP, x: cx, y: cy, capId: `${cx},${cy}` });
     return;
   }
 

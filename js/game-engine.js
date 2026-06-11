@@ -57,8 +57,8 @@ export const startGame = (T, opts = {}) => {
   // Restore previously collected caps from store so they stay permanently collected.
   const _prevCollected = new Set(collectedCaps(T.id ?? ''));
   S.caps = {};
-  collectibles.forEach((_, i) => {
-    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(i), pop: 0 };
+  collectibles.forEach((c, i) => {
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(c.capId ?? i), pop: 0 };
   });
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -110,7 +110,7 @@ export const startGame = (T, opts = {}) => {
         cap.sweep     = 0;
         if (!ZEN) S.score += CAP_BONUS;
         flash('CAP! +' + CAP_BONUS, '#ff9999');
-        capCollect(T.id ?? '', i);
+        capCollect(T.id ?? '', collectibles[i].capId ?? i);
       }
     }
   };
