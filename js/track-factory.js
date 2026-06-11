@@ -24,18 +24,20 @@ const resolveKey = (rawId) => {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 // svgPath  — fetch path, e.g. './tracks/green-study.svg'
-// svgCx    — viewBox width  / 2 (game x origin in SVG coords)
-// svgCy    — viewBox height / 2 (game y origin in SVG coords)
-// scale    — TRACK_HALF / (stroke-width / 2); always 0.25 for current tracks
+// scale    — game units per SVG unit; defaults to 0.25 (stroke-width 800 convention)
 // id       — string key used in store.records() and track-registry.js
 // laps     — race length
 // theme    — colour palette object passed to render.js via initRender(T)
-export const makeTrack = async ({ svgPath, svgCx, svgCy, scale, id, laps, theme }) => {
-  const toGame = (x, y) => ({ x: (x - svgCx) * scale, y: -(y - svgCy) * scale });
-
+// (svgCx / svgCy are no longer params — auto-derived from the SVG viewBox)
+export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
   // ── SVG load ────────────────────────────────────────────────────────────────
   const svgText = await fetch(svgPath).then(r => r.text());
   const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+
+  // ── Game origin — derived from viewBox, no longer a caller-supplied constant ─
+  const _vb   = _doc.querySelector('svg').getAttribute('viewBox').trim().split(/\s+/).map(Number);
+  const svgCx = _vb[2] / 2, svgCy = _vb[3] / 2;
+  const toGame = (x, y) => ({ x: (x - svgCx) * scale, y: -(y - svgCy) * scale });
 
   // ── Centreline ──────────────────────────────────────────────────────────────
   const rawVerts = parseSvgPath(_doc.getElementById('track_path').getAttribute('d'));

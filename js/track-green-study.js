@@ -1,5 +1,4 @@
 // "Green Study" track — generated from tracks/green-study.svg.
-// viewBox 0 0 14462 7829; track stroke-width 800 → SCALE = 100/400 = 0.25.
 import { makeTrack, TRACK_HALF, CONE_R, K, CP_R } from './track-factory.js';
 
 export { TRACK_HALF, CONE_R, K, CP_R };
@@ -10,9 +9,6 @@ export const {
   startPos, startAngle, id, laps, theme,
 } = await makeTrack({
   svgPath: './tracks/green-study.svg',
-  svgCx:   14462 / 2,
-  svgCy:   7829  / 2,
-  scale:   0.25,
   id:      'green-study',
   laps:    3,
   theme:   {

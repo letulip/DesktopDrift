@@ -72,6 +72,23 @@ export const sampleCheckpoints = (center, K) => {
   return cps;
 };
 
+// SVG track file text → smoothed game-world centreline points (Array of {x,y}).
+// Reads the `track_path` element and derives the game origin from the SVG viewBox
+// automatically, so callers don't need to know the viewBox dimensions.
+// scale: game units per SVG unit; 0.25 matches the standard stroke-width 800 convention
+//        (TRACK_HALF 100 = 800/2 × 0.25).
+// Returns null when the SVG has no track_path element.
+export const svgToCentreline = (svgText, scale = 0.25) => {
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  const d   = doc.getElementById('track_path')?.getAttribute('d');
+  if (!d) return null;
+  const vb    = doc.querySelector('svg').getAttribute('viewBox').trim().split(/\s+/).map(Number);
+  const svgCx = vb[2] / 2, svgCy = vb[3] / 2;
+  let pts = parseSvgPath(d).map(([x, y]) => ({ x: (x - svgCx) * scale, y: -(y - svgCy) * scale }));
+  for (let i = 0; i < 4; i++) pts = chaikin(pts);
+  return pts;
+};
+
 // Prepares a prop descriptor for render/physics: defaults hl to 0, caches cos/sin of angle.
 // Mutates and returns the same object (like the old addProp).
 export const prepProp = (o) => {

@@ -1,5 +1,4 @@
 // "Workbench" track — generated from tracks/workbench.svg.
-// viewBox 0 0 16512 8756; track stroke-width 800 → SCALE = 100/400 = 0.25.
 // This track uses both <line> and <path> proxy elements for items.
 import { makeTrack, TRACK_HALF, CONE_R, K, CP_R } from './track-factory.js';
 
@@ -11,9 +10,6 @@ export const {
   startPos, startAngle, id, laps, theme,
 } = await makeTrack({
   svgPath: './tracks/workbench.svg',
-  svgCx:   16512 / 2,
-  svgCy:   8756  / 2,
-  scale:   0.25,
   id:      'workbench',
   laps:    3,
   theme:   {
