@@ -33,7 +33,8 @@ test('chaikin: n points → 2n, convex combination of neighbours', () => {
   near(out[0].y, 0);
 });
 
-test('offsetEdges: lengths match, edges are symmetric around the centre', () => {
+test('offsetEdges: gentle curve (R >> half) — edges symmetric, outer = half from centre', () => {
+  // Square with corner R ≈ 141 GU >> half=40 → no clamping, classic symmetric offset.
   const center = [
     { x: -100, y: -100 }, { x: 100, y: -100 },
     { x: 100, y: 100 }, { x: -100, y: 100 },
@@ -50,6 +51,25 @@ test('offsetEdges: lengths match, edges are symmetric around the centre', () => 
     // distance from centre to edge = half
     near(Math.hypot(outer[i].x - center[i].x, outer[i].y - center[i].y), half);
   }
+});
+
+test('offsetEdges: hairpin (R < half) — inner offset clamped, no self-intersection', () => {
+  // Three points on a circle of radius R=40, angles −60°/0°/+60°.
+  // half=80 > R: without clamping the inner edge would cross the centre of curvature
+  // and produce a self-intersecting loop (observed on green-study / workbench hairpins).
+  // The fix clamps innerHalf to ≤ R − minInnerGap so the inner arc stays on the correct side.
+  const R = 40, half = 80;
+  const pts = [
+    { x: R * Math.cos(-Math.PI / 3), y: R * Math.sin(-Math.PI / 3) },
+    { x: R,                            y: 0 },
+    { x: R * Math.cos( Math.PI / 3), y: R * Math.sin( Math.PI / 3) },
+  ];
+  const { outer, inner } = offsetEdges(pts, half);
+  // Outer displacement must equal half (outer is never clamped).
+  near(Math.hypot(outer[1].x - pts[1].x, outer[1].y - pts[1].y), half);
+  // Inner displacement must be clamped to < half at the apex.
+  const d = Math.hypot(inner[1].x - pts[1].x, inner[1].y - pts[1].y);
+  assert.ok(d < half, `inner offset at apex ${d.toFixed(1)} should be < ${half} (clamped)`);
 });
 
 test('placeCones: independent arc-length accumulators — uniform edges give equal count', () => {

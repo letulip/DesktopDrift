@@ -38,7 +38,16 @@ export const chaikin = (pts) => {
 // Builds { center, outer, inner } from a centerline: outer and inner edges are offset
 // by `half` along the perpendicular to the tangent (computed from neighbouring points).
 // center holds the same point references as centerPts (as in the original track.js).
-export const offsetEdges = (centerPts, half) => {
+//
+// On hairpins the naive ±half offset inverts when the local radius of curvature R < half
+// (inner edge crosses the centre of curvature → self-intersecting loop).  This function
+// estimates R as the circumradius of the (prev, curr, next) triangle and clamps the inner
+// offset to min(half, R − minInnerGap) so the inner edge stays on the correct side.
+// The outer offset is never clamped — outer radius R+half is always > half.
+//
+// minInnerGap: minimum distance from the estimated centre of curvature to the inner edge.
+// Default 10 GU keeps the inner arc open without noticeably shrinking the track.
+export const offsetEdges = (centerPts, half, minInnerGap = 10) => {
   const center = [], outer = [], inner = [];
   const N = centerPts.length;
   for (let i = 0; i < N; i++) {
@@ -48,9 +57,21 @@ export const offsetEdges = (centerPts, half) => {
     const tx   = next.x - prev.x, ty = next.y - prev.y;
     const len  = Math.hypot(tx, ty) || 1;
     const nx   = -ty / len, ny = tx / len; // left-hand normal
+
+    // Circumradius of the prev–curr–next triangle ≈ local radius of curvature.
+    // Formula: R = (|AB|·|BC|·|CA|) / (2·|area|).  Collinear → R = ∞ (straight).
+    const ax = prev.x - c.x, ay = prev.y - c.y;
+    const bx = next.x - c.x, by = next.y - c.y;
+    const cross = ax * by - ay * bx;           // 2 × signed triangle area
+    const R = cross === 0 ? Infinity
+      : (Math.hypot(ax, ay) * Math.hypot(bx, by) * Math.hypot(ax - bx, ay - by))
+        / (2 * Math.abs(cross));
+    // Clamp inner offset: never let the inner point pass the centre of curvature.
+    const innerHalf = Math.min(half, Math.max(R - minInnerGap, minInnerGap));
+
     center.push(c);
-    outer.push({ x: c.x + nx * half, y: c.y + ny * half });
-    inner.push({ x: c.x - nx * half, y: c.y - ny * half });
+    outer.push({ x: c.x + nx * half,      y: c.y + ny * half });
+    inner.push({ x: c.x - nx * innerHalf, y: c.y - ny * innerHalf });
   }
   return { center, outer, inner };
 };
