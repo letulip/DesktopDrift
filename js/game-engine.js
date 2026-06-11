@@ -283,21 +283,32 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Physics ──────────────────────────────────────────────────────────────────
 
+  // 60 fps cap: physics and rendering are skipped on rAF ticks that arrive too early.
+  // rAF is always re-registered (so the browser can composite overlays), but the frame
+  // body bails out until ≥ FRAME_MS has elapsed since the last real frame.
+  // Physics uses dt-based normalisation (fAdj = dt * PHYS_HZ) so it is identical at
+  // any frame rate — the cap has zero effect on simulation results.
+  // `last` updates only inside the real-frame path; skipped ticks leave it unchanged
+  // so the next real frame receives the correct accumulated dt, not a spike.
+  const FRAME_MS = 1000 / 60; // target: 60 fps
+  let lastFrame  = 0;          // timestamp of the last executed frame
   let last = performance.now();
   let rafId = 0;
   const frame = (now) => {
+    rafId = requestAnimationFrame(frame);
+    if (now - lastFrame < FRAME_MS - 1) return;  // -1 ms tolerance for timer jitter
+    lastFrame = now;
+
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
     // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
-    // `last` is already updated → no dt spike on resume.
-    if (pause.isPaused()) { rafId = requestAnimationFrame(frame); return; }
+    if (pause.isPaused()) return;
 
     if (S.startCd > 0) {
       S.startCd -= dt;
       if (S.startCd <= 0) S.goT = 1.0;
       draw(0);
-      rafId = requestAnimationFrame(frame);
       return;
     }
     if (S.goT > 0) S.goT -= dt;
@@ -555,7 +566,6 @@ export const startGame = (T, opts = {}) => {
 
     if (S.flashT > 0) S.flashT -= dt;
     draw(toDisplaySpeed(speed));
-    rafId = requestAnimationFrame(frame);
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
