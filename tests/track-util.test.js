@@ -24,6 +24,20 @@ test('parseSvgPath: M/L/H/V/Z → array of [x,y] pairs', () => {
   assert.ok(Math.abs(pts2[1][1] - 2177.88) < 0.01);
 });
 
+test('parseSvgPath: deduplicates explicit closing vertex (L back-to-start Z)', () => {
+  // All three shipped track SVGs use "M x y L ... L x y Z" — the last L repeats
+  // the start point.  Without dedup, Chaikin 4× produces 16 coincident points near
+  // start/finish, destabilising normals and displacing inner edge cones.
+  const pts = parseSvgPath('M10 20 L30 20 L50 40 L10 20 Z');
+  // Last vertex (10,20) equals first → should be dropped → 3 unique vertices
+  assert.equal(pts.length, 3);
+  assert.deepEqual(pts[0], [10, 20]);
+  assert.deepEqual(pts[2], [50, 40]); // last kept vertex is the one before the dup
+  // Non-closing path (last != first) must not be trimmed
+  const pts2 = parseSvgPath('M10 20 L30 20 L50 40 Z');
+  assert.equal(pts2.length, 3);
+});
+
 test('chaikin: n points → 2n, convex combination of neighbours', () => {
   const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
   const out = chaikin(sq);

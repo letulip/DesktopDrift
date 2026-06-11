@@ -5,6 +5,12 @@
 // Parse SVG path d: supports M, L, H, V, Z (absolute coordinates only).
 // Returns an array of pairs [[x, y], ...].
 // Consolidated from track modules and tracks.html — was three identical copies.
+//
+// Deduplicates the closing vertex: track SVGs commonly end with an explicit
+// "L start_x start_y Z" which makes the last parsed point equal to the first.
+// That zero-length closing edge produces 2^n coincident Chaikin points (n=passes),
+// destabilising the tangent normal and displacing the inner/outer edges near
+// start/finish.  Drop the duplicate if dist(first, last) < 0.5 SVG units.
 export const parseSvgPath = (d) => {
   const pts = [];
   const tokens = d.match(/[MLHVZmlhvz]|[-+]?[0-9]*\.?[0-9]+/g) || [];
@@ -19,6 +25,11 @@ export const parseSvgPath = (d) => {
     } else if (cmd === 'H') { x = v; i++; pts.push([x, y]); }
     else if (cmd === 'V')   { y = v; i++; pts.push([x, y]); }
     else i++;
+  }
+  // Remove duplicate closing vertex (explicit "L back-to-start Z" pattern).
+  if (pts.length > 1) {
+    const [f, l] = [pts[0], pts[pts.length - 1]];
+    if (Math.hypot(l[0] - f[0], l[1] - f[1]) < 0.5) pts.pop();
   }
   return pts;
 };
