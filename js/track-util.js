@@ -60,7 +60,7 @@ export const offsetEdges = (centerPts, half) => {
 // Arc-length sampling gives uniform density regardless of how Chaikin smoothing
 // distributes points — which clusters them in corners and thins them on straights,
 // causing crowding in bends and gaps up to ~1750 GU on the old index-step approach.
-export const placeCones = (outer, inner, minSpacing = 80) => {
+export const placeCones = (outer, inner, minSpacing = 120) => {
   const cones = [];
   const N = outer.length;
   let acc = 0;
