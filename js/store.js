@@ -37,3 +37,22 @@ export const settings     = () => { _ensure(); return _s.settings; };
 export const garage       = () => { _ensure(); return _s.garage; };
 export const records      = () => { _ensure(); return _s.records; };
 export const achievements = () => { _ensure(); return _s.achievements; };
+
+// stats — lazily self-initialised so adding it never bumps VERSION or resets
+// existing saves. Shape: { caps: { [trackId]: number[] } }
+export const stats = () => { _ensure(); if (!_s.stats) _s.stats = {}; return _s.stats; };
+
+// Returns the array of collected cap indices for a track (empty if none yet).
+export const collectedCaps = (trackId) => {
+  const st = stats();
+  if (!st.caps) st.caps = {};
+  return st.caps[trackId] ?? [];
+};
+
+// Mark a cap index as permanently collected for a track. No-op if already recorded.
+export const capCollect = (trackId, idx) => {
+  const st = stats();
+  if (!st.caps) st.caps = {};
+  const arr = st.caps[trackId] ?? (st.caps[trackId] = []);
+  if (!arr.includes(idx)) { arr.push(idx); save(); }
+};

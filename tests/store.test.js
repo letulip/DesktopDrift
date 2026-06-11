@@ -14,7 +14,7 @@ import { installLocalStorage } from './helpers.js';
 // lazily, but getItem is called on the first getter — install it upfront to be safe).
 const store = installLocalStorage();
 
-const { settings, garage, records, achievements, save } =
+const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -32,6 +32,29 @@ test('defaults: settings / records / achievements', () => {
 
 test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
+});
+
+test('stats: defaults to empty object', () => {
+  assert.deepEqual(stats(), {});
+});
+
+test('collectedCaps: returns [] for unknown track', () => {
+  assert.deepEqual(collectedCaps('green-study'), []);
+});
+
+test('capCollect: records a cap index', () => {
+  capCollect('green-study', 0);
+  assert.deepEqual(collectedCaps('green-study'), [0]);
+});
+
+test('capCollect: no-op if index already recorded', () => {
+  capCollect('green-study', 0);
+  assert.deepEqual(collectedCaps('green-study'), [0]);
+});
+
+test('capCollect: appends new indices', () => {
+  capCollect('green-study', 2);
+  assert.deepEqual(collectedCaps('green-study'), [0, 2]);
 });
 
 test('mutate live object + save() persists correct JSON shape', () => {

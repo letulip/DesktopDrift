@@ -3,12 +3,13 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
 import { createRaceResults } from './race-results.js';
 import {
   isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
+import { stepSweep } from './cola.js';
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -39,6 +40,30 @@ export const startGame = (T, opts = {}) => {
   initCar(T);
   if (opts.initItems) initItems(props);
 
+  // ─── Cola caps ────────────────────────────────────────────────────────────────
+  const CAP_INNER_R = 40;               // min distance from cap centre to count as "around" it
+  const CAP_OUTER_R = 160;              // max distance
+  const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
+  const CAP_BONUS   = 500;
+  const CAP_LOOPS   = 2;               // full circles required to collect
+
+  const collectibles = T.collectibles ?? [];
+  // Preload images onto the descriptor (same pattern as _cos/_sin on props).
+  for (const cap of collectibles) {
+    if (cap.imgSrc  && !cap._img)     { const im = new Image(); im.src = cap.imgSrc;  cap._img     = im; }
+    if (cap.imgFull && !cap._imgFull) { const im = new Image(); im.src = cap.imgFull; cap._imgFull = im; }
+  }
+  // S.caps: pure runtime state only — static data stays in collectibles[].
+  // Restore previously collected caps from store so they stay permanently collected.
+  const _prevCollected = new Set(collectedCaps(T.id ?? ''));
+  S.caps = {};
+  collectibles.forEach((c, i) => {
+    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: _prevCollected.has(c.capId ?? i), pop: 0 };
+  });
+
+  // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.
+  let capBonus = 0;
+
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const flash = (msg, color) => {
@@ -64,6 +89,34 @@ export const startGame = (T, opts = {}) => {
     resetCombo();
     S.crashCd = 0.5; S.driftGrace = 1;
   }
+
+  const updateCaps = (dt, drifting) => {
+    for (let i = 0; i < collectibles.length; i++) {
+      const cap = S.caps[i];
+      if (cap.collected) {
+        if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
+        continue;
+      }
+      const { x, y } = collectibles[i];
+      const dx = car.x - x, dy = car.y - y;
+      const dist = Math.hypot(dx, dy);
+      const inDonut = dist > CAP_INNER_R && dist < CAP_OUTER_R;
+      const ang = Math.atan2(dy, dx);
+      const engaged = inDonut && drifting;
+      // prevAng is null when the car was last outside the donut;
+      // use ang as both args so the first frame in the donut contributes 0 delta.
+      cap.sweep = stepSweep(cap.sweep, cap.prevAng ?? ang, ang, engaged, dt, CAP_DECAY);
+      cap.prevAng = engaged ? ang : null;
+      if (Math.abs(cap.sweep) >= Math.PI * 2 * CAP_LOOPS) {
+        cap.collected = true;
+        cap.pop       = 0.6;
+        cap.sweep     = 0;
+        if (!ZEN) { S.score += CAP_BONUS; capBonus += CAP_BONUS; }
+        flash('CAP! +' + CAP_BONUS, '#ff9999');
+        capCollect(T.id ?? '', collectibles[i].capId ?? i);
+      }
+    }
+  };
 
   // Nearest centreline point. Previously an O(N) full scan every frame.
   // The car moves continuously along the closed line, so we only search
@@ -256,6 +309,7 @@ export const startGame = (T, opts = {}) => {
     let vS = car.vx * side.x + car.vy * side.y;
     const speed = Math.hypot(car.vx, car.vy);
     const drifting = isDrifting(vS, speed);
+    updateCaps(dt, drifting);
 
     S.physT += dt;
     const wobSlow = Math.sin(S.physT * 0.8 + 1.7) + 0.5 * Math.sin(S.physT * 1.9 + 4.2);
@@ -448,7 +502,10 @@ export const startGame = (T, opts = {}) => {
 
           const totalScore = Math.round(S.score);
           const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
-          const pps        = pointsPerSecond(totalScore, totalTime);
+          // Strip one-time cap bonuses from PPS so they don't inflate the record
+          // versus runs where the cap was already collected (or not present).
+          const ppsScore   = Math.max(0, totalScore - capBonus);
+          const pps        = pointsPerSecond(ppsScore, totalTime);
 
           let isNewRecord = false;
           if (T.id) {

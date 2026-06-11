@@ -12,6 +12,7 @@ export const TRACKS = [
     name:   `Midnight Deadline`,
     desc:   `Drift across a classic green baize desk. Dodge sharp compasses and leave tire marks on important documents!`,
     svgSrc: `tracks/green-study.svg`,
+    caps:   1,
     // Canvas-world colours from tracks/track_themes.json (not CSS tokens)
     theme:  { background: `#14130e`, table: `#2f4034`, tableEdge: `#7a6334`, track: `#cdbf9e` },
   },
@@ -20,6 +21,7 @@ export const TRACKS = [
     name:   `Stainless Speedway`,
     desc:   `Cold steel and sharp cleavers. Navigate a perilous maze of kitchen utensils on a stainless worktop.`,
     svgSrc: `tracks/steel-kitchen.svg`,
+    caps:   1,
     theme:  { background: `#c6cace`, table: `#6b7178`, tableEdge: `#444a50`, track: `#c6bca1` },
   },
   {
@@ -27,6 +29,7 @@ export const TRACKS = [
     name:   `Workshop Wasteland`,
     desc:   `A rugged industrial workbench. Dodge wrenches, hammers and drills on weathered wood and cold metal.`,
     svgSrc: `tracks/workbench.svg`,
+    caps:   1,
     theme:  { background: `#181d1d`, table: `#574b39`, tableEdge: `#837a68`, track: `#9a8c6f` },
   },
   // {

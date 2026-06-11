@@ -51,12 +51,24 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    draw a top-down SVG (portrait, 1:64 scale) + descriptor. Items must read from above
    (avoid bare circles); keep clear of the racing line
    (distance-to-centerline > TRACK_HALF + collider.r + margin); ~8–12 per track.
-5. **Register** — add/uncomment the `{ id, name, desc, svgSrc, theme }` entry in
-   `js/track-registry.js`. `name`/`desc` are player-facing (English). This is what makes
-   the track appear on `tracks.html`. **No `page` field** — routing is automatic via
-   `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
-6. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
+5. **Cola caps (collectibles).** Optional but free if you copied the template. Place one
+   or more `<line id="ITEM_COLA_CAP" .../>` proxy-lines in the SVG (line midpoint =
+   position) at WIDE corners where a drift "donut" fits clear of walls/props. The
+   template's parse loop already special-cases `ITEM_COLA_CAP` → pushes `{ ...COLA_CAP }`
+   into the `collectibles` export (NOT `props`, so no collision). Everything else is
+   automatic: `game-engine.js` `updateCaps` handles the drift-to-collect mechanic + scoring
+   + persistence (`store.capCollect`), `render.js` `drawCaps` fills the cap, and the
+   `index.html` / `tracks.html` badges show progress. Each cap is keyed by `capId`
+   (`"${cx},${cy}"`) — a stable coordinate key so adding/reordering caps in the SVG later
+   won't corrupt previously saved collection state. See `js/track-green-study.js`.
+6. **Register** — add/uncomment the `{ id, name, desc, svgSrc, caps, theme }` entry in
+   `js/track-registry.js`. `name`/`desc` are player-facing (English); `caps` = the number
+   of `ITEM_COLA_CAP` lines you placed in the SVG (0 if none — it's the badge denominator).
+   This is what makes the track appear on `tracks.html`. **No `page` field** — routing is
+   automatic via `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
+7. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
    then bump the cache version. **No HTML to add** — `game.html` is already in ASSETS.
+   (`js/cola.js` + the cola SVGs are already in ASSETS — shared across tracks.)
    (SWR self-heals a forgotten bump on the next load, but bump anyway for first-load-fresh.)
 8. **Verify + PR** via the **desktopdrift-pr** skill (npm test + node --check + browser
    smoke with the SW cleared; branch `feat/track-<id>` → PR).
@@ -67,4 +79,6 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
 the racing line, start/finish checkered flag + cones readable against the theme, combo +
 lap counter (`1/3`), and the **race-results overlay** (score, per-lap times, Back to tracks)
 after the final lap. On figure-8 layouts confirm the windowed `distToTrack` scan gives no
-false off-track. Console must be error-free.
+false off-track. If the track has cola caps: drifting a donut around one fills it and
+collects it (+score), the `tracks.html` card shows `N / M cap`, and the `index.html` Time
+Attack tile shows the total. Console must be error-free.

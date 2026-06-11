@@ -80,16 +80,20 @@ stays readable. No framework, no bundler.
     a plain object `{ hl, r, kind, imgSrc, c }`. No game state; no imports.
     Used by track files to spread item descriptors with position/angle.
     SVGs live in `items/`.
-  - `js/collectibles.js` — collectible-item catalog (e.g. `ITEM_TIRE_COIN`),
-    same descriptor shape as `items.js`. SVGs live in `objects/`. **Not currently
-    imported** (the only consumer, `track.js`, was removed) — kept as the catalog
-    for the future on-track coins feature.
+  - `js/collectibles.js` — collectible catalog (SVGs in `objects/`). Exports
+    `COLA_CAP` (`{ kind:'cola', r, imgSrc, imgFull }`) — the drift-collected cola cap
+    (see **Cola-cap collectibles** below) — plus the legacy `ITEM_TIRE_COIN` stub.
+  - `js/cola.js` — **pure cola-cap math** (no imports, no state): `angDelta(a,b)`
+    (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
+    angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as the Time Attack track modules. Does NOT import `items.js`
     (no props). Used by `sandbox.html`.
   - `js/track-registry.js` — **track registry**. Single source of truth for all
-    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, page, theme }`.
-    `id` keys `store.records()`; `theme` (background/table/tableEdge/track) is the
+    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, caps, theme }`.
+    `id` keys `store.records()`; `caps` = number of cola caps on the track (the
+    static denominator for the cap badges — see **Cola-cap collectibles**);
+    `theme` (background/table/tableEdge/track) is the
     canvas-world palette, used both by the `tracks.html` preview and (re-declared in
     the track module) by the game. Consumed by `tracks.html` (cards + previews) and
     `select.html` (routing). Adding a track = one entry here + a track module + an
@@ -341,6 +345,36 @@ axis maps to the capsule long axis.
     ctx.drawImage(img, -fw/2, -fh/2, fw, fh);
   }
   ```
+
+### Cola-cap collectibles
+
+Collect cola caps by drifting a full "donut" **around** them (no collision — you orbit,
+never crash). The cap fills with red along the exact arc the car sweeps (radial wedge).
+
+- **Placement:** a cap is a `<line id="ITEM_COLA_CAP">` proxy-line in the track SVG
+  (same midpoint-as-position convention as items). Each track module's parse loop
+  special-cases that id → pushes `{ ...COLA_CAP, x, y }` to its `collectibles` export
+  instead of `props` (so no collider). The registry entry's `caps:` must equal the
+  number of those lines in the SVG (it's the static badge denominator).
+- **Mechanic (`js/game-engine.js` `updateCaps`):** per frame, when the car is in the ring
+  `[CAP_INNER_R, CAP_OUTER_R]` around a cap **and** `isDrifting`, accumulate the signed
+  swept angle via `stepSweep` (`js/cola.js`); idle → slow decay toward 0 (`CAP_DECAY`,
+  ~2.5× slower than fill). `CAP_LOOPS` full circles (currently 2) → collected: `+CAP_BONUS`
+  score, flash, and `capCollect(id, i)` persists it. Swept-angle is geometric → frame-rate
+  independent (only decay is `dt`-scaled). Runtime per-cap state lives in `S.caps[i]`
+  (sweep/prevAng/collected/pop), **not** on the descriptor.
+- **Persistence (`js/store.js`):** `stats().caps[trackId]` = **array of collected cap
+  indices** (index = position in the track's `collectibles`). `capCollect(id, i)` appends
+  + saves; `collectedCaps(id)` reads it; restored on race start so caps stay collected.
+  (No VERSION bump — `stats()`/`collectedCaps()` self-init their slice.)
+- **Render (`js/render.js` `drawCaps`):** empty `cola.svg` base; reveal `cola-filled.svg`
+  inside a wedge clip `[startAng, startAng+sweep]`; collected → full red + a brief `pop`.
+- **UI:** `index.html` Time Attack tile shows total caps collected across tracks
+  ("N cap(s) collected"); each `tracks.html` card shows an `N / M cap` badge
+  (`is-done` when full). Both read `store` — totals use the registry `caps` denominator
+  so neither page imports heavy track modules.
+- **Caveat:** persisted index = position in `collectibles`; reordering/removing caps in an
+  SVG shifts existing saved flags. Keep cap order stable.
 
 ### Service Worker (`sw.js`)
 

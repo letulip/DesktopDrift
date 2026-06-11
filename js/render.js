@@ -32,7 +32,7 @@ let TH = THEME_DEFAULT;
 let _skidRgb = '15,9,6'; // RGB portion of TH.skid; re-parsed in initRender
 
 // --- Track data (set via initRender) ---
-let center, outer, inner, cones, props, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
+let center, outer, inner, cones, props, collectibles, checkpoints, CP_R, TRACK_HALF, CONE_R, startAngle;
 let MINI = null;
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
@@ -43,9 +43,10 @@ export const initRender = (T) => {
   center     = T.center;
   outer      = T.outer;
   inner      = T.inner;
-  cones      = T.cones;
-  props      = T.props;
-  checkpoints = T.checkpoints;
+  cones        = T.cones;
+  props        = T.props;
+  collectibles = T.collectibles ?? [];
+  checkpoints  = T.checkpoints;
   CP_R       = T.CP_R;
   TRACK_HALF = T.TRACK_HALF;
   CONE_R     = T.CONE_R;
@@ -229,6 +230,64 @@ const drawProp = (o) => {
   ctx.restore();
 }
 
+// Cola cap collectibles
+const drawCaps = () => {
+  for (let i = 0; i < collectibles.length; i++) {
+    const state = S.caps[i];
+    if (!state) continue;
+    const desc = collectibles[i];
+    const { x, y, r, _img, _imgFull, c } = desc;
+    const { sweep, collected, pop } = state;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Pop burst — expanding ring that fades out after collection
+    // pop counts down from 0.6 → 0 (matches game-engine cap.pop init value)
+    if (collected && pop > 0) {
+      const t = 1 - pop / 0.6;                   // 0 → 1 as burst plays out
+      ctx.globalAlpha = (1 - t) * 0.75;
+      ctx.strokeStyle = '#cc2200';
+      ctx.lineWidth   = 3;
+      ctx.shadowColor = '#ff3300';
+      ctx.shadowBlur  = 12;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.4 + t * 1.6), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha  = 1;
+      ctx.shadowBlur   = 0;
+      ctx.shadowColor  = 'transparent';
+    }
+
+    // Base image (empty cap) or fallback circle
+    const baseImg = collected ? (_imgFull ?? _img) : _img;
+    if (baseImg?.complete && baseImg.naturalWidth > 0) {
+      ctx.drawImage(baseImg, -r, -r, r * 2, r * 2);
+    } else {
+      ctx.fillStyle = c ?? '#ff9999';
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Red fill overlay — wedge clip on the cap itself, fills clockwise from top.
+    // Skipped when collected and a filled image is available (it speaks for itself).
+    // collected without imgFull = always full red; otherwise proportional to |sweep| / 2π.
+    const progress = (collected && _imgFull) ? 0 : collected ? 1 : Math.min(1, Math.abs(sweep) / (Math.PI * 4)); // 2 loops
+    if (progress > 0) {
+      const sweepAng = progress * Math.PI * 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + sweepAng);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle   = '#cc2200';
+      ctx.globalAlpha = collected ? 0.88 : 0.72;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+};
+
 // --- Main render ---
 export const draw = (speed) => {
   ctx.clearRect(0, 0, W, H);
@@ -304,6 +363,9 @@ export const draw = (speed) => {
 
   // props
   for (const o of props) drawProp(o);
+
+  // cola cap collectibles
+  drawCaps();
 
   // cones
   for (const c of cones) {
