@@ -148,18 +148,28 @@ stays readable. No framework, no bundler.
     (`rgba(255,255,255,0.92)` / `rgba(0,0,0,0.82)`) — not theme-dependent, always
     readable on any background. `startLine` is no longer a theme field.
     **Checkpoint circles** (intermediate only — finish has no circle): fixed
-    `#7dd4ff` stroke, `lineWidth 5`, `shadowColor rgba(0,0,0,0.7)` `shadowBlur 14`.
-    Dark shadow creates contrast halo on light themes; bright blue is self-visible
-    on dark themes.
+    `#7dd4ff` stroke. Double-stroke technique for contrast: dark wide outer stroke
+    (`lineWidth 8`, `rgba(0,0,0,0.55)`) then cyan narrow inner stroke (`lineWidth 5`).
+    Replaces `shadowBlur 14` which was expensive on mobile GPU (separate rasterisation
+    buffer + Gaussian blur per frame).
     **Cone rendering (2.5D):** Standing cone — 3 arcs in world coords (no save/restore):
     shadow (+2,+2 offset dark circle) → base (`TH.cone`) → highlight (r×0.35, shifted
     −1,−1 to simulate top-left light source). Knocked cone — `save/translate/rotate(c.ang)`:
     shadow trapezoid (+2,+2) → cone body trapezoid (wide at base, `rTip=r×0.25` at tip,
     `h=r×3`) → white reflective stripe (70% of cone width, interpolated per x so it stays
-    inside the body). No save/restore for standing cones (166+/frame) — perf intentional.
+    inside the body). No save/restore for standing cones — perf intentional.
+    **Standing cones are cached as 3 `Path2D` objects** (shadow/base/highlight), rebuilt
+    only when a cone transitions standing→knocked. Each frame: 3 `fill()` calls for all
+    standing cones + one `save/translate/rotate/restore` pass for knocked cones only.
+    `moveTo(cx+r, cy)` before every `arc()` in the Path2D is mandatory — without it the
+    implicit `lineTo` connects consecutive arcs and fills the entire enclosed polygon.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
+    DPR capped at 1.5 (`min(devicePixelRatio, 1.5)`) — saves ~1.78× fragment ops vs
+    cap=2 with negligible visual difference for flat arcade style.
+    Game loop capped at 60 fps (`FRAME_MS = 1000/60`) via timestamp guard — prevents
+    1.5–2× GPU drain on 90/120 Hz displays; physics is frame-rate-independent anyway.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()` (live objects — mutate then call `save()`), and `save()`.
@@ -221,10 +231,23 @@ stays readable. No framework, no bundler.
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
     `parseSvgPath`, `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`,
-    `sampleCheckpoints`, `prepProp`. `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z,
-    absolute coords) — единственный экземпляр; раньше был продублирован в каждом
-    трек-модуле и в `tracks.html`. Shared by track modules + `tracks.html`.
-    Unit-tested in `tests/track-util.test.js` (20 tests).
+    `sampleCheckpoints`, `prepProp`. Shared by track modules + `tracks.html`.
+    Unit-tested in `tests/track-util.test.js`.
+    Key behaviours / gotchas:
+    - `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z, absolute coords). **Deduplicates
+      the closing vertex**: track SVGs use `L start_x start_y Z` which makes the last
+      parsed point equal to the first — a zero-length Chaikin edge that after 4 passes
+      creates 16 coincident points, destabilising tangent normals near start/finish.
+      Fix: `if dist(pts[0], pts[-1]) < 0.5` SVG-units → `pts.pop()`.
+    - `offsetEdges(centerPts, half, minInnerGap=10)` — **clamps the inner offset on
+      hairpins**. Estimates local radius R as the circumradius of the (prev,curr,next)
+      triangle; inner offset = `min(half, max(R−minInnerGap, minInnerGap))`. Outer
+      offset always = `half` (no inversion possible). Prevents self-intersecting inner
+      edges on tracks where R < TRACK_HALF (green-study min R≈66 GU, workbench ≈55 GU).
+    - `placeCones(outer, inner, minSpacing=160)` — **independent arc-length accumulators**
+      for each edge. Outer and inner are sampled separately: outer (longer in corners)
+      receives more cones, inner fewer. Cones are no longer always "directly across"
+      from each other — staggered placement fills gaps on outer radii of bends.
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
@@ -576,6 +599,20 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   On overlap: cone is pushed out along the contact normal; velocity reflected with
   restitution 0.8 (`vDotN * 0.8`), spin reversed and damped (`* −0.4`).
   Cost: O(knocked_cones × props) per frame — typically 0–45 checks, negligible.
+- **Track SVG closing-vertex pattern.** All shipped SVGs end with `L start_x start_y Z`
+  (explicit return to first vertex before the implicit Z-close). `parseSvgPath` now strips
+  this duplicate automatically (`dist(pts[0], pts[-1]) < 0.5`). New SVGs authored the
+  same way are handled; do **not** remove the dedup — it prevents 16 coincident Chaikin
+  points and the resulting inner-edge normal instability at start/finish.
+- **Hairpin inner-edge inversion.** When a corner has R < TRACK_HALF (100 GU), naive
+  `±half` offset crosses the centre of curvature and inverts the inner arc (self-
+  intersecting loop, fill overlap, misplaced cones). `offsetEdges` clamps the inner
+  offset to `min(half, R−10)` via the local circumradius estimate. If you lower
+  TRACK_HALF or add tracks with tighter hairpins, watch for R < new TRACK_HALF.
+- **HUD DOM writes are guarded.** `render.js` caches the 10 HUD element refs in
+  `initRender` and writes `textContent`/`innerHTML` only when the value changes. The
+  prev-value guards are reset to `null` inside `initRender` on each track start — do
+  not add unconditional per-frame DOM writes to the HUD loop.
 
 ## Commit / PR conventions
 
