@@ -60,8 +60,10 @@ let _coneKnockedCount = 0;  // number of knocked cones when paths were last buil
 
 // Build three Path2Ds for standing cones (called from initRender and on each knock event).
 // Reads _T directly — must be called after _T is assigned.
-// arc() calls with no preceding moveTo produce implicit connecting lines between circles,
-// but those lines are 1D (zero area) and invisible when the path is filled.
+// Each arc is preceded by moveTo at its natural start point (cx+r, cy) so that
+// Canvas begins a fresh subpath instead of drawing a connecting line from the
+// previous arc's end. Without moveTo, 166 circles become one giant connected
+// polygon that fills the entire enclosed area — causing solid visual artifacts.
 const _buildStandingCones = () => {
   const { cones, CONE_R } = _T;
   _conesShadow    = new Path2D();
@@ -69,8 +71,11 @@ const _buildStandingCones = () => {
   _conesHighlight = new Path2D();
   for (const c of cones) {
     if (c.knocked) continue;
+    _conesShadow.moveTo(c.x + 2 + CONE_R, c.y + 2);
     _conesShadow.arc(c.x + 2, c.y + 2, CONE_R, 0, Math.PI * 2);
+    _conesBody.moveTo(c.x + CONE_R, c.y);
     _conesBody.arc(c.x, c.y, CONE_R, 0, Math.PI * 2);
+    _conesHighlight.moveTo(c.x - 1 + CONE_R * 0.35, c.y - 1);
     _conesHighlight.arc(c.x - 1, c.y - 1, CONE_R * 0.35, 0, Math.PI * 2);
   }
 };
