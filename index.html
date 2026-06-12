@@ -65,7 +65,9 @@ try {
       .filter(v => v != null);
     if (ppsList && ppsList.length > 0) {
       const avg = Math.round(ppsList.reduce((a, b) => a + b, 0) / ppsList.length);
-      document.getElementById('ta-avg-pps').textContent =
+      // Update only the text node, not the whole element — setting textContent
+      // on the parent would destroy the #ta-caps child span.
+      document.getElementById('ta-avg-pps').firstChild.textContent =
         'Avg ' + avg.toLocaleString() + ' PPS';
     }
   }
