@@ -49,5 +49,5 @@ test('version mismatch falls back to defaults', async () => {
   });
   // separate import with busting query — fresh module instance, clean _s
   const fresh = await import('../js/store.js?v=mismatch');
-  assert.deepEqual(fresh.settings(), { units: 'kmh' });
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true });
 });
