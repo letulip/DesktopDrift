@@ -285,21 +285,17 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Physics ──────────────────────────────────────────────────────────────────
 
-  // 60 fps cap: physics and rendering are skipped on rAF ticks that arrive too early.
-  // rAF is always re-registered (so the browser can composite overlays), but the frame
-  // body bails out until ≥ FRAME_MS has elapsed since the last real frame.
-  // Physics uses dt-based normalisation (fAdj = dt * PHYS_HZ) so it is identical at
-  // any frame rate — the cap has zero effect on simulation results.
-  // `last` updates only inside the real-frame path; skipped ticks leave it unchanged
-  // so the next real frame receives the correct accumulated dt, not a spike.
-  const FRAME_MS = 1000 / 60; // target: 60 fps
-  let lastFrame  = 0;          // timestamp of the last executed frame
+  // Render at the display's native refresh rate (uncapped rAF). Physics is frame-rate
+  // independent (decay terms use Math.pow(k, dt * PHYS_HZ); dt clamped at 0.05 s), so a
+  // 60 / 90 / 120 Hz panel all simulate identically — running every frame is just smoother.
+  // NB: a previous 60 fps throttle was removed: skipping rAF ticks against a fixed 16.67 ms
+  // threshold downgrades 90 Hz panels to a juddery 45 fps (no clean 60 exists on 90 Hz) and
+  // micro-stutters on 60 Hz from refresh jitter. Don't reintroduce a fixed-ms frame cap;
+  // if battery on 120 Hz ever matters, only halve when native rate is a clean multiple of 60.
   let last = performance.now();
   let rafId = 0;
   const frame = (now) => {
     rafId = requestAnimationFrame(frame);
-    if (now - lastFrame < FRAME_MS - 1) return;  // -1 ms tolerance for timer jitter
-    lastFrame = now;
 
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
