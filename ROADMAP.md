@@ -123,6 +123,84 @@ First add the **event seam** (spine #4). Then:
 - [ ] **Ghost car** — race your own best lap (records + a recorded position/input trace).
       Pure client-side, strong Time-Attack motivation.
 
+## Phase 2.5 — Economy: tire coins & garage progression
+
+A soft-currency economy that reinforces the core loop (drift well → earn → express
+yourself / chase new cars). **Records-safe by design:** the spend is cosmetic + new cars,
+never raw power, so PPS records stay comparable (see "Cars" below for the per-car-records
+guard). Precursor already shipped: **cola caps** (skill collectible — drift a donut around
+one; per-track badge). Tires are the *currency* sibling (easy proximity pickup).
+
+### Currency — tires ("rubber")
+- One currency for the whole game. `tire.svg` already exists (`js/collectibles.js`).
+- `1 tire pickup = 1 tire` in the wallet (plentiful, Mario-coin feel).
+- New `store` slices: `wallet` (int) + `owned` (set of purchased item ids). Sync-ready.
+- Tire pickups persist **one-time per track** by index (same model as cola caps).
+
+### Faucets (income) — hybrid, anti-grind
+- **One-time track pickups** — discovery/risk reward, collected once ever.
+- **Repeatable finish payout, scaled by PPS/stars** — the sustainable income; skill = money.
+  Reuses the results-screen star rating (1 star / 100 PPS, max 5).
+- **First-clear bonus** per track instance.
+
+### Sink (spend)
+- **Cosmetics** (Phase 2 cosmetic-mods feeds this): paint finishes (matte/metallic/chrome/
+  pearl), liveries, wheel styles, skid/trail colour. The free 20 body + 10 neon colours stay
+  free; the shop is strictly additive.
+- **New cars** (Phase 3 content): the aspirational long-tail. See "Cars".
+
+### Economy maths (anchored to current content; tune by feel, ratios > absolutes)
+Content scope = **14 track instances** = 7 tracks (3 live: green-study, steel-kitchen,
+workbench; +3 coming; +1 idea) × forward & **reversed** mode.
+
+| Faucet | Starting value | Total over 14 |
+|---|---|---|
+| Tire pickups | ~10 / instance | ~140 |
+| First-clear bonus | +20 / instance | ~280 |
+| Finish payout (repeatable) | `2 + 2×stars` (2–12 / race) | endless trickle |
+
+→ Guaranteed one-time bank ≈ **~420 tires**, then finish payouts drive the long tail.
+
+| Sink | Price |
+|---|---|
+| Cosmetics tier 1 / 2 / 3 | 40–80 / 150–250 / 400 (catalog ≈ 1,800) |
+| First new car (the hook — cheap, reachable early) | 400 |
+| Later cars | 800 / 1,400 (+ stretch ~2,000) |
+
+Pacing intent: one-time bank ≈ starter cosmetics + nearly the first car; everything else is
+the completionist tail funded by finish payouts. First car is deliberately cheap = the hook.
+
+### Reversed-mode gating
+- Reversed unlocks **per track** as you *complete* its forward version (completion, **not**
+  mastery — finishing the race once, never a 5-star gate). Optional "all 7 done" celebration
+  banner on top.
+- Doubles content value and paces the currency supply (≈ half the one-time bank behind the gate).
+
+### Cars (Phase 3) — sidegrades with personality, NOT power-creep
+- Each new car excels somewhere and is weaker elsewhere (distinct spd/hdl/acc profile), so
+  car choice is expressive + track-strategic, never strictly "better".
+- **Per-car records** (`records[trackId].timeattack[carId]`) — turns different handling into a
+  *feature* (×N goals: best PPS per car per track) and keeps comparisons fair. This schema
+  addition lands with the first paid car.
+- Each car = real art (top-down SVG layers body/glass/roof/wheels/lights + Path2D silhouette,
+  per the existing `config.js` `CARS` pattern) + a tuned stat profile + a price. Content cost,
+  not a code line.
+- Roster concept (nicknames, no brands — like Bismark/Panda): **Wagon** (grippy, forgiving —
+  the cheap "first new car" hook, 400), **Kei** (nimble, low top — king of tight tracks),
+  **Muscle** (huge thrust, loose rear — risk/reward), **Wedge** (max top, lazy turn-in — the
+  aspirational flex, ~2,000).
+
+### Phasing (ship incrementally; see the `desktopdrift-feature` workflow when it exists)
+- **A** — tire pickup + persistent `wallet` + HUD counter. No shop; currency just accrues.
+  Smallest shippable; validates the collect feel. (Mirrors the cola-cap pipeline: proximity
+  pickup is cheaper than the drift-arc; dispatch collectibles by `kind`.)
+- **B** — shop (garage tab or `shop.html`) + cosmetics gated by `owned`.
+- **C** — new cars + per-car records.
+
+### Open decisions (revisit at Phase B/C)
+- Shop location: garage tab in `select.html` vs standalone `shop.html` (leaning: garage tab).
+- Wallet UI label: "Tires" / "Rubber" / tire icon + number.
+
 ## Phase 3 — Content
 
 - [ ] **Track registry** (spine #3) + **collision validator**: a dev-time check that flags
