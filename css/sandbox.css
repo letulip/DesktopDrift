@@ -178,6 +178,12 @@ canvas { display: block; }
   color: var(--accent); border: 1px solid var(--accent-line);
   padding: 2px 7px; border-radius: 6px; align-self: center;
 }
+.rr-stars {
+  width: 100%; display: flex; justify-content: center; gap: 5px;
+  margin-top: -2px;
+}
+.rr-stars .star-dim { font-size: 22px; color: rgba(255,255,255,.22); }
+.rr-stars .star-lit { font-size: 22px; color: #ffc840; text-shadow: 0 0 8px rgba(255,180,0,.6); }
 #rr-laps {
   display: flex; flex-direction: column; gap: 5px;
   border-top: 1px solid rgba(255,255,255,.1);

@@ -37,10 +37,15 @@ export const createRaceResults = () => {
   // pps: points per second (race efficiency)
   const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime }) => {
     const ppsRounded = Math.round(pps);
+    // Star rating: 1 star per 100 PPS, max 5
+    const filledStars = Math.min(5, Math.floor(ppsRounded / 100));
+    const starsHtml = Array.from({ length: 5 }, (_, i) =>
+      `<span class="${i < filledStars ? 'star-lit' : 'star-dim'}">★</span>`).join('');
     overlay.querySelector('#rr-score').innerHTML = `
       <span class="rr-label">Score</span>
       <span class="rr-val${isNewRecord ? ' rr-new' : ''}">${ppsRounded.toLocaleString()} PPS</span>
       ${isNewRecord ? '<span class="rr-badge">NEW RECORD</span>' : ''}
+      <div class="rr-stars">${starsHtml}</div>
       <span class="rr-sub">Total: ${score.toLocaleString()} · ${totalTime.toFixed(1)} s</span>
     `;
 
