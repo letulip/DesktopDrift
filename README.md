@@ -4,7 +4,9 @@ Desktop Drift – is a top-down arcade drift racing game set on a kitchen (and n
 
 The game is fully PWA-ready (Progressive Web App), allowing users to install it directly to their devices and play offline.
 
-https://letulip.github.io/DesktopDrift/
+Try the gameplay here https://letulip.github.io/DesktopDrift/
+
+Follow my Devlog on YouTube https://www.youtube.com/@DesktopDrift
 
 ## 🛠 Tech Stack
 
