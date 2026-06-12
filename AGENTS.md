@@ -168,8 +168,12 @@ stays readable. No framework, no bundler.
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
     DPR capped at 1.5 (`min(devicePixelRatio, 1.5)`) — saves ~1.78× fragment ops vs
     cap=2 with negligible visual difference for flat arcade style.
-    Game loop capped at 60 fps (`FRAME_MS = 1000/60`) via timestamp guard — prevents
-    1.5–2× GPU drain on 90/120 Hz displays; physics is frame-rate-independent anyway.
+    Game loop runs at the display's native refresh rate (uncapped rAF); physics is
+    frame-rate-independent (`Math.pow(k, dt*PHYS_HZ)`, `dt` clamped 0.05 s). A previous
+    fixed-16.67 ms "60 fps cap" was **removed** — it downgraded 90 Hz panels to a juddery
+    45 fps (no clean 60 exists on 90 Hz) and micro-stuttered on 60 Hz from rAF jitter.
+    Do not reintroduce a fixed-ms frame cap; only halve when native rate is a clean
+    multiple of 60 if battery ever demands it.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()` (live objects — mutate then call `save()`), and `save()`.
