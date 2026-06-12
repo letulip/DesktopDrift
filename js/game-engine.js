@@ -10,6 +10,7 @@ import {
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
+import { hapticCone, hapticCrash } from './haptics.js';
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -183,6 +184,7 @@ export const startGame = (T, opts = {}) => {
     const rr = r + CONE_R;
     if (dx * dx + dy * dy >= rr * rr) return;
     c.knocked = true;
+    hapticCone();
     const d = Math.hypot(dx, dy) || 1;
     c.vx = car.vx * 0.6 - (dx / d) * 80;
     c.vy = car.vy * 0.6 - (dy / d) * 80;
@@ -409,7 +411,7 @@ export const startGame = (T, opts = {}) => {
           const ux = bnx / br / rx, uy = bny / br / ry, ul = Math.hypot(ux, uy);
           const px = ux / ul, py = uy / ul;
           const vn = car.vx * px + car.vy * py;
-          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) burnCombo('WALL!'); }
+          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) { hapticCrash(); burnCombo('WALL!'); } }
           break; // one response per frame
         }
       }
@@ -425,7 +427,7 @@ export const startGame = (T, opts = {}) => {
       if (car.x + absExtX >  wallW) { car.x =  wallW - absExtX; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
       if (car.y - absExtY < -wallH) { car.y = -wallH + absExtY; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
       if (car.y + absExtY >  wallH) { car.y =  wallH - absExtY; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (wallHit > 120) burnCombo('WALL!');
+      if (wallHit > 120) { hapticCrash(); burnCombo('WALL!'); }
     }
 
     for (const o of props) {
@@ -450,7 +452,7 @@ export const startGame = (T, opts = {}) => {
         car.x += bestQx + nx * rr - bestBpX;
         car.y += bestQy + ny * rr - bestBpY;
         const vn = car.vx * nx + car.vy * ny;
-        if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) burnCombo('CRASH!'); }
+        if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) { hapticCrash(); burnCombo('CRASH!'); } }
       }
     }
 

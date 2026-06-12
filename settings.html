@@ -30,6 +30,14 @@
     </div>
   </div>
 
+  <div class="settings-group" id="haptics-group" style="display:none">
+    <div class="settings-label">Haptic feedback</div>
+    <div class="unit-row">
+      <button class="unit-btn" id="btn-hap-on">On</button>
+      <button class="unit-btn" id="btn-hap-off">Off</button>
+    </div>
+  </div>
+
   <a id="backLink" href="index.html">← Back to menu</a>
 </div>
 
@@ -52,6 +60,26 @@
 
   // Restore saved choice
   apply(s.units ?? 'kmh');
+
+  // Haptic feedback toggle — only shown when the Vibration API is available.
+  if ('vibrate' in navigator) {
+    const group   = document.getElementById('haptics-group');
+    const btnOn   = document.getElementById('btn-hap-on');
+    const btnOff  = document.getElementById('btn-hap-off');
+
+    const applyHaptics = (on) => {
+      s.haptics = on;
+      save();
+      btnOn .classList.toggle('sel', on);
+      btnOff.classList.toggle('sel', !on);
+    };
+
+    btnOn .addEventListener('click', () => applyHaptics(true));
+    btnOff.addEventListener('click', () => applyHaptics(false));
+
+    group.style.display = '';   // show only on supported devices
+    applyHaptics(s.haptics ?? true);
+  }
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

@@ -25,7 +25,7 @@ test('defaults: garage', () => {
 });
 
 test('defaults: settings / records / achievements', () => {
-  assert.deepEqual(settings(), { units: 'kmh' });
+  assert.deepEqual(settings(), { units: 'kmh', haptics: true });
   assert.deepEqual(records(), {});
   assert.deepEqual(achievements(), {});
 });
@@ -69,5 +69,5 @@ test('mutate live object + save() persists correct JSON shape', () => {
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.bodyColor, '#ff0000');
   assert.equal(raw.garage.neonColor, '#39FF14');
-  assert.deepEqual(raw.settings, { units: 'kmh' });
+  assert.deepEqual(raw.settings, { units: 'kmh', haptics: true });
 });
