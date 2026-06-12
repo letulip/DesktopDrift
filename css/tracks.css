@@ -73,6 +73,18 @@
 
 .track-card-top { display: block; position: relative; }
 
+/* PPS star rating — top-left corner of thumbnail */
+.track-stars {
+  position: absolute;
+  top: 7px; left: 7px;
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+  line-height: 1;
+}
+.track-stars .star-dim { font-size: 13px; color: rgba(255,255,255,0.22); }
+.track-stars .star-lit { font-size: 13px; color: #ffc840; text-shadow: 0 0 6px rgba(255,180,0,0.55); }
+
 /* Cap collectible badge — top-right corner of thumbnail */
 .track-cap-badge {
   position: absolute;

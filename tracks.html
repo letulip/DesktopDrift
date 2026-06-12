@@ -148,6 +148,18 @@
 
     const record = bestRecord(track.id);
 
+    // PPS star rating — top-left corner: 5 stars, 1 lit per 100 PPS
+    const stars = document.createElement('div');
+    stars.className = 'track-stars';
+    const filled = Math.min(5, Math.floor((record?.pps ?? 0) / 100));
+    for (let s = 0; s < 5; s++) {
+      const sp = document.createElement('span');
+      sp.textContent = '★';
+      sp.className = s < filled ? 'star-lit' : 'star-dim';
+      stars.appendChild(sp);
+    }
+    top.appendChild(stars);
+
     const scorePanel = document.createElement('div');
     scorePanel.className = 'track-card-score';
     if (record) {
