@@ -104,7 +104,7 @@ Turns the tech demo into a game and fixes what bugs us now.
 - [x] **Design system pass** (spine #6). CSS token layer (`:root` in `base.css`),
       self-hosted display font (Unbounded 800), warm `theme-color`, film grain on
       menu/garage/settings, staggered menu entrance. See AGENTS.md → Design language.
-- [ ] **Track previews** on the selection screen — generalize `drawMini` into
+- [x] **Track previews** on the selection screen — generalize `drawMini` into
       `renderTrackThumb(canvas, track)`. Cheap (the rendering already exists); start with the
       two existing tracks, gets richer once the track registry lands.
 
@@ -112,6 +112,7 @@ Turns the tech demo into a game and fixes what bugs us now.
 
 First add the **event seam** (spine #4). Then:
 
+- [ ] **Tracks** - more tracks with reversed variants.
 - [ ] **Achievements** — data table of definitions + `store` flags/progress; subscribe to
       engine events.
 - [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
@@ -131,7 +132,7 @@ never raw power, so PPS records stay comparable (see "Cars" below for the per-ca
 guard). Precursor already shipped: **cola caps** (skill collectible — drift a donut around
 one; per-track badge). Tires are the *currency* sibling (easy proximity pickup).
 
-### Currency — tires ("rubber")
+### Currency — tires ("tire")
 - One currency for the whole game. `tire.svg` already exists (`js/collectibles.js`).
 - `1 tire pickup = 1 tire` in the wallet (plentiful, Mario-coin feel).
 - New `store` slices: `wallet` (int) + `owned` (set of purchased item ids). Sync-ready.
@@ -155,11 +156,11 @@ workbench; +3 coming; +1 idea) × forward & **reversed** mode.
 
 | Faucet | Starting value | Total over 14 |
 |---|---|---|
-| Tire pickups | ~10 / instance | ~140 |
+| Tire pickups | ~20 / instance | ~280 |
 | First-clear bonus | +20 / instance | ~280 |
 | Finish payout (repeatable) | `2 + 2×stars` (2–12 / race) | endless trickle |
 
-→ Guaranteed one-time bank ≈ **~420 tires**, then finish payouts drive the long tail.
+→ Guaranteed one-time bank ≈ **~560 tires**, then finish payouts drive the long tail.
 
 | Sink | Price |
 |---|---|
@@ -196,10 +197,11 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
   pickup is cheaper than the drift-arc; dispatch collectibles by `kind`.)
 - **B** — shop (garage tab or `shop.html`) + cosmetics gated by `owned`.
 - **C** — new cars + per-car records.
+- **D** - cars classes and mods
 
 ### Open decisions (revisit at Phase B/C)
 - Shop location: garage tab in `select.html` vs standalone `shop.html` (leaning: garage tab).
-- Wallet UI label: "Tires" / "Rubber" / tire icon + number.
+- Wallet UI label: "Tires" / tire icon + number.
 
 ## Phase 3 — Content
 
@@ -207,8 +209,8 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
       any prop whose collider overlaps the drivable corridor
       (`distance-to-centerline < TRACK_HALF + margin`). Turns "eyeball it" into an automated
       guard and eliminates the prop-blocks-the-racing-line bug class.
-- [ ] **New track: "around the plates"** — author the SVG, place props, run the validator.
-- [ ] **Zen drift mode** + transitions between locations (larger, content-heavy creative
+- [x] **New track: "around the plates"** — author the SVG, place props, run the validator.
+- [x] **Zen drift mode** + transitions between locations (larger, content-heavy creative
       feature).
 - [ ] Time-Attack: selectable lap count / difficulty.
 
@@ -227,11 +229,11 @@ Only once competition is actually wanted. Not a near-term goal.
 
 Small, mostly independent wins — slot into a phase as they fit.
 
-- **Share result** — screenshot + Web Share API. Social without a backend. *(Phase 1–2)*
-- **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
+- [ ] **Share result** — screenshot + Web Share API. Social without a backend. *(Phase 1–2)*
+- [ ] **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
   server. *(Phase 2–3)*
-- **Haptics** — vibrate on cone / crash (Vibration API, mobile). *(Phase 1, cheap)*
-- **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
+- [ ] **Haptics** — vibrate on cone / crash (Vibration API, mobile). *(Phase 1, cheap)*
+- [ ] **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
 
 ## Parked / needs a decision
 
