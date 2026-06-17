@@ -57,7 +57,7 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       ~55-line wall/prop block is now two calls. 99 tests green; node --check clean. Browser
       feel-check (ram a wall / clip a prop, bounce unchanged) handed to the user.
 
-- [ ] **6. Knocked-cone update → pure.** The per-cone motion + cone-vs-prop pushback
+- [x] **6. Knocked-cone update → pure.** The per-cone motion + cone-vs-prop pushback
       (`frame()`'s knocked branch) into `js/collision.js`. Deterministic except the initial
       random spin in `hitConeAt` — test the update step with a seeded/!fixed spin.
 

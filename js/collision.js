@@ -115,3 +115,28 @@ export const resolveProps = (car, props, CR, bodyPts) => {
   }
   return crash;
 };
+
+// Advances a knocked cone one frame: translate, resolve prop collisions, apply decay.
+// Mutates c in place. fAdj = dt * PHYS_HZ (frame-normalised decay exponent).
+export const stepKnockedCone = (c, props, CONE_R, dt, fAdj) => {
+  const dAdj = Math.pow(0.9, fAdj);
+  c.x += c.vx * dt; c.y += c.vy * dt;
+  for (const o of props) {
+    let qx = o.x, qy = o.y;
+    if (o.hl > 0) {
+      const lx = c.x - o.x, ly = c.y - o.y;
+      let t = lx * o._cos + ly * o._sin;
+      if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
+      qx = o.x + o._cos * t; qy = o.y + o._sin * t;
+    }
+    const dx = c.x - qx, dy = c.y - qy, minD = o.r + CONE_R;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < minD * minD) {
+      const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
+      c.x = qx + nx * minD; c.y = qy + ny * minD;
+      const vDotN = c.vx * nx + c.vy * ny;
+      if (vDotN < 0) { c.vx -= vDotN * nx * 0.8; c.vy -= vDotN * ny * 0.8; c.spin *= -0.4; }
+    }
+  }
+  c.vx *= dAdj; c.vy *= dAdj; c.ang += c.spin * dt; c.spin *= dAdj;
+};

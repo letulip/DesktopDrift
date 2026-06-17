@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps } from '../js/collision.js';
+import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from '../js/collision.js';
 
 const TABLE_RECT  = { w: 3400, h: 2900, shape: 'rect' };
 const TABLE_ROUND = { w: 3400, h: 2900, shape: 'round' };
@@ -124,4 +124,44 @@ test('resolveWall/resolveProps — no contact leaves the car untouched', () => {
   assert.equal(resolveWall(car, TABLE, RR, hx, hy, nose, bodyPtsOf(car, hx, hy, nose)), 0);
   assert.equal(resolveProps(car, [{ x: 1000, y: 1000, r: 20, hl: 0, _cos: 1, _sin: 0 }], RR, bodyPtsOf(car, hx, hy, nose)), 0);
   near(car.x, 0, 'x'); near(car.vx, 100, 'vx');
+});
+
+const makeCone = (x, y, vx, vy, spin = 0) =>
+  ({ x, y, vx, vy, ang: 0, spin, knocked: true });
+
+test('stepKnockedCone: free cone — position advances, velocity decays, angle updates', () => {
+  const c = makeCone(0, 0, 100, 50, 2);
+  const dt = 1 / 60, fAdj = dt * 60; // PHYS_HZ=60
+  stepKnockedCone(c, [], CONE_R, dt, fAdj);
+  const dAdj = Math.pow(0.9, fAdj);
+  near(c.x,   100 * dt,        1e-9);
+  near(c.y,   50  * dt,        1e-9);
+  near(c.vx,  100 * dAdj,      1e-9);
+  near(c.vy,  50  * dAdj,      1e-9);
+  near(c.ang, 2   * dt,        1e-9); // spin * dt before spin decays
+  near(c.spin, 2  * dAdj,      1e-9);
+});
+
+test('stepKnockedCone: cone overlapping point prop — pushed out, velocity damped', () => {
+  // Cone at (0,0) moving toward a prop above it (positive vy → up).
+  // The code removes 80% of the normal approach speed (not a full bounce-back).
+  const propR = 20, overlap = 1;
+  const propY = CONE_R + propR - overlap; // 37
+  const prop = { x: 0, y: propY, r: propR, hl: 0, _cos: 1, _sin: 0 };
+  const c = makeCone(0, 0, 0, 100, 0);
+  const dt = 1 / 60, fAdj = 1;
+  stepKnockedCone(c, [prop], CONE_R, dt, fAdj);
+  // Cone must be pushed outside the prop (distance ≥ CONE_R + propR).
+  near(c.y, propY - (CONE_R + propR), 1e-6);
+  // vy is reduced compared to free decay (100 * 0.9 = 90): collision removes 80% of
+  // the normal component first, leaving 20 before decay → 20 * 0.9 = 18.
+  assert.ok(c.vy < 100 * Math.pow(0.9, fAdj), `vy should be less than free-decay value, got ${c.vy}`);
+});
+
+test('stepKnockedCone: cone clear of all props — no pushback', () => {
+  const prop = { x: 500, y: 500, r: 20, hl: 0, _cos: 1, _sin: 0 };
+  const c = makeCone(0, 0, 10, 0, 0);
+  const x0 = c.x + 10 / 60; // expected position after free motion
+  stepKnockedCone(c, [prop], CONE_R, 1 / 60, 1);
+  near(c.x, x0, 1e-9);
 });
