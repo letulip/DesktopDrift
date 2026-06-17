@@ -630,6 +630,22 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   intersecting loop, fill overlap, misplaced cones). `offsetEdges` clamps the inner
   offset to `min(half, R−10)` via the local circumradius estimate. If you lower
   TRACK_HALF or add tracks with tighter hairpins, watch for R < new TRACK_HALF.
+- **Item clearance validation.** After placing or resizing items in a track SVG,
+  run the inline Node script below to check every `<line id="ITEM_*">` midpoint
+  against the raw track-path polyline. Items need `dist > TRACK_HALF + item.r`
+  from the nearest path segment. The script uses the same `scale=0.25` and
+  `svgCx/svgCy = viewBox/2` logic as `track-factory.js`. Copy `itemSizes` from
+  `js/items.js` for the items you changed; items not in the map default to `r=50`
+  (conservative). A 30–50 GU buffer above the minimum is recommended because
+  Chaikin smoothing pulls corners inward and may reduce clearance slightly.
+
+  ```bash
+  # Usage: node --input-type=module << 'EOF' ... EOF   (from DesktopDrift/)
+  # Paste the script from the "Item clearance validator" section below, or use:
+  node tools/check-item-clearance.js tracks/workbench.svg
+  ```
+
+  The script lives at `tools/check-item-clearance.js` (run standalone, no deps).
 - **HUD DOM writes are guarded.** `render.js` caches the 10 HUD element refs in
   `initRender` and writes `textContent`/`innerHTML` only when the value changes. The
   prev-value guards are reset to `null` inside `initRender` on each track start — do
