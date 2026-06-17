@@ -256,10 +256,18 @@ stays readable. No framework, no bundler.
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
     (returns 0 when `totalTime = 0`). Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
+  - `js/physics.js` — **pure car kinematics step** (imports only `scoring.js`): `stepCar(car,
+    S, steerTarget, P, K, dt)` — steering smoothing, velocity decomposition, grip/roll/
+    drift-drag, wobble, angle integration, self-align, position. Mutates `car` + `S.steerSmooth/
+    physT`; returns `{ drifting, speed, vS, fwd, side }` for the engine's scoring/skid code.
+    A **verbatim** extraction of the old inline `frame()` integration — **feel-critical, do
+    not reorder**. Locked by a golden-master in `tests/physics.test.js` (frozen trajectory;
+    regenerate deliberately only when intentionally changing handling). `K` =
+    `{ PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE }`.
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
-    `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
-    `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
+    `scoring.js` → `physics.js` → `config.js` → `items.js` → `track*.js` →
+    (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
     `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
     (car previews + colour palette + persistence + track routing).
