@@ -14,6 +14,7 @@ import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
 import { nearestCenter } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish } from './collision.js';
+import { resolveSteer } from './input.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -153,12 +154,6 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Input ────────────────────────────────────────────────────────────────────
 
-  const updatePointerSteer = () => {
-    let s = 0;
-    for (const x of pointers.values()) s += (x < W / 2 ? -1 : 1);
-    S.steerInput = Math.sign(s);
-  };
-
   // All listeners go through on(): it accumulates them in listeners[] so stop()
   // can remove them all at once. Without this they would pile up on restart.
   const listeners = [];
@@ -173,10 +168,10 @@ export const startGame = (T, opts = {}) => {
   on(window, 'keyup',   onKeyUp);
   // passive: false + preventDefault() — prevents iOS from starting text selection
   // on long press during gameplay
-  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); };
-  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } };
-  const onPointerUp     = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
-  const onPointerCancel = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
+  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); };
+  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); } };
+  const onPointerUp     = e => { pointers.delete(e.pointerId); };
+  const onPointerCancel = e => { pointers.delete(e.pointerId); };
   on(canvas, 'pointerdown',   onPointerDown,   { passive: false });
   on(canvas, 'pointermove',   onPointerMove,   { passive: false });
   on(canvas, 'pointerup',     onPointerUp);
@@ -232,7 +227,7 @@ export const startGame = (T, opts = {}) => {
   // The engine only reads pause.isPaused(); on pause we release steering so the car
   // doesn't lurch on resume.
   const pause = createPause({
-    onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
+    onChange(p) { if (p) { pointers.clear(); } },
   });
 
   // ─── Finish line ──────────────────────────────────────────────────────────────
@@ -272,10 +267,7 @@ export const startGame = (T, opts = {}) => {
 
     const P = CARS[S.carModel]._drive;
 
-    let kSteer = 0;
-    if (keys['ArrowLeft']  || keys['a'] || keys['A']) kSteer -= 1;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) kSteer += 1;
-    const steerTarget = kSteer !== 0 ? kSteer : S.steerInput;
+    const steerTarget = resolveSteer(pointers, keys, W);
 
     // Car kinematics (steering, grip, wobble, self-align, integration) — pure step in
     // js/physics.js. Mutates car + S.steerSmooth/physT; returns the snapshot the scoring

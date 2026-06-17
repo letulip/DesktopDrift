@@ -44,7 +44,7 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       `crossedFinish(prevDot, dot)` (+ a `finishDot(car, c0, cos, sin)` helper). `frame()` keeps
       `prevFinishDot` state. Test: approaching (neg→pos) crosses once; receding does not; exact-0 handled.
 
-- [ ] **4. Input mapping → pure.** `updatePointerSteer`'s pointer-sum → sign, and the
+- [x] **4. Input mapping → pure.** `updatePointerSteer`'s pointer-sum → sign, and the
       keyboard `kSteer` resolution, into a pure `resolveSteer(pointers, keys, W) → -1|0|1`.
       Test: left-half pointer → -1; both halves → 0; ArrowRight overrides; etc.
 
