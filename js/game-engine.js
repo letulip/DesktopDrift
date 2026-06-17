@@ -254,10 +254,12 @@ export const startGame = (T, opts = {}) => {
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);
 
-  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode
+  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode.
+  // Set ONLY the total span — never replace #lapNum, whose ref render.js caches once
+  // (innerHTML-replacing it detached that ref and froze the visible counter).
   if (TOTAL_LAPS > 0) {
-    const el = document.getElementById('lapCounter');
-    if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
+    const el = document.getElementById('lapTotal');
+    if (el) el.textContent = TOTAL_LAPS;
   }
 
   // Car and colour chosen on the garage screen (select.html), read from store.
