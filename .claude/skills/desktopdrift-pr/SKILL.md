@@ -42,6 +42,16 @@ aesthetics skill, not a game design doc).
    - **Confirm the server actually serves the NEW code:**
      `fetch('/js/<file>.js?x='+Date.now()).then(r=>r.text())` → check your change is present
      (a sentinel string). Don't trust "it works" without this.
+   - 🔴 **VERIFICATION BUDGET — do not burn tokens fighting a stuck cache.** The preview
+     browser caches ES modules by URL (no query); an agent **cannot** force a real
+     hard-reload from here, and SW-clear / server-restart do **not** clear that HTTP cache.
+     So: do **at most ONE** SW-clear + reload. If a sentinel shows the page is still running
+     **old** code after that, **STOP** — do NOT restart the preview server, re-navigate, or
+     loop screenshots/evals (those are the most expensive calls and it's a lost cause here).
+     Instead: prove correctness cheaply — `npm test` + `node --check` + one
+     `fetch('/js/x.js?bust=…')` confirming the **server** serves the fix — then hand the
+     live visual/cache-dependent check to the user with a one-line checklist of what to look
+     at. Screenshots and eval-loops are a last resort, used once, never in a retry loop.
    - Run Sandbox (`select.html?mode=sandbox` → `sandbox.html`) and a Time Attack track
      (`tracks.html` → pick → `select.html?track=<id>` → e.g. `green-study.html`): render,
      steering (ArrowLeft/Right), pause (P), exit (Menu), combo/scoring, lap counter, and

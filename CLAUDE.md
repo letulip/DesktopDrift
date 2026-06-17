@@ -25,6 +25,12 @@ The user will just say what to do. Before editing, in this order:
 - **Changed JS/CSS/HTML/SVG?** Bump `const CACHE='desktop-drift-vN'` in `sw.js`
   (SW is stale-while-revalidate). A new JS module → also add it to `ASSETS`.
   Clear the SW before browser-verifying (snippet in the pr skill) or you see stale code.
+- **Verification budget — don't burn tokens on a stuck preview cache.** The preview
+  browser caches ES modules by URL and you can't force a real hard-reload from here.
+  Do at most ONE SW-clear + reload; if a sentinel shows old code persists, **STOP** —
+  no server restarts, no re-navigation, no screenshot/eval loops. Prove it cheaply
+  (`npm test`, `node --check`, one `fetch('?bust=')` that the server serves the fix) and
+  hand the live visual check to the user. Screenshots/eval are the priciest calls.
 - **All code is English** — comments, identifiers, strings (rules.md: "use only
   english throughout the entire project"). No Russian, no exceptions.
 - **Minimal diff** — exactly what was asked, no speculative abstractions/features.
