@@ -12,6 +12,7 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
+import { nearestCenter } from './track-util.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -130,25 +131,7 @@ export const startGame = (T, opts = {}) => {
     }
   };
 
-  // Nearest centreline point. Previously an O(N) full scan every frame.
-  // The car moves continuously along the closed line, so we only search
-  // ±NEAR_W around the previous index. For N≈300–416 that's ~49 points
-  // instead of all of them — far cheaper, same result (car step per frame
-  // ≪ window width even at the clamped dt=0.05).
-  const N_CENTER = center.length;
-  const NEAR_W = 24;
   let nearIdx = 0;
-  const distToTrack = () => {
-    let best = Infinity, bi = nearIdx;
-    for (let k = -NEAR_W; k <= NEAR_W; k++) {
-      const i = (((nearIdx + k) % N_CENTER) + N_CENTER) % N_CENTER;
-      const dx = car.x - center[i].x, dy = car.y - center[i].y;
-      const d = dx * dx + dy * dy;
-      if (d < best) { best = d; bi = i; }
-    }
-    nearIdx = bi;
-    return Math.sqrt(best);
-  }
 
   const nearMissCheck = (CR) => {
     const speed = Math.hypot(car.vx, car.vy);
@@ -428,7 +411,8 @@ export const startGame = (T, opts = {}) => {
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
-    const distTrk  = distToTrack();
+    const { dist: distTrk, idx: _nearIdx } = nearestCenter(car.x, car.y, center, nearIdx);
+    nearIdx = _nearIdx;
     const onTrack  = distTrk < TRACK_HALF + 90;
 
     if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) burnCombo('OFF TRACK!');

@@ -147,3 +147,21 @@ export const prepProp = (o) => {
   o._sin = Math.sin(o.ang);
   return o;
 };
+
+// Windowed nearest-centerline scan — O(2·window+1) instead of O(N).
+// The car moves at most a few GU per frame, so searching ±window around the
+// previous nearest index always finds the true nearest (window=24 covers ~50 GU
+// at typical frame rates, car max speed is well below that).
+// Returns { dist, idx }: idx is the new nearest index (caller stores it for the
+// next frame); dist is the Euclidean distance to that centerline point.
+export const nearestCenter = (carX, carY, center, prevIdx, window = 24) => {
+  const N = center.length;
+  let best = Infinity, bi = prevIdx;
+  for (let k = -window; k <= window; k++) {
+    const i = (((prevIdx + k) % N) + N) % N;
+    const dx = carX - center[i].x, dy = carY - center[i].y;
+    const d = dx * dx + dy * dy;
+    if (d < best) { best = d; bi = i; }
+  }
+  return { dist: Math.sqrt(best), idx: bi };
+};

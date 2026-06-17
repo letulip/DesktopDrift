@@ -28,7 +28,7 @@ rAF, DOM/HUD writes stay in `game-engine.js` and ride the **browser smoke test**
 
 Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden master):
 
-- [ ] **1. `nearestCenterIdx` / `distToTrack`.** Extract the windowed nearest-centerline scan
+- [x] **1. `nearestCenterIdx` / `distToTrack`.** Extract the windowed nearest-centerline scan
       (`frame()`'s `distToTrack`, with `NEAR_W`, `nearIdx`) into `js/track-util.js` (or a small
       helper) as a pure function of `(car{x,y}, center[], prevIdx, window)` → `{ dist, idx }`.
       `frame()` keeps the `nearIdx` state and calls it. Test: straight + figure-8 sample points;
