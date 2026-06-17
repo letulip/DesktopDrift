@@ -1,3 +1,15 @@
+// Pure collision / finish-line geometry — no state, no DOM, no side effects.
+
+// Signed projection of the car position onto the start/finish axis.
+// Positive = car has passed the line; negative = car is still approaching.
+export const finishDot = (car, c0, cos, sin) =>
+  (car.x - c0.x) * cos + (car.y - c0.y) * sin;
+
+// True when the car transitions from behind (prevDot < 0) to at/past (dot >= 0)
+// the finish line in a single frame — i.e. one crossing has occurred.
+// frame() owns the null-guard: prevDot must not be null before this is called.
+export const crossedFinish = (prevDot, dot) => prevDot < 0 && dot >= 0;
+
 // Pure near-miss geometry — no state, no DOM, no side effects.
 // Returns true when the car is within NM_BAND of any surface (table edge,
 // standing cone, or prop capsule) while moving above the speed gate.

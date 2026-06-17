@@ -13,7 +13,7 @@ import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
 import { nearestCenter } from './track-util.js';
-import { nearMiss } from './collision.js';
+import { nearMiss, finishDot, crossedFinish } from './collision.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -427,12 +427,12 @@ export const startGame = (T, opts = {}) => {
       // ── Finish line: crossing by sign of projection ────────────────────────────
       // Circle removed — detection is exact: time is recorded at the moment of crossing,
       // not on entry into a CP_R radius zone.
-      const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
+      const fDot = finishDot(car, c0, finishCos, finishSin);
 
       // Lateral constraint removed: the car could lap around the line at the table edge
       // and not be credited. Direction detection (sign of fDot) + completed intermediate
       // checkpoints is sufficient — they already guarantee a full lap.
-      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0) {
+      if (prevFinishDot !== null && crossedFinish(prevFinishDot, fDot)) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;

@@ -39,7 +39,7 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       `(car, cones, props, TABLE, CONE_R, CR, NM_BAND) → bool`. Test: a prop just inside the
       band → true; well clear → false; below the speed gate → false.
 
-- [ ] **3. Finish-line crossing → pure.** Extract the sign-flip detector
+- [x] **3. Finish-line crossing → pure.** Extract the sign-flip detector
       (`prevFinishDot < 0 && fDot >= 0` about the start axis) into a pure
       `crossedFinish(prevDot, dot)` (+ a `finishDot(car, c0, cos, sin)` helper). `frame()` keeps
       `prevFinishDot` state. Test: approaching (neg→pos) crosses once; receding does not; exact-0 handled.

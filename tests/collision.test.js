@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nearMiss } from '../js/collision.js';
+import { nearMiss, finishDot, crossedFinish } from '../js/collision.js';
 
 const TABLE_RECT  = { w: 3400, h: 2900, shape: 'rect' };
 const TABLE_ROUND = { w: 3400, h: 2900, shape: 'round' };
@@ -46,6 +46,28 @@ test('nearMiss: rect table edge just inside band → true', () => {
   const gap = NM_BAND / 2;
   const car = fastCar(TABLE_RECT.w / 2 - CR - gap, 0);
   assert.equal(nearMiss(car, [], [], TABLE_RECT, CONE_R, CR, NM_BAND), true);
+});
+
+test('finishDot: returns positive when car is past the line, negative when behind', () => {
+  const c0 = { x: 0, y: 0 };
+  // Axis points right (cos=1, sin=0)
+  assert.ok(finishDot({ x:  10, y: 0 }, c0, 1, 0) > 0, 'past line → positive');
+  assert.ok(finishDot({ x: -10, y: 0 }, c0, 1, 0) < 0, 'behind line → negative');
+  assert.equal(finishDot({ x: 0, y: 0 }, c0, 1, 0), 0,  'on line → 0');
+  // Lateral offset does not affect dot when axis is horizontal
+  assert.ok(finishDot({ x: 5, y: 999 }, c0, 1, 0) > 0, 'lateral offset irrelevant');
+});
+
+test('crossedFinish: approaching (neg→pos) → true', () => {
+  assert.equal(crossedFinish(-1, 1),   true);
+  assert.equal(crossedFinish(-0.1, 0), true);  // dot exactly 0 counts as crossing
+});
+
+test('crossedFinish: receding, same side, or exact-0 prevDot → false', () => {
+  assert.equal(crossedFinish(1,  -1),  false); // receding
+  assert.equal(crossedFinish(-1, -1),  false); // still behind
+  assert.equal(crossedFinish(1,   1),  false); // already past
+  assert.equal(crossedFinish(0,   1),  false); // prevDot=0 is not < 0
 });
 
 test('nearMiss: capsule prop — nearest point on segment used, not centre', () => {
