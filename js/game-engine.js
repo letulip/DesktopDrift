@@ -6,11 +6,15 @@ import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
 import { createRaceResults } from './race-results.js';
 import {
-  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
+  driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
+import { stepCar } from './physics.js';
+
+// Physics constants bundle passed to the pure stepCar() each frame (built once).
+const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -250,10 +254,12 @@ export const startGame = (T, opts = {}) => {
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);
 
-  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode
+  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode.
+  // Set ONLY the total span — never replace #lapNum, whose ref render.js caches once
+  // (innerHTML-replacing it detached that ref and froze the visible counter).
   if (TOTAL_LAPS > 0) {
-    const el = document.getElementById('lapCounter');
-    if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
+    const el = document.getElementById('lapTotal');
+    if (el) el.textContent = TOTAL_LAPS;
   }
 
   // Car and colour chosen on the garage screen (select.html), read from store.
@@ -317,48 +323,16 @@ export const startGame = (T, opts = {}) => {
     if (keys['ArrowLeft']  || keys['a'] || keys['A']) kSteer -= 1;
     if (keys['ArrowRight'] || keys['d'] || keys['D']) kSteer += 1;
     const steerTarget = kSteer !== 0 ? kSteer : S.steerInput;
-    S.steerSmooth += (steerTarget - S.steerSmooth) * Math.min(1, dt * P.steerSmooth);
 
-    const fwd  = { x: Math.cos(car.angle), y: Math.sin(car.angle) };
-    const side = { x: -Math.sin(car.angle), y: Math.cos(car.angle) };
-    let vF = car.vx * fwd.x + car.vy * fwd.y;
-    let vS = car.vx * side.x + car.vy * side.y;
-    const speed = Math.hypot(car.vx, car.vy);
-    const drifting = isDrifting(vS, speed);
+    // Car kinematics (steering, grip, wobble, self-align, integration) — pure step in
+    // js/physics.js. Mutates car + S.steerSmooth/physT; returns the snapshot the scoring
+    // and skid code below reads. (updateCaps now samples post-integration position — a
+    // sub-pixel, feel-irrelevant shift from when it ran mid-step.)
+    const { drifting, speed, vS, fwd, side } = stepCar(car, S, steerTarget, P, PHYS_K, dt);
     updateCaps(dt, drifting);
 
-    S.physT += dt;
-    const wobSlow = Math.sin(S.physT * 0.8 + 1.7) + 0.5 * Math.sin(S.physT * 1.9 + 4.2);
-    const wobFast = 0.6 * Math.sin(S.physT * 5.3 + 0.5) + 0.4 * Math.sin(S.physT * 12.1 + 2.1);
-    const wob  = 0.7 * wobSlow + 0.3 * wobFast;
-    const live = Math.min(1, speed / P.maxSpeed) * (0.4 + 0.6 * Math.min(1, Math.abs(vS) / 80));
-    const liveSteer = Math.min(1, speed / P.maxSpeed) * Math.min(1, Math.abs(vS) / 60);
-    const fAdj    = dt * PHYS_HZ;
-    const gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * live);
-
-    if (vF < P.maxSpeed) vF += P.thrust * dt;
-    vF *= Math.pow(P.rollFriction, fAdj);
-    vS *= Math.pow(P.grip, gripAdj);
-    vF *= Math.max(0, 1 - P.driftDrag * Math.abs(vS) * dt);
-
-    const turnFactor = Math.max(P.lowSpeedTurn, Math.min(speed / 160, 1));
-    const authority  = drifting ? P.driftSteerBoost : 1;
-    car.angle += S.steerSmooth * P.steer * turnFactor * authority * dt;
-    car.angle += STEER_WOBBLE * wobSlow * liveSteer * dt;
-
-    car.vx = fwd.x * vF + side.x * vS;
-    car.vy = fwd.y * vF + side.y * vS;
-
-    if (speed > 40) {
-      const moveAng = Math.atan2(car.vy, car.vx);
-      let diff = moveAng - car.angle;
-      while (diff >  Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      car.angle += diff * P.selfAlign * Math.min(1, speed / P.maxSpeed) * dt;
-    }
-
-    car.x += car.vx * dt;
-    car.y += car.vy * dt;
+    // Frame-normalised decay factor for knocked-cone motion below.
+    const fAdj = dt * PHYS_HZ;
 
     const M  = CARS[S.carModel];
     const CR = M.wid * 0.55;
