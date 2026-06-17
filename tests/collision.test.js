@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nearMiss, finishDot, crossedFinish } from '../js/collision.js';
+import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps } from '../js/collision.js';
 
 const TABLE_RECT  = { w: 3400, h: 2900, shape: 'rect' };
 const TABLE_ROUND = { w: 3400, h: 2900, shape: 'round' };
@@ -79,4 +79,49 @@ test('nearMiss: capsule prop — nearest point on segment used, not centre', () 
   // Car at (200, CR+20+NM_BAND+50) — gap too large → false.
   const farCar = fastCar(200, CR + 20 + NM_BAND + 50);
   assert.equal(nearMiss(farCar, [], [prop], TABLE_RECT, CONE_R, CR, NM_BAND), false);
+});
+
+// ── Collision-response golden masters (feel lock) ───────────────────────────────
+// Frozen outputs of the verbatim-extracted wall/prop response. A change to these
+// numbers changes how the car bounces off walls/objects — confirm intent in the
+// browser before regenerating, never edit blindly.
+const EPS = 1e-5;
+const near = (a, b, msg) => assert.ok(Math.abs(a - b) < EPS, `${msg}: got ${a}, want ${b}`);
+const bodyPtsOf = (car, hx, hy, nose) =>
+  [[car.x + hx * nose, car.y + hy * nose], [car.x, car.y], [car.x - hx * nose, car.y - hy * nose]];
+
+test('resolveWall — rect wall pushback + impact (golden)', () => {
+  const TABLE = { w: 3400, h: 2900, shape: 'rect' };
+  const hx = 1, hy = 0, nose = 25, RR = 40;
+  const car = { x: 1660, y: 0, vx: 300, vy: 50 };
+  const hit = resolveWall(car, TABLE, RR, hx, hy, nose, bodyPtsOf(car, hx, hy, nose));
+  near(car.x, 1635, 'x'); near(car.y, 0, 'y');
+  near(car.vx, -90, 'vx'); near(car.vy, 42.5, 'vy'); near(hit, 300, 'hit');
+});
+
+test('resolveWall — round wall pushback + impact (golden)', () => {
+  const TABLE = { w: 2000, h: 2000, shape: 'round' };
+  const hx = Math.cos(0.3), hy = Math.sin(0.3), nose = 25, RR = 40;
+  const car = { x: 950, y: 120, vx: 200, vy: 60 };
+  const hit = resolveWall(car, TABLE, RR, hx, hy, nose, bodyPtsOf(car, hx, hy, nose));
+  near(car.x, 928.007825, 'x'); near(car.y, 117.123332, 'y');
+  near(car.vx, -65.657399, 'vx'); near(car.vy, 25.250906, 'vy'); near(hit, 206.092633, 'hit');
+});
+
+test('resolveProps — circular prop pushout + reflection (golden)', () => {
+  const RR = 40, hx = 1, hy = 0, nose = 25;
+  const props = [{ x: 100, y: 0, r: 30, hl: 0, _cos: 1, _sin: 0 }];
+  const car = { x: 60, y: 0, vx: 250, vy: 0 };
+  const crash = resolveProps(car, props, RR, bodyPtsOf(car, hx, hy, nose));
+  near(car.x, 5, 'x'); near(car.y, 0, 'y');
+  near(car.vx, -100, 'vx'); near(car.vy, 0, 'vy'); near(crash, 250, 'crash');
+});
+
+test('resolveWall/resolveProps — no contact leaves the car untouched', () => {
+  const TABLE = { w: 3400, h: 2900, shape: 'rect' };
+  const hx = 1, hy = 0, nose = 25, RR = 40;
+  const car = { x: 0, y: 0, vx: 100, vy: 0 };
+  assert.equal(resolveWall(car, TABLE, RR, hx, hy, nose, bodyPtsOf(car, hx, hy, nose)), 0);
+  assert.equal(resolveProps(car, [{ x: 1000, y: 1000, r: 20, hl: 0, _cos: 1, _sin: 0 }], RR, bodyPtsOf(car, hx, hy, nose)), 0);
+  near(car.x, 0, 'x'); near(car.vx, 100, 'vx');
 });

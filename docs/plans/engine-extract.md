@@ -48,12 +48,14 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       keyboard `kSteer` resolution, into a pure `resolveSteer(pointers, keys, W) → -1|0|1`.
       Test: left-half pointer → -1; both halves → 0; ArrowRight overrides; etc.
 
-- [ ] **5. Wall + prop collision response → `js/collision.js` (CAREFUL — feel-critical).**
-      Extract the rect/round wall capsule pushback and the prop nearest-point pushback into pure
-      functions that take + return car kinematics (no mutation of singletons inside the pure fn;
-      `frame()` applies the result). This one CAN change feel — add a golden-master like
-      physics: freeze a car-into-wall and car-into-prop response trajectory BEFORE refactoring,
-      assert identical after. Opus or careful Sonnet.
+- [x] **5. Wall + prop collision response → `js/collision.js` (Opus, feel-critical).**
+      `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` (rect AABB + round ellipse) and
+      `resolveProps(car, props, CR, bodyPts)` (nearest-point pushback) — verbatim extractions
+      that mutate the passed car and return the impact magnitude; `frame()` fires haptics +
+      `burnCombo` above the crash thresholds (wall 120 / prop 100). Locked by golden-masters in
+      `tests/collision.test.js` (rect, round, prop pushout + a no-contact case). `frame()`'s
+      ~55-line wall/prop block is now two calls. 99 tests green; node --check clean. Browser
+      feel-check (ram a wall / clip a prop, bounce unchanged) handed to the user.
 
 - [ ] **6. Knocked-cone update → pure.** The per-cone motion + cone-vs-prop pushback
       (`frame()`'s knocked branch) into `js/collision.js`. Deterministic except the initial

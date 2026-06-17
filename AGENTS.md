@@ -264,6 +264,15 @@ stays readable. No framework, no bundler.
     not reorder**. Locked by a golden-master in `tests/physics.test.js` (frozen trajectory;
     regenerate deliberately only when intentionally changing handling). `K` =
     `{ PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE }`.
+  - `js/collision.js` — **pure collision / finish geometry** (no imports, no state):
+    `finishDot` / `crossedFinish` (lap-line sign-flip), `nearMiss` (within-band check),
+    and `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` / `resolveProps(car, props,
+    CR, bodyPts)` — the wall + prop pushback. The two `resolve*` MUTATE the passed `car`
+    kinematics and return the impact magnitude; side effects (haptics, combo burn) stay
+    in `game-engine.js`, fired when the return exceeds the crash threshold (wall 120 /
+    prop 100). Verbatim extractions — **feel-critical**; the response is locked by
+    golden-masters in `tests/collision.test.js`. `bodyPts` is the pre-collision capsule
+    snapshot (not recomputed after a push, matching the original).
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
     `scoring.js` → `physics.js` → `config.js` → `items.js` → `track*.js` →

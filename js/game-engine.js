@@ -13,7 +13,7 @@ import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
 import { nearestCenter } from './track-util.js';
-import { nearMiss, finishDot, crossedFinish } from './collision.js';
+import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps } from './collision.js';
 import { resolveSteer } from './input.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
@@ -314,62 +314,11 @@ export const startGame = (T, opts = {}) => {
       }
     }
 
-    if (TABLE.shape === 'round') {
-      // Iterate capsule points: front → centre → rear. First violation = response.
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      for (const [bpx, bpy] of bodyPts) {
-        const bnx = bpx / rx, bny = bpy / ry;
-        const br = Math.hypot(bnx, bny);
-        if (br > 1) {
-          car.x += bnx / br * rx - bpx;
-          car.y += bny / br * ry - bpy;
-          const ux = bnx / br / rx, uy = bny / br / ry, ul = Math.hypot(ux, uy);
-          const px = ux / ul, py = uy / ul;
-          const vn = car.vx * px + car.vy * py;
-          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) { hapticCrash(); burnCombo('WALL!'); } }
-          break; // one response per frame
-        }
-      }
-    } else {
-      // Capsule AABB: extent along X/Y depends on car angle, not just CR.
-      // Previously only CR (width) was used, so the bumper would "enter the wall"
-      // ~24 gu before the collision triggered.
-      const absExtX = Math.abs(hx) * nose + CR;
-      const absExtY = Math.abs(hy) * nose + CR;
-      const wallW = TABLE.w / 2, wallH = TABLE.h / 2;
-      let wallHit = 0;
-      if (car.x - absExtX < -wallW) { car.x = -wallW + absExtX; if (car.vx < 0) { wallHit = Math.max(wallHit, -car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.x + absExtX >  wallW) { car.x =  wallW - absExtX; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.y - absExtY < -wallH) { car.y = -wallH + absExtY; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (car.y + absExtY >  wallH) { car.y =  wallH - absExtY; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (wallHit > 120) { hapticCrash(); burnCombo('WALL!'); }
-    }
-
-    for (const o of props) {
-      // Find the closest capsule body point to the prop
-      let bestD2 = Infinity, bestBpX = car.x, bestBpY = car.y;
-      let bestQx = o.x, bestQy = o.y;
-      for (const [bpx, bpy] of bodyPts) {
-        let qx = o.x, qy = o.y;
-        if (o.hl > 0) {
-          const lx = bpx - o.x, ly = bpy - o.y;
-          let t = lx * o._cos + ly * o._sin;
-          if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-          qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-        }
-        const dx = bpx - qx, dy = bpy - qy, d2 = dx * dx + dy * dy;
-        if (d2 < bestD2) { bestD2 = d2; bestBpX = bpx; bestBpY = bpy; bestQx = qx; bestQy = qy; }
-      }
-      const rr = o.r + CR;
-      if (bestD2 < rr * rr) {
-        const d = Math.sqrt(bestD2) || 1;
-        const nx = (bestBpX - bestQx) / d, ny = (bestBpY - bestQy) / d;
-        car.x += bestQx + nx * rr - bestBpX;
-        car.y += bestQy + ny * rr - bestBpY;
-        const vn = car.vx * nx + car.vy * ny;
-        if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) { hapticCrash(); burnCombo('CRASH!'); } }
-      }
-    }
+    // Wall + prop collision response — pure mutators in js/collision.js. They mutate
+    // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
+    // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
+    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); }
+    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
