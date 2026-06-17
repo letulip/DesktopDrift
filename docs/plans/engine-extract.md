@@ -34,7 +34,7 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       `frame()` keeps the `nearIdx` state and calls it. Test: straight + figure-8 sample points;
       assert it tracks the moving nearest index without jumping across the loop seam.
 
-- [ ] **2. `nearMissCheck` → pure.** Move the geometry (car vs table edge / cones / props
+- [x] **2. `nearMissCheck` → pure.** Move the geometry (car vs table edge / cones / props
       capsule gaps within `NM_BAND`) into a pure `js/collision.js` function
       `(car, cones, props, TABLE, CONE_R, CR, NM_BAND) → bool`. Test: a prop just inside the
       band → true; well clear → false; below the speed gate → false.

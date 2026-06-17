@@ -13,6 +13,7 @@ import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
 import { nearestCenter } from './track-util.js';
+import { nearMiss } from './collision.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -133,37 +134,6 @@ export const startGame = (T, opts = {}) => {
 
   let nearIdx = 0;
 
-  const nearMissCheck = (CR) => {
-    const speed = Math.hypot(car.vx, car.vy);
-    if (speed < 140) return false;
-    if (TABLE.shape === 'round') {
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      const r = Math.hypot(car.x / rx, car.y / ry);
-      const gap = (1 - r) * Math.min(rx, ry);
-      if (gap > 0 && gap < NM_BAND) return true;
-    } else {
-      const gx = (TABLE.w / 2 - CR) - Math.abs(car.x);
-      const gy = (TABLE.h / 2 - CR) - Math.abs(car.y);
-      if ((gx > 0 && gx < NM_BAND) || (gy > 0 && gy < NM_BAND)) return true;
-    }
-    for (const c of cones) {
-      if (c.knocked) continue;
-      const d = Math.hypot(car.x - c.x, car.y - c.y) - (CONE_R + CR);
-      if (d > 0 && d < NM_BAND) return true;
-    }
-    for (const o of props) {
-      let qx = o.x, qy = o.y;
-      if (o.hl > 0) {
-        const lx = car.x - o.x, ly = car.y - o.y;
-        let t = lx * o._cos + ly * o._sin;
-        if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-        qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-      }
-      const d = Math.hypot(car.x - qx, car.y - qy) - (o.r + CR);
-      if (d > 0 && d < NM_BAND) return true;
-    }
-    return false;
-  }
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -429,7 +399,7 @@ export const startGame = (T, opts = {}) => {
         }
         S.lastSlipSign = sgn;
       }
-      if (S.nearMissCd <= 0 && nearMissCheck(CR)) {
+      if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
         S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
       }
       S.mult = comboMult(S.multBuild);
