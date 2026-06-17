@@ -135,7 +135,6 @@ export const startGame = (T, opts = {}) => {
 
   let nearIdx = 0;
 
-
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
     const dx = px - c.x, dy = py - c.y;
@@ -265,7 +264,8 @@ export const startGame = (T, opts = {}) => {
     }
     if (S.goT > 0) S.goT -= dt;
 
-    const P = CARS[S.carModel]._drive;
+    const M = CARS[S.carModel];
+    const P = M._drive;
 
     const steerTarget = resolveSteer(pointers, keys, W);
 
@@ -279,7 +279,6 @@ export const startGame = (T, opts = {}) => {
     // Frame-normalised decay factor for knocked-cone motion below.
     const fAdj = dt * PHYS_HZ;
 
-    const M  = CARS[S.carModel];
     const CR = M.wid * 0.55;
     const hx = Math.cos(car.angle), hy = Math.sin(car.angle), nose = M.len * 0.3;
     const bodyPts = [[car.x + hx * nose, car.y + hy * nose], [car.x, car.y], [car.x - hx * nose, car.y - hy * nose]];

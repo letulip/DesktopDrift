@@ -61,14 +61,14 @@ Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden ma
       (`frame()`'s knocked branch) into `js/collision.js`. Deterministic except the initial
       random spin in `hitConeAt` — test the update step with a seeded/!fixed spin.
 
-- [ ] **7. Lap / scoring bookkeeping pass.** After 1–6, `frame()` should be mostly: read input
+- [x] **7. Lap / scoring bookkeeping pass.** After 1–6, `frame()` should be mostly: read input
       → `stepCar` → collision helpers → scoring (already pure in `scoring.js`) → draw. Tidy the
       remainder; ensure `game-engine.js` is a readable orchestrator. No new behavior.
 
 ## Definition of done
-- [ ] `frame()` is a thin orchestrator; pure cores live in `physics.js` / `collision.js` /
-      `track-util.js` with unit tests.
-- [ ] `npm test` green (incl. all golden masters); `node --check js/*.js` clean.
+- [x] `frame()` is a thin orchestrator; pure cores live in `physics.js` / `collision.js` /
+      `track-util.js` / `input.js` with unit tests.
+- [x] `npm test` green (incl. all golden masters); `node --check js/*.js` clean.
 - [ ] Browser smoke on ≥2 tracks: drift feel, collisions, caps, laps, results — all unchanged,
       console clean.
-- [ ] AGENTS.md updated (new modules + dependency order); SW cache bumped; PR opened.
+- [x] AGENTS.md updated (new modules + dependency order); SW cache bumped; PR opened.

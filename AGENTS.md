@@ -235,8 +235,9 @@ stays readable. No framework, no bundler.
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
     `parseSvgPath`, `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`,
-    `sampleCheckpoints`, `prepProp`. Shared by track modules + `tracks.html`.
-    Unit-tested in `tests/track-util.test.js`.
+    `sampleCheckpoints`, `prepProp`, `nearestCenter` (windowed O(window) nearest
+    centreline scan, replaces the old O(N) loop in `frame()`). Shared by track
+    modules, `tracks.html`, and `game-engine.js`. Unit-tested in `tests/track-util.test.js`.
     Key behaviours / gotchas:
     - `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z, absolute coords). **Deduplicates
       the closing vertex**: track SVGs use `L start_x start_y Z` which makes the last
@@ -266,16 +267,21 @@ stays readable. No framework, no bundler.
     `{ PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE }`.
   - `js/collision.js` — **pure collision / finish geometry** (no imports, no state):
     `finishDot` / `crossedFinish` (lap-line sign-flip), `nearMiss` (within-band check),
-    and `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` / `resolveProps(car, props,
-    CR, bodyPts)` — the wall + prop pushback. The two `resolve*` MUTATE the passed `car`
-    kinematics and return the impact magnitude; side effects (haptics, combo burn) stay
-    in `game-engine.js`, fired when the return exceeds the crash threshold (wall 120 /
-    prop 100). Verbatim extractions — **feel-critical**; the response is locked by
-    golden-masters in `tests/collision.test.js`. `bodyPts` is the pre-collision capsule
-    snapshot (not recomputed after a push, matching the original).
+    `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` / `resolveProps(car, props, CR,
+    bodyPts)` — wall + prop pushback, and `stepKnockedCone(c, props, CONE_R, dt, fAdj)` —
+    advances a knocked cone one frame (translate + cone-vs-prop pushback + decay). The
+    `resolve*` and `stepKnockedCone` MUTATE their first argument and return nothing (resolve*)
+    or void (step*); side effects (haptics, combo burn, score) stay in `game-engine.js`.
+    Verbatim extractions — **feel-critical**; locked by golden-masters in
+    `tests/collision.test.js`. `bodyPts` is the pre-collision capsule snapshot.
+  - `js/input.js` — **pure input mapping** (no imports, no state):
+    `resolveSteer(pointers, keys, W) → -1|0|1` — sums pointer-half votes (left < W/2 → −1,
+    right → +1) then applies keyboard (ArrowLeft/Right, a/A/d/D); keyboard takes priority
+    over touch when non-zero. Called once per `frame()`. Unit-tested in `tests/input.test.js`.
   - **Dependency order (no circular deps):**
-    `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
-    `scoring.js` → `physics.js` → `config.js` → `items.js` → `track*.js` →
+    `store.js` / `track-util.js` / `scoring.js` / `collision.js` / `input.js` /
+    `track-registry.js` (no imports) →
+    `physics.js` → `config.js` → `items.js` → `track*.js` →
     (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
     `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
@@ -365,11 +371,13 @@ axis maps to the capsule long axis.
   `T`, calls `initRender(T)` / `initCar(T)`, optionally `initItems(props)`.
 - `requestAnimationFrame(frame)` drives physics at ~60–120 Hz. `dt` is clamped
   to `0.05` s.
-- **Physics:** Velocity decomposed into forward `vF` and lateral `vS`. Per-frame
-  multipliers raised to `dt * PHYS_HZ` for frame-rate independence. Grip
-  breathing via `GRIP_WOBBLE` + `STEER_WOBBLE` (see Gotchas).
+- **`frame()` is a thin orchestrator** — it delegates to pure modules and fires
+  side effects (haptics, HUD writes, score, combo) on their return values:
+  `resolveSteer` (input) → `stepCar` (physics) → `hitConeAt`+`stepKnockedCone`
+  (cone hit + motion) → `resolveWall`/`resolveProps` (collision) →
+  `nearestCenter` (track distance) → scoring helpers → finish/checkpoint logic → `draw`.
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
-  Banked on clean drift end; burned on crash/off-track. Cones = flat −200.
+  Banked on clean drift end; burned on crash/off-track. Cone hit = flat −100.
 - **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
   score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
   Car/colour controls are **not** in the game HUD — selection lives entirely on
