@@ -195,3 +195,10 @@ export const nearestCenter = (carX, carY, center, prevIdx, window = 24) => {
   }
   return { dist: Math.sqrt(best), idx: bi };
 };
+
+// Returns the forward advancement from ref to idx on a circular track of N points.
+// Values > N/2 are treated as backward movement and return 0.
+export const circularAdvance = (idx, ref, N) => {
+  const d = (idx - ref + N) % N;
+  return d <= N / 2 ? d : 0;
+};

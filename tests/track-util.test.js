@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
-  nearestCenter, sampleCheckpointsByCorner,
+  nearestCenter, sampleCheckpointsByCorner, circularAdvance,
 } from '../js/track-util.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
@@ -170,6 +170,23 @@ test('nearestCenter: wraps correctly across the closed loop seam', () => {
   const { dist, idx } = nearestCenter(2, 0, center, 4);
   assert.equal(idx, 0);
   near(dist, 2);
+});
+
+test('circularAdvance: forward step returns the distance', () => {
+  assert.equal(circularAdvance(5, 0, 100), 5);
+});
+
+test('circularAdvance: same position returns 0', () => {
+  assert.equal(circularAdvance(3, 3, 100), 0);
+});
+
+test('circularAdvance: backward movement returns 0', () => {
+  assert.equal(circularAdvance(3, 5, 100), 0); // went back 2 → d=98 > 50
+});
+
+test('circularAdvance: crossing the lap seam counts as forward', () => {
+  // ref=410, idx=3 on N=416: d=(3-410+416)%416=9, ≤208 → 9
+  assert.equal(circularAdvance(3, 410, 416), 9);
 });
 
 test('nearestCenter: tracks moving car around a loop without index jumps', () => {
