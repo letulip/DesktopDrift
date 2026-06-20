@@ -122,6 +122,36 @@ export const sampleCheckpoints = (center, K) => {
   return cps;
 };
 
+// K checkpoints biased toward corners: divides the centerline into K equal-index
+// sectors and within each sector picks the point with the highest curvature
+// (= apex of the tightest bend). Falls back to the sector midpoint on pure straights.
+// Harder to exploit for lap-time cheating than uniform index sampling, because each
+// checkpoint sits at the turn apex rather than on an open straight.
+export const sampleCheckpointsByCorner = (center, K) => {
+  const N = center.length, cps = [];
+  for (let i = 0; i < K; i++) {
+    const lo = Math.floor((i / K) * N);
+    const hi = Math.floor(((i + 1) / K) * N);
+    let bestIdx = Math.floor((lo + hi) / 2); // fallback: sector midpoint
+    let bestCurv = -1;
+    for (let j = lo; j < hi; j++) {
+      const prev = center[(j - 1 + N) % N];
+      const c    = center[j];
+      const next = center[(j + 1) % N];
+      const ax = prev.x - c.x, ay = prev.y - c.y;
+      const bx = next.x - c.x, by = next.y - c.y;
+      const cross = Math.abs(ax * by - ay * bx);
+      if (cross === 0) continue;
+      const R = (Math.hypot(ax, ay) * Math.hypot(bx, by) * Math.hypot(ax - bx, ay - by))
+                / (2 * cross);
+      const curv = 1 / R;
+      if (curv > bestCurv) { bestCurv = curv; bestIdx = j; }
+    }
+    cps.push(center[bestIdx]);
+  }
+  return cps;
+};
+
 // SVG track file text → smoothed game-world centreline points (Array of {x,y}).
 // Reads the `track_path` element and derives the game origin from the SVG viewBox
 // automatically, so callers don't need to know the viewBox dimensions.

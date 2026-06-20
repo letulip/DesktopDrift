@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
-  nearestCenter,
+  nearestCenter, sampleCheckpointsByCorner,
 } from '../js/track-util.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
@@ -117,6 +117,43 @@ test('prepProp: hl defaults to 0, caches cos/sin', () => {
   assert.equal(b.hl, 5);
   near(b._cos, 0);
   near(b._sin, 1);
+});
+
+test('sampleCheckpointsByCorner: returns K points', () => {
+  const center = Array.from({ length: 32 }, (_, i) => ({ x: i * 10, y: 0 }));
+  const cps = sampleCheckpointsByCorner(center, 8);
+  assert.equal(cps.length, 8);
+  for (const cp of cps) assert.ok(center.includes(cp), 'each cp is a centerline point');
+});
+
+test('sampleCheckpointsByCorner: picks the corner apex, not a straight point', () => {
+  // L-shaped closed loop: straight along x then a 90° bend then straight along y.
+  // 8 points total; index 4 is the apex (where the direction changes).
+  // With K=2, sector 0 = [0..3] (all straight), sector 1 = [4..7] (has apex at 4).
+  const center = [
+    { x: 0,  y: 0  },  // 0
+    { x: 10, y: 0  },  // 1
+    { x: 20, y: 0  },  // 2
+    { x: 30, y: 0  },  // 3  — straight, sector 0
+    { x: 40, y: 0  },  // 4  — apex of 90° bend, sector 1
+    { x: 40, y: 10 },  // 5
+    { x: 40, y: 20 },  // 6
+    { x: 40, y: 30 },  // 7
+  ];
+  const cps = sampleCheckpointsByCorner(center, 2);
+  assert.equal(cps.length, 2);
+  // Second checkpoint must be at the apex (index 4), not somewhere on the straight leg.
+  assert.equal(cps[1], center[4], 'corner sector should land on the apex');
+});
+
+test('sampleCheckpointsByCorner: pure straight falls back to sector midpoint', () => {
+  // All points collinear — no curvature anywhere.
+  const center = Array.from({ length: 8 }, (_, i) => ({ x: i * 10, y: 0 }));
+  const cps = sampleCheckpointsByCorner(center, 2);
+  // Sector 0: lo=0, hi=4 → midpoint = floor((0+4)/2) = 2 → center[2]
+  // Sector 1: lo=4, hi=8 → midpoint = floor((4+8)/2) = 6 → center[6]
+  assert.equal(cps[0], center[2]);
+  assert.equal(cps[1], center[6]);
 });
 
 test('nearestCenter: finds the nearest point on a straight centerline', () => {
