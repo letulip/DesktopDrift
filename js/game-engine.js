@@ -90,7 +90,7 @@ export const startGame = (T, opts = {}) => {
   const resetCombo = () => {
     S.comboPoints = 0; S.mult = 1; S.driftTime = 0;
     S.transitions = 0; S.lastSlipSign = 0; S.multBuild = 0; S.nearMisses = 0;
-    driftZoneRef = nearIdx; driftZoneTimer = 0;
+    driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
   };
 
   const bankCombo = () => {
@@ -138,9 +138,10 @@ export const startGame = (T, opts = {}) => {
   const ZONE_ADV   = 8;             // forward indices required to reset the no-progress timer
   const ZONE_STALL = 3.0;           // seconds without progress before multiplier growth freezes
 
-  let nearIdx      = 0;
-  let driftZoneRef   = 0; // nearIdx at the last zone reset
-  let driftZoneTimer = 0; // seconds the car has been in the same zone while drifting
+  let nearIdx        = 0;
+  let driftZoneRef   = 0;     // nearIdx at the last zone reset
+  let driftZoneTimer = 0;     // seconds the car has been in the same zone while drifting
+  let driftZoned     = false; // true once stall fired; ref frozen at stall-start until car exits
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -314,11 +315,15 @@ export const startGame = (T, opts = {}) => {
       S.driftTime += dt;
       const quality = driftQuality(slip, speed);
       if (circularAdvance(nearIdx, driftZoneRef, N_CTR) >= ZONE_ADV) {
-        driftZoneRef = nearIdx; driftZoneTimer = 0;
+        driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
       } else {
         driftZoneTimer += dt;
+        if (driftZoneTimer >= ZONE_STALL && !driftZoned) {
+          driftZoned = true;
+          driftZoneRef = nearIdx; // anchor to current position so recovery needs only 8 forward indices
+        }
       }
-      if (driftZoneTimer < ZONE_STALL) {
+      if (!driftZoned) {
         S.multBuild += dt * MULT_GAIN_PER_S * quality;
         const sgn = slipSign(vS);
         if (sgn !== 0) {
