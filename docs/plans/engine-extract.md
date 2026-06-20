@@ -28,45 +28,47 @@ rAF, DOM/HUD writes stay in `game-engine.js` and ride the **browser smoke test**
 
 Remaining (Sonnet-friendly — each is near-pure, low risk, behind the golden master):
 
-- [ ] **1. `nearestCenterIdx` / `distToTrack`.** Extract the windowed nearest-centerline scan
+- [x] **1. `nearestCenterIdx` / `distToTrack`.** Extract the windowed nearest-centerline scan
       (`frame()`'s `distToTrack`, with `NEAR_W`, `nearIdx`) into `js/track-util.js` (or a small
       helper) as a pure function of `(car{x,y}, center[], prevIdx, window)` → `{ dist, idx }`.
       `frame()` keeps the `nearIdx` state and calls it. Test: straight + figure-8 sample points;
       assert it tracks the moving nearest index without jumping across the loop seam.
 
-- [ ] **2. `nearMissCheck` → pure.** Move the geometry (car vs table edge / cones / props
+- [x] **2. `nearMissCheck` → pure.** Move the geometry (car vs table edge / cones / props
       capsule gaps within `NM_BAND`) into a pure `js/collision.js` function
       `(car, cones, props, TABLE, CONE_R, CR, NM_BAND) → bool`. Test: a prop just inside the
       band → true; well clear → false; below the speed gate → false.
 
-- [ ] **3. Finish-line crossing → pure.** Extract the sign-flip detector
+- [x] **3. Finish-line crossing → pure.** Extract the sign-flip detector
       (`prevFinishDot < 0 && fDot >= 0` about the start axis) into a pure
       `crossedFinish(prevDot, dot)` (+ a `finishDot(car, c0, cos, sin)` helper). `frame()` keeps
       `prevFinishDot` state. Test: approaching (neg→pos) crosses once; receding does not; exact-0 handled.
 
-- [ ] **4. Input mapping → pure.** `updatePointerSteer`'s pointer-sum → sign, and the
+- [x] **4. Input mapping → pure.** `updatePointerSteer`'s pointer-sum → sign, and the
       keyboard `kSteer` resolution, into a pure `resolveSteer(pointers, keys, W) → -1|0|1`.
       Test: left-half pointer → -1; both halves → 0; ArrowRight overrides; etc.
 
-- [ ] **5. Wall + prop collision response → `js/collision.js` (CAREFUL — feel-critical).**
-      Extract the rect/round wall capsule pushback and the prop nearest-point pushback into pure
-      functions that take + return car kinematics (no mutation of singletons inside the pure fn;
-      `frame()` applies the result). This one CAN change feel — add a golden-master like
-      physics: freeze a car-into-wall and car-into-prop response trajectory BEFORE refactoring,
-      assert identical after. Opus or careful Sonnet.
+- [x] **5. Wall + prop collision response → `js/collision.js` (Opus, feel-critical).**
+      `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` (rect AABB + round ellipse) and
+      `resolveProps(car, props, CR, bodyPts)` (nearest-point pushback) — verbatim extractions
+      that mutate the passed car and return the impact magnitude; `frame()` fires haptics +
+      `burnCombo` above the crash thresholds (wall 120 / prop 100). Locked by golden-masters in
+      `tests/collision.test.js` (rect, round, prop pushout + a no-contact case). `frame()`'s
+      ~55-line wall/prop block is now two calls. 99 tests green; node --check clean. Browser
+      feel-check (ram a wall / clip a prop, bounce unchanged) handed to the user.
 
-- [ ] **6. Knocked-cone update → pure.** The per-cone motion + cone-vs-prop pushback
+- [x] **6. Knocked-cone update → pure.** The per-cone motion + cone-vs-prop pushback
       (`frame()`'s knocked branch) into `js/collision.js`. Deterministic except the initial
       random spin in `hitConeAt` — test the update step with a seeded/!fixed spin.
 
-- [ ] **7. Lap / scoring bookkeeping pass.** After 1–6, `frame()` should be mostly: read input
+- [x] **7. Lap / scoring bookkeeping pass.** After 1–6, `frame()` should be mostly: read input
       → `stepCar` → collision helpers → scoring (already pure in `scoring.js`) → draw. Tidy the
       remainder; ensure `game-engine.js` is a readable orchestrator. No new behavior.
 
 ## Definition of done
-- [ ] `frame()` is a thin orchestrator; pure cores live in `physics.js` / `collision.js` /
-      `track-util.js` with unit tests.
-- [ ] `npm test` green (incl. all golden masters); `node --check js/*.js` clean.
+- [x] `frame()` is a thin orchestrator; pure cores live in `physics.js` / `collision.js` /
+      `track-util.js` / `input.js` with unit tests.
+- [x] `npm test` green (incl. all golden masters); `node --check js/*.js` clean.
 - [ ] Browser smoke on ≥2 tracks: drift feel, collisions, caps, laps, results — all unchanged,
       console clean.
-- [ ] AGENTS.md updated (new modules + dependency order); SW cache bumped; PR opened.
+- [x] AGENTS.md updated (new modules + dependency order); SW cache bumped; PR opened.

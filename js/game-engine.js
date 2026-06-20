@@ -12,6 +12,9 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
+import { nearestCenter } from './track-util.js';
+import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
+import { resolveSteer } from './input.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -130,57 +133,7 @@ export const startGame = (T, opts = {}) => {
     }
   };
 
-  // Nearest centreline point. Previously an O(N) full scan every frame.
-  // The car moves continuously along the closed line, so we only search
-  // ±NEAR_W around the previous index. For N≈300–416 that's ~49 points
-  // instead of all of them — far cheaper, same result (car step per frame
-  // ≪ window width even at the clamped dt=0.05).
-  const N_CENTER = center.length;
-  const NEAR_W = 24;
   let nearIdx = 0;
-  const distToTrack = () => {
-    let best = Infinity, bi = nearIdx;
-    for (let k = -NEAR_W; k <= NEAR_W; k++) {
-      const i = (((nearIdx + k) % N_CENTER) + N_CENTER) % N_CENTER;
-      const dx = car.x - center[i].x, dy = car.y - center[i].y;
-      const d = dx * dx + dy * dy;
-      if (d < best) { best = d; bi = i; }
-    }
-    nearIdx = bi;
-    return Math.sqrt(best);
-  }
-
-  const nearMissCheck = (CR) => {
-    const speed = Math.hypot(car.vx, car.vy);
-    if (speed < 140) return false;
-    if (TABLE.shape === 'round') {
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      const r = Math.hypot(car.x / rx, car.y / ry);
-      const gap = (1 - r) * Math.min(rx, ry);
-      if (gap > 0 && gap < NM_BAND) return true;
-    } else {
-      const gx = (TABLE.w / 2 - CR) - Math.abs(car.x);
-      const gy = (TABLE.h / 2 - CR) - Math.abs(car.y);
-      if ((gx > 0 && gx < NM_BAND) || (gy > 0 && gy < NM_BAND)) return true;
-    }
-    for (const c of cones) {
-      if (c.knocked) continue;
-      const d = Math.hypot(car.x - c.x, car.y - c.y) - (CONE_R + CR);
-      if (d > 0 && d < NM_BAND) return true;
-    }
-    for (const o of props) {
-      let qx = o.x, qy = o.y;
-      if (o.hl > 0) {
-        const lx = car.x - o.x, ly = car.y - o.y;
-        let t = lx * o._cos + ly * o._sin;
-        if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-        qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-      }
-      const d = Math.hypot(car.x - qx, car.y - qy) - (o.r + CR);
-      if (d > 0 && d < NM_BAND) return true;
-    }
-    return false;
-  }
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -200,12 +153,6 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Input ────────────────────────────────────────────────────────────────────
 
-  const updatePointerSteer = () => {
-    let s = 0;
-    for (const x of pointers.values()) s += (x < W / 2 ? -1 : 1);
-    S.steerInput = Math.sign(s);
-  };
-
   // All listeners go through on(): it accumulates them in listeners[] so stop()
   // can remove them all at once. Without this they would pile up on restart.
   const listeners = [];
@@ -220,10 +167,10 @@ export const startGame = (T, opts = {}) => {
   on(window, 'keyup',   onKeyUp);
   // passive: false + preventDefault() — prevents iOS from starting text selection
   // on long press during gameplay
-  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); };
-  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } };
-  const onPointerUp     = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
-  const onPointerCancel = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
+  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); };
+  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); } };
+  const onPointerUp     = e => { pointers.delete(e.pointerId); };
+  const onPointerCancel = e => { pointers.delete(e.pointerId); };
   on(canvas, 'pointerdown',   onPointerDown,   { passive: false });
   on(canvas, 'pointermove',   onPointerMove,   { passive: false });
   on(canvas, 'pointerup',     onPointerUp);
@@ -279,7 +226,7 @@ export const startGame = (T, opts = {}) => {
   // The engine only reads pause.isPaused(); on pause we release steering so the car
   // doesn't lurch on resume.
   const pause = createPause({
-    onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
+    onChange(p) { if (p) { pointers.clear(); } },
   });
 
   // ─── Finish line ──────────────────────────────────────────────────────────────
@@ -317,12 +264,10 @@ export const startGame = (T, opts = {}) => {
     }
     if (S.goT > 0) S.goT -= dt;
 
-    const P = CARS[S.carModel]._drive;
+    const M = CARS[S.carModel];
+    const P = M._drive;
 
-    let kSteer = 0;
-    if (keys['ArrowLeft']  || keys['a'] || keys['A']) kSteer -= 1;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) kSteer += 1;
-    const steerTarget = kSteer !== 0 ? kSteer : S.steerInput;
+    const steerTarget = resolveSteer(pointers, keys, W);
 
     // Car kinematics (steering, grip, wobble, self-align, integration) — pure step in
     // js/physics.js. Mutates car + S.steerSmooth/physT; returns the snapshot the scoring
@@ -334,101 +279,25 @@ export const startGame = (T, opts = {}) => {
     // Frame-normalised decay factor for knocked-cone motion below.
     const fAdj = dt * PHYS_HZ;
 
-    const M  = CARS[S.carModel];
     const CR = M.wid * 0.55;
     const hx = Math.cos(car.angle), hy = Math.sin(car.angle), nose = M.len * 0.3;
     const bodyPts = [[car.x + hx * nose, car.y + hy * nose], [car.x, car.y], [car.x - hx * nose, car.y - hy * nose]];
 
     for (const c of cones) {
       for (const p of bodyPts) hitConeAt(c, p[0], p[1], CR);
-      if (c.knocked) {
-        const dAdj = Math.pow(0.9, fAdj);
-        c.x += c.vx * dt; c.y += c.vy * dt;
-
-        // Knocked cone vs prop collision — same capsule formula as car vs prop.
-        // A simple center-check (without hl) would be inaccurate for boards/knives/pans.
-        for (const o of props) {
-          let qx = o.x, qy = o.y;
-          if (o.hl > 0) {
-            const lx = c.x - o.x, ly = c.y - o.y;
-            let t = lx * o._cos + ly * o._sin;
-            if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-            qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-          }
-          const dx = c.x - qx, dy = c.y - qy, minD = o.r + CONE_R;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < minD * minD) {
-            const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
-            c.x = qx + nx * minD; c.y = qy + ny * minD; // push cone out
-            const vDotN = c.vx * nx + c.vy * ny;
-            if (vDotN < 0) { c.vx -= vDotN * nx * 0.8; c.vy -= vDotN * ny * 0.8; c.spin *= -0.4; }
-          }
-        }
-
-        c.vx *= dAdj; c.vy *= dAdj; c.ang += c.spin * dt; c.spin *= dAdj;
-      }
+      if (c.knocked) stepKnockedCone(c, props, CONE_R, dt, fAdj);
     }
 
-    if (TABLE.shape === 'round') {
-      // Iterate capsule points: front → centre → rear. First violation = response.
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      for (const [bpx, bpy] of bodyPts) {
-        const bnx = bpx / rx, bny = bpy / ry;
-        const br = Math.hypot(bnx, bny);
-        if (br > 1) {
-          car.x += bnx / br * rx - bpx;
-          car.y += bny / br * ry - bpy;
-          const ux = bnx / br / rx, uy = bny / br / ry, ul = Math.hypot(ux, uy);
-          const px = ux / ul, py = uy / ul;
-          const vn = car.vx * px + car.vy * py;
-          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) { hapticCrash(); burnCombo('WALL!'); } }
-          break; // one response per frame
-        }
-      }
-    } else {
-      // Capsule AABB: extent along X/Y depends on car angle, not just CR.
-      // Previously only CR (width) was used, so the bumper would "enter the wall"
-      // ~24 gu before the collision triggered.
-      const absExtX = Math.abs(hx) * nose + CR;
-      const absExtY = Math.abs(hy) * nose + CR;
-      const wallW = TABLE.w / 2, wallH = TABLE.h / 2;
-      let wallHit = 0;
-      if (car.x - absExtX < -wallW) { car.x = -wallW + absExtX; if (car.vx < 0) { wallHit = Math.max(wallHit, -car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.x + absExtX >  wallW) { car.x =  wallW - absExtX; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.y - absExtY < -wallH) { car.y = -wallH + absExtY; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (car.y + absExtY >  wallH) { car.y =  wallH - absExtY; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (wallHit > 120) { hapticCrash(); burnCombo('WALL!'); }
-    }
-
-    for (const o of props) {
-      // Find the closest capsule body point to the prop
-      let bestD2 = Infinity, bestBpX = car.x, bestBpY = car.y;
-      let bestQx = o.x, bestQy = o.y;
-      for (const [bpx, bpy] of bodyPts) {
-        let qx = o.x, qy = o.y;
-        if (o.hl > 0) {
-          const lx = bpx - o.x, ly = bpy - o.y;
-          let t = lx * o._cos + ly * o._sin;
-          if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-          qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-        }
-        const dx = bpx - qx, dy = bpy - qy, d2 = dx * dx + dy * dy;
-        if (d2 < bestD2) { bestD2 = d2; bestBpX = bpx; bestBpY = bpy; bestQx = qx; bestQy = qy; }
-      }
-      const rr = o.r + CR;
-      if (bestD2 < rr * rr) {
-        const d = Math.sqrt(bestD2) || 1;
-        const nx = (bestBpX - bestQx) / d, ny = (bestBpY - bestQy) / d;
-        car.x += bestQx + nx * rr - bestBpX;
-        car.y += bestQy + ny * rr - bestBpY;
-        const vn = car.vx * nx + car.vy * ny;
-        if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) { hapticCrash(); burnCombo('CRASH!'); } }
-      }
-    }
+    // Wall + prop collision response — pure mutators in js/collision.js. They mutate
+    // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
+    // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
+    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); }
+    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
-    const distTrk  = distToTrack();
+    const { dist: distTrk, idx: _nearIdx } = nearestCenter(car.x, car.y, center, nearIdx);
+    nearIdx = _nearIdx;
     const onTrack  = distTrk < TRACK_HALF + 90;
 
     if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) burnCombo('OFF TRACK!');
@@ -445,7 +314,7 @@ export const startGame = (T, opts = {}) => {
         }
         S.lastSlipSign = sgn;
       }
-      if (S.nearMissCd <= 0 && nearMissCheck(CR)) {
+      if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
         S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
       }
       S.mult = comboMult(S.multBuild);
@@ -473,12 +342,12 @@ export const startGame = (T, opts = {}) => {
       // ── Finish line: crossing by sign of projection ────────────────────────────
       // Circle removed — detection is exact: time is recorded at the moment of crossing,
       // not on entry into a CP_R radius zone.
-      const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
+      const fDot = finishDot(car, c0, finishCos, finishSin);
 
       // Lateral constraint removed: the car could lap around the line at the table edge
       // and not be credited. Direction detection (sign of fDot) + completed intermediate
       // checkpoints is sufficient — they already guarantee a full lap.
-      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0) {
+      if (prevFinishDot !== null && crossedFinish(prevFinishDot, fDot)) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;

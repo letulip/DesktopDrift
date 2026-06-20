@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
+  nearestCenter,
 } from '../js/track-util.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
@@ -116,4 +117,35 @@ test('prepProp: hl defaults to 0, caches cos/sin', () => {
   assert.equal(b.hl, 5);
   near(b._cos, 0);
   near(b._sin, 1);
+});
+
+test('nearestCenter: finds the nearest point on a straight centerline', () => {
+  const center = [0, 10, 20, 30, 40].map(x => ({ x, y: 0 }));
+  // car at (12, 5) → nearest is (10,0) at idx=1, dist=sqrt(4+25)
+  const { dist, idx } = nearestCenter(12, 5, center, 0);
+  assert.equal(idx, 1);
+  near(dist, Math.sqrt(4 + 25));
+});
+
+test('nearestCenter: wraps correctly across the closed loop seam', () => {
+  const center = [0, 10, 20, 30, 40].map(x => ({ x, y: 0 }));
+  // prevIdx=4 (last), car near x=2 → must wrap and find idx=0
+  const { dist, idx } = nearestCenter(2, 0, center, 4);
+  assert.equal(idx, 0);
+  near(dist, 2);
+});
+
+test('nearestCenter: tracks moving car around a loop without index jumps', () => {
+  const N = 40;
+  const center = Array.from({ length: N }, (_, i) => ({
+    x: Math.cos((i / N) * 2 * Math.PI) * 500,
+    y: Math.sin((i / N) * 2 * Math.PI) * 500,
+  }));
+  let prevIdx = 0;
+  for (let i = 0; i < N; i++) {
+    const { dist, idx } = nearestCenter(center[i].x, center[i].y, center, prevIdx);
+    assert.equal(idx, i);
+    near(dist, 0);
+    prevIdx = idx;
+  }
 });
