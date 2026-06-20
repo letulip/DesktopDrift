@@ -51,6 +51,24 @@ npm test   # node --test tests/*.test.js — must be green
 node --check js/*.js && echo OK
 ```
 
+## Build pipeline (production only)
+
+Local dev serves **source directly** — no build needed.
+CI runs the build automatically on every push to `main`.
+
+```bash
+npm install    # one-time: installs terser + clean-css devDeps
+npm run build  # scripts/build.js → dist/
+```
+
+`scripts/build.js` does three things:
+1. Copies `fonts/`, `icons/`, `cars/`, `items/`, `objects/`, `tracks/`, and root static files verbatim.
+2. Minifies all `css/*.css` → `dist/css/` via CleanCSS (level 2).
+3. Minifies `js/*.js` + `sw.js` → `dist/js/` + `dist/sw.js` via Terser (`module: true`).
+
+`dist/` is the deployed artifact and is **not committed to git** (git-ignored, rebuilt by CI).
+Run `npm run build` locally only to test the production bundle or debug CI.
+
 ## Branch policy
 
 - `main` → production (GitHub Pages). Pushing to `main` = live deploy.
