@@ -235,9 +235,11 @@ stays readable. No framework, no bundler.
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
     `parseSvgPath`, `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`,
-    `sampleCheckpoints`, `prepProp`, `nearestCenter` (windowed O(window) nearest
-    centreline scan, replaces the old O(N) loop in `frame()`). Shared by track
-    modules, `tracks.html`, and `game-engine.js`. Unit-tested in `tests/track-util.test.js`.
+    `sampleCheckpoints`, `sampleCheckpointsByCorner`, `prepProp`,
+    `nearestCenter` (windowed O(window) nearest centreline scan, replaces the old O(N)
+    loop in `frame()`), `circularAdvance` (forward arc distance on a closed loop; returns 0
+    for backward movement). Shared by track modules, `tracks.html`, and `game-engine.js`.
+    Unit-tested in `tests/track-util.test.js`.
     Key behaviours / gotchas:
     - `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z, absolute coords). **Deduplicates
       the closing vertex**: track SVGs use `L start_x start_y Z` which makes the last
@@ -253,6 +255,14 @@ stays readable. No framework, no bundler.
       for each edge. Outer and inner are sampled separately: outer (longer in corners)
       receives more cones, inner fewer. Cones are no longer always "directly across"
       from each other — staggered placement fills gaps on outer radii of bends.
+    - `sampleCheckpointsByCorner(center, K)` — K checkpoints in equal **arc-length** sectors
+      (not equal index count), biased toward curvature peaks. **Two hard guarantees enforced
+      post-placement:** (1) `checkpoints[0]` is always `center[0]` — finish-line detection
+      in `game-engine.js` uses `c0 = checkpoints[0]` as the reference point and it must
+      match the visual chequered flag drawn at `center[0]` in `render.js`; never break this
+      invariant. (2) Minimum arc-length gap of `totalLen/K/2` between consecutive
+      checkpoints — prevents a 180° hairpin spanning two sectors from placing both
+      checkpoints at its entry and exit; the later is pushed to its sector index-midpoint.
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
