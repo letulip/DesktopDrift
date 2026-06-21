@@ -107,7 +107,17 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return resp;
-      }).catch(() => cached); // offline → fall back to cache
+      }).catch(() => {
+        if (cached) return cached;
+        // Offline navigate: the requested URL may have a query string (e.g. game.html?track=x)
+        // that wasn't pre-cached as an exact key.  Try the path without search params, then
+        // fall back to the root (index.html) so the user sees the app shell instead of a blank page.
+        if (e.request.mode === 'navigate') {
+          const clean = new URL(e.request.url);
+          clean.search = '';
+          return caches.match(clean.href).then(r => r || caches.match(BASE));
+        }
+      });
 
       // Cache available — serve immediately; not available — wait for network (first visit).
       return cached || network;
