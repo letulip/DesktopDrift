@@ -130,6 +130,15 @@ export const sampleCheckpoints = (center, K) => {
 // Within each arc-length sector the point with highest curvature (circumradius
 // formula) is chosen as the checkpoint; falls back to the index-midpoint of the
 // sector on pure straights (cross product = 0 everywhere in sector).
+//
+// Post-processing guarantees:
+//  1. checkpoints[0] = center[0] always — finish-line detection (game-engine.js)
+//     uses checkpoints[0] as the reference point; it must match the visual
+//     chequered flag which render.js always draws at center[0].
+//  2. Minimum arc-length spacing of totalLen/K/2 between consecutive checkpoints.
+//     A 180° hairpin spanning two sectors places curvature peaks at both the entry
+//     and exit; the later checkpoint is pushed to its sector's index-midpoint so
+//     the two no longer cluster at the hairpin endpoints.
 export const sampleCheckpointsByCorner = (center, K) => {
   const N = center.length;
 
@@ -141,7 +150,9 @@ export const sampleCheckpointsByCorner = (center, K) => {
     arc.push(arc[i - 1] + Math.hypot(center[i].x - center[i - 1].x, center[i].y - center[i - 1].y));
   const totalLen = arc[N - 1] + Math.hypot(center[0].x - center[N - 1].x, center[0].y - center[N - 1].y);
 
-  const cps = [];
+  const cpIdxs  = [];
+  const midIdxs = [];
+
   for (let i = 0; i < K; i++) {
     const loLen = (i / K) * totalLen;
     const hiLen = ((i + 1) / K) * totalLen;
@@ -153,7 +164,10 @@ export const sampleCheckpointsByCorner = (center, K) => {
     let hi = lo + 1;
     while (hi < N && arc[hi] < hiLen) hi++;
 
-    let bestIdx = Math.floor((lo + hi) / 2); // fallback: index-midpoint of sector
+    const midIdx = Math.floor((lo + hi) / 2);
+    midIdxs.push(midIdx);
+
+    let bestIdx = midIdx;
     let bestCurv = -1;
     for (let j = lo; j < hi; j++) {
       const prev = center[(j - 1 + N) % N];
@@ -168,9 +182,22 @@ export const sampleCheckpointsByCorner = (center, K) => {
       const curv = 1 / R;
       if (curv > bestCurv) { bestCurv = curv; bestIdx = j; }
     }
-    cps.push(center[bestIdx]);
+    cpIdxs.push(bestIdx);
   }
-  return cps;
+
+  // Post-process 1: anchor checkpoint[0] at center[0] (the finish line).
+  cpIdxs[0] = 0;
+
+  // Post-process 2: enforce minimum arc-length gap between consecutive checkpoints.
+  const minGap = totalLen / K / 2;
+  for (let i = 1; i < K; i++) {
+    const gap = (arc[cpIdxs[i]] - arc[cpIdxs[i - 1]] + totalLen) % totalLen;
+    if (gap < minGap) cpIdxs[i] = midIdxs[i];
+  }
+  // Also check the wrap-around gap from cps[K-1] back to cps[0].
+  if ((totalLen - arc[cpIdxs[K - 1]]) % totalLen < minGap) cpIdxs[K - 1] = midIdxs[K - 1];
+
+  return cpIdxs.map(idx => center[idx]);
 };
 
 // SVG track file text → smoothed game-world centreline points (Array of {x,y}).

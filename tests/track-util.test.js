@@ -128,9 +128,13 @@ test('sampleCheckpointsByCorner: returns K points', () => {
 
 test('sampleCheckpointsByCorner: picks the corner apex inside its arc-length sector', () => {
   // L-shaped closed loop: straight along x then a 90° bend then straight along y.
-  // 8 points; index 4 is the apex. Closing edge (40,30)→(0,0) = 50 GU.
-  // Arc-length sectors with K=2 (totalLen=120): sector 0 = arc 0-60 → indices 0-5
-  // (contains apex at 4); sector 1 = arc 60-120 → indices 6-7.
+  // 8 points; index 4 is the apex of the 90° bend. Closing edge (40,30)→(0,0) = 50 GU.
+  // totalLen = 70 + 50 = 120 GU.
+  // With K=3 (sectors of 40 GU each):
+  //   Sector 0 (0–40 GU): indices 0–4 — no curvature on the straight → anchor at center[0]
+  //   Sector 1 (40–80 GU): includes apex at index 4 (arc=40), indices 5–7 in sector 1 range
+  //     → lo=4 (arc[5]=50 ≥ 40), hi advances to 8 → picks apex at index 4
+  //   Sector 2 (80–120 GU): closing-edge corner at index 7 → picks index 7
   const center = [
     { x: 0,  y: 0  },  // 0
     { x: 10, y: 0  },  // 1
@@ -141,22 +145,53 @@ test('sampleCheckpointsByCorner: picks the corner apex inside its arc-length sec
     { x: 40, y: 20 },  // 6
     { x: 40, y: 30 },  // 7
   ];
-  const cps = sampleCheckpointsByCorner(center, 2);
-  assert.equal(cps.length, 2);
-  // Sector 0 spans the apex → first checkpoint must be at index 4.
-  assert.equal(cps[0], center[4], 'arc-length sector 0 should land on the apex');
+  const cps = sampleCheckpointsByCorner(center, 3);
+  assert.equal(cps.length, 3);
+  assert.equal(cps[0], center[0], 'checkpoint[0] is always center[0] (finish line)');
+  assert.equal(cps[1], center[4], 'sector 1 should land on the 90° apex');
 });
 
 test('sampleCheckpointsByCorner: pure straight falls back to arc-length sector midpoint', () => {
   // All points collinear — no curvature anywhere.
   // Closing edge (70,0)→(0,0) = 70 GU; totalLen = 7×10 + 70 = 140 GU.
   // Arc-length sectors with K=2:
-  //   Sector 0 (0-70 GU): indices 0-6, midpoint = floor((0+7)/2) = 3 → center[3]
-  //   Sector 1 (70-140 GU): index 7 only, midpoint = 7 → center[7]
+  //   Sector 0 (0-70 GU): curvature peak would be midpoint center[3], but post-process
+  //     anchors checkpoint[0] to center[0] (finish line guarantee).
+  //   Sector 1 (70-140 GU): index 7 only → center[7].
   const center = Array.from({ length: 8 }, (_, i) => ({ x: i * 10, y: 0 }));
   const cps = sampleCheckpointsByCorner(center, 2);
-  assert.equal(cps[0], center[3]);
+  assert.equal(cps[0], center[0]); // finish line always anchored at center[0]
   assert.equal(cps[1], center[7]);
+});
+
+test('sampleCheckpointsByCorner: checkpoint[0] is always center[0] regardless of curvature', () => {
+  // Circle of 16 points — uniform curvature everywhere, so curvature-picking could
+  // place checkpoint[0] anywhere in sector 0.  The finish-line guarantee must override
+  // this and always return center[0] as checkpoint[0].
+  const center = Array.from({ length: 16 }, (_, i) => ({
+    x: Math.cos((i / 16) * 2 * Math.PI) * 100,
+    y: Math.sin((i / 16) * 2 * Math.PI) * 100,
+  }));
+  const cps = sampleCheckpointsByCorner(center, 4);
+  assert.equal(cps[0], center[0]);
+});
+
+test('sampleCheckpointsByCorner: minimum spacing pushes hairpin-double to sector midpoint', () => {
+  // Oval track (40 points on a circle, radius 500).  Each sector covers 1/4 of the
+  // perimeter.  All points have equal curvature, so the curvature-picker falls back to
+  // the sector midpoints.  With the finish-line anchor at center[0] and midpoints at
+  // ~N/8, ~3N/8, ~5N/8, ~7N/8, the gaps should all equal about totalLen/4.
+  // (This also verifies that the spacing check does not spuriously fire on a regular layout.)
+  const N = 40, R = 500;
+  const center = Array.from({ length: N }, (_, i) => ({
+    x: Math.cos((i / N) * 2 * Math.PI) * R,
+    y: Math.sin((i / N) * 2 * Math.PI) * R,
+  }));
+  const cps = sampleCheckpointsByCorner(center, 4);
+  assert.equal(cps[0], center[0]);
+  // All 4 checkpoints must be distinct (no duplicate from a spurious spacing violation).
+  const idxs = cps.map(cp => center.indexOf(cp));
+  assert.equal(new Set(idxs).size, 4, 'all 4 checkpoints must be at different centerline points');
 });
 
 test('sampleCheckpointsByCorner: arc-length sectors prevent clustering in Chaikin-dense region', () => {
