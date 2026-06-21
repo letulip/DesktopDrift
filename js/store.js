@@ -1,7 +1,20 @@
 // Single source of persistence — the only module that touches localStorage directly.
 // All reads/writes go through the getters here + save().
 //
-// Schema migrations: (1) increment VERSION, (2) add a migration block in _ensure() below.
+// ── Schema evolution (never wipes player data) ────────────────────────────────
+// On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
+// from defaults, saved values win, arrays are replaced wholesale. So the common case —
+// adding a new field or slice — just means editing `defaults()`. No VERSION bump, no
+// data loss. (This is why there is no `stats` lazy-init hack any more.)
+//
+// `VERSION` + the `MIGRATIONS` table are only for BREAKING changes that a merge can't
+// express (renaming/reshaping/removing a field). To add one: (1) bump VERSION, (2) add
+// `MIGRATIONS[newVersion] = (s) => <transform old shape to new>`. The chain runs
+// old→VERSION, then the merge fills anything still missing.
+//
+// We only reset to defaults when the stored data is genuinely unrecoverable
+// (unparseable / not an object). A version we don't recognise (e.g. a rolled-back
+// deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
 const VERSION = 1;
@@ -10,21 +23,47 @@ const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh', haptics: true },
   garage:       { carIndex: 0, bodyColor: null, neonColor: null },
-  records:      {},        // { [trackId]: { [mode]: { bestLap, bestScore } } }
+  records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
+  stats:        { caps: {} }, // { caps: { [trackId]: number[] } } — collected cap indices
 });
+
+// Breaking-change migrations, keyed by the target version. Empty while VERSION === 1.
+// Each fn receives the saved object and returns it transformed to that version's shape.
+const MIGRATIONS = {
+  // 2: (s) => { /* example: rename s.records.*.bestScore → bestPPS, etc. */ return s; },
+};
+
+const _isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+// Deep-merge `over` onto `base`: recurse plain objects, replace arrays/primitives.
+const _merge = (base, over) => {
+  if (!_isObj(base) || !_isObj(over)) return over;
+  const out = { ...base };
+  for (const k of Object.keys(over)) {
+    out[k] = (_isObj(base[k]) && _isObj(over[k])) ? _merge(base[k], over[k]) : over[k];
+  }
+  return out;
+};
+
+// Run the migration chain from the saved version up to VERSION.
+const _migrate = (raw) => {
+  let s = raw;
+  const from = Number.isInteger(raw.version) ? raw.version : 0;
+  for (let v = from + 1; v <= VERSION; v++) if (MIGRATIONS[v]) s = MIGRATIONS[v](s);
+  return s;
+};
 
 let _s = null;
 
 const _ensure = () => {
   if (_s) return;
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (raw?.version === VERSION) { _s = raw; return; }
-    // Version mismatch — reset to defaults.
-    // Add a migration here (raw.version → VERSION) if data should be preserved.
-  } catch {}
-  _s = defaults();
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (!_isObj(raw)) { _s = defaults(); return; }   // no/corrupt save → fresh defaults
+  _s = _merge(defaults(), _migrate(raw));           // fill gaps from defaults, keep saved
+  _s.version = VERSION;
+  save();                                           // persist the upgraded/normalised shape
 };
 
 // Writes current state to localStorage. Call after any mutation of returned objects.
@@ -38,9 +77,8 @@ export const garage       = () => { _ensure(); return _s.garage; };
 export const records      = () => { _ensure(); return _s.records; };
 export const achievements = () => { _ensure(); return _s.achievements; };
 
-// stats — lazily self-initialised so adding it never bumps VERSION or resets
-// existing saves. Shape: { caps: { [trackId]: number[] } }
-export const stats = () => { _ensure(); if (!_s.stats) _s.stats = {}; return _s.stats; };
+// stats — a normal slice now (defaults + merge guarantee `{ caps: {} }`).
+export const stats = () => { _ensure(); return _s.stats; };
 
 // Returns the array of collected cap indices for a track (empty if none yet).
 export const collectedCaps = (trackId) => {

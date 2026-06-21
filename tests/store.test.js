@@ -34,8 +34,8 @@ test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
 });
 
-test('stats: defaults to empty object', () => {
-  assert.deepEqual(stats(), {});
+test('stats: defaults to { caps: {} }', () => {
+  assert.deepEqual(stats(), { caps: {} });
 });
 
 test('collectedCaps: returns [] for unknown track', () => {

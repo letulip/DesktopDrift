@@ -176,9 +176,16 @@ stays readable. No framework, no bundler.
     multiple of 60 if battery ever demands it.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
-    `achievements()` (live objects — mutate then call `save()`), and `save()`.
-    Versioned schema (`VERSION = 1`, key `'desktop-drift'`); bumping `VERSION`
-    requires a migration block in `_ensure()`.
+    `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
+    `save()` / `collectedCaps()` / `capCollect()`. Key `'desktop-drift'`, `VERSION = 1`.
+    **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
+    `defaults()` (missing keys filled, saved values win, arrays replaced). So adding a
+    field/slice = just edit `defaults()` — no `VERSION` bump, no reset (this replaced the
+    old `stats` lazy-init hack — `stats` is a normal slice now). `VERSION` + the
+    `MIGRATIONS` table are only for **breaking** reshapes: bump `VERSION` and add
+    `MIGRATIONS[newVersion] = (s)=>…`; the chain runs old→VERSION, then merge fills the
+    rest. Reset to defaults happens **only** for unparseable/corrupt data — an unknown
+    ("future") version is merged, not wiped.
   - `js/palette.js` — curated colour palettes. Exports `PALETTE` (20 body colours,
     `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
     Imported only by `select.html`. Designed to grow: Phase 2 liveries will add
@@ -428,7 +435,8 @@ never crash). The cap fills with red along the exact arc the car sweeps (radial 
 - **Persistence (`js/store.js`):** `stats().caps[trackId]` = **array of collected cap
   indices** (index = position in the track's `collectibles`). `capCollect(id, i)` appends
   + saves; `collectedCaps(id)` reads it; restored on race start so caps stay collected.
-  (No VERSION bump — `stats()`/`collectedCaps()` self-init their slice.)
+  (`stats` is a normal slice in `defaults()`; the load-time merge fills it for old saves —
+  no VERSION bump, no reset.)
 - **Render (`js/render.js` `drawCaps`):** empty `cola.svg` base; reveal `cola-filled.svg`
   inside a wedge clip `[startAng, startAng+sweep]`; collected → full red + a brief `pop`.
 - **UI:** `index.html` Time Attack tile shows total caps collected across tracks
@@ -545,9 +553,10 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   build — fits the pure-static stack). Run with `npm test`. Tests live in `tests/`,
   one `*.test.js` file per concern.
 - **What gets unit-tested:** pure logic only — `store.js` (defaults, save/load,
-  version-mismatch reset), `scoring.js` (drift/combo formulas), `track-util.js`
-  (chaikin / edge offset / cones / checkpoints / prepProp), and as they land:
-  data tables in `config.js`, the future collision validator.
+  merge-over-defaults, corrupt-data reset, unknown-version preservation),
+  `scoring.js` (drift/combo formulas), `physics.js` + `collision.js` (golden-masters),
+  `track-util.js` (chaikin / edge offset / cones / checkpoints / prepProp), `cola.js`,
+  `input.js`, and as they land: data tables in `config.js`, the future collision validator.
 - **What stays manual:** anything needing Canvas2D / Path2D / DOM / `requestAnimationFrame`
   — `render.js`, `game-engine.js`, `pause.js`, `confirm-exit.js`. These can't run in
   Node, so they ride the browser smoke test below.
