@@ -122,17 +122,38 @@ export const sampleCheckpoints = (center, K) => {
   return cps;
 };
 
-// K checkpoints biased toward corners: divides the centerline into K equal-index
-// sectors and within each sector picks the point with the highest curvature
-// (= apex of the tightest bend). Falls back to the sector midpoint on pure straights.
-// Harder to exploit for lap-time cheating than uniform index sampling, because each
-// checkpoint sits at the turn apex rather than on an open straight.
+// K checkpoints biased toward corners.
+// Sectors are defined by equal ARC LENGTH (not equal index count) so that
+// Chaikin-dense corners — which accumulate far more index points than straights
+// per unit of track distance — cannot consume multiple sectors and cluster
+// checkpoints, while leaving long straights uncovered.
+// Within each arc-length sector the point with highest curvature (circumradius
+// formula) is chosen as the checkpoint; falls back to the index-midpoint of the
+// sector on pure straights (cross product = 0 everywhere in sector).
 export const sampleCheckpointsByCorner = (center, K) => {
-  const N = center.length, cps = [];
+  const N = center.length;
+
+  // arc[i] = cumulative distance from center[0] to center[i].
+  // The closing edge (center[N-1] → center[0]) is added to totalLen so every
+  // sector covers an equal share of the full loop distance.
+  const arc = [0];
+  for (let i = 1; i < N; i++)
+    arc.push(arc[i - 1] + Math.hypot(center[i].x - center[i - 1].x, center[i].y - center[i - 1].y));
+  const totalLen = arc[N - 1] + Math.hypot(center[0].x - center[N - 1].x, center[0].y - center[N - 1].y);
+
+  const cps = [];
   for (let i = 0; i < K; i++) {
-    const lo = Math.floor((i / K) * N);
-    const hi = Math.floor(((i + 1) / K) * N);
-    let bestIdx = Math.floor((lo + hi) / 2); // fallback: sector midpoint
+    const loLen = (i / K) * totalLen;
+    const hiLen = ((i + 1) / K) * totalLen;
+
+    // lo = first index whose arc-length position falls at or past loLen
+    let lo = 0;
+    while (lo < N - 1 && arc[lo + 1] <= loLen) lo++;
+    // hi = first index past hiLen (exclusive upper bound)
+    let hi = lo + 1;
+    while (hi < N && arc[hi] < hiLen) hi++;
+
+    let bestIdx = Math.floor((lo + hi) / 2); // fallback: index-midpoint of sector
     let bestCurv = -1;
     for (let j = lo; j < hi; j++) {
       const prev = center[(j - 1 + N) % N];

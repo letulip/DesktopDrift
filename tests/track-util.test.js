@@ -126,34 +126,51 @@ test('sampleCheckpointsByCorner: returns K points', () => {
   for (const cp of cps) assert.ok(center.includes(cp), 'each cp is a centerline point');
 });
 
-test('sampleCheckpointsByCorner: picks the corner apex, not a straight point', () => {
+test('sampleCheckpointsByCorner: picks the corner apex inside its arc-length sector', () => {
   // L-shaped closed loop: straight along x then a 90° bend then straight along y.
-  // 8 points total; index 4 is the apex (where the direction changes).
-  // With K=2, sector 0 = [0..3] (all straight), sector 1 = [4..7] (has apex at 4).
+  // 8 points; index 4 is the apex. Closing edge (40,30)→(0,0) = 50 GU.
+  // Arc-length sectors with K=2 (totalLen=120): sector 0 = arc 0-60 → indices 0-5
+  // (contains apex at 4); sector 1 = arc 60-120 → indices 6-7.
   const center = [
     { x: 0,  y: 0  },  // 0
     { x: 10, y: 0  },  // 1
     { x: 20, y: 0  },  // 2
-    { x: 30, y: 0  },  // 3  — straight, sector 0
-    { x: 40, y: 0  },  // 4  — apex of 90° bend, sector 1
+    { x: 30, y: 0  },  // 3
+    { x: 40, y: 0  },  // 4  — apex of 90° bend
     { x: 40, y: 10 },  // 5
     { x: 40, y: 20 },  // 6
     { x: 40, y: 30 },  // 7
   ];
   const cps = sampleCheckpointsByCorner(center, 2);
   assert.equal(cps.length, 2);
-  // Second checkpoint must be at the apex (index 4), not somewhere on the straight leg.
-  assert.equal(cps[1], center[4], 'corner sector should land on the apex');
+  // Sector 0 spans the apex → first checkpoint must be at index 4.
+  assert.equal(cps[0], center[4], 'arc-length sector 0 should land on the apex');
 });
 
-test('sampleCheckpointsByCorner: pure straight falls back to sector midpoint', () => {
+test('sampleCheckpointsByCorner: pure straight falls back to arc-length sector midpoint', () => {
   // All points collinear — no curvature anywhere.
+  // Closing edge (70,0)→(0,0) = 70 GU; totalLen = 7×10 + 70 = 140 GU.
+  // Arc-length sectors with K=2:
+  //   Sector 0 (0-70 GU): indices 0-6, midpoint = floor((0+7)/2) = 3 → center[3]
+  //   Sector 1 (70-140 GU): index 7 only, midpoint = 7 → center[7]
   const center = Array.from({ length: 8 }, (_, i) => ({ x: i * 10, y: 0 }));
   const cps = sampleCheckpointsByCorner(center, 2);
-  // Sector 0: lo=0, hi=4 → midpoint = floor((0+4)/2) = 2 → center[2]
-  // Sector 1: lo=4, hi=8 → midpoint = floor((4+8)/2) = 6 → center[6]
-  assert.equal(cps[0], center[2]);
-  assert.equal(cps[1], center[6]);
+  assert.equal(cps[0], center[3]);
+  assert.equal(cps[1], center[7]);
+});
+
+test('sampleCheckpointsByCorner: arc-length sectors prevent clustering in Chaikin-dense region', () => {
+  // Dense region: 40 tightly-packed points spanning 0.39 GU (simulates a Chaikin-smoothed hairpin).
+  // Sparse region: 4 widely-spaced points spanning ~8.6 GU (represents a long straight).
+  // With index-based sectors (old): both K=2 checkpoints land inside the dense region.
+  // With arc-length sectors (new): the dense region is only ~2% of total arc length, so
+  // it can contribute at most 1 checkpoint; the sparse region gets the other.
+  const dense = Array.from({ length: 40 }, (_, i) => ({ x: i * 0.01, y: 0 }));
+  const sparse = [{ x: 1, y: 0 }, { x: 3, y: 0 }, { x: 6, y: 0 }, { x: 9, y: 0 }];
+  const center = [...dense, ...sparse]; // N=44
+  const cps = sampleCheckpointsByCorner(center, 2);
+  const inDense = cps.filter(cp => center.indexOf(cp) < dense.length).length;
+  assert.ok(inDense < 2, `expected <2 CPs in the dense region, got ${inDense}`);
 });
 
 test('nearestCenter: finds the nearest point on a straight centerline', () => {
