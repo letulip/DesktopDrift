@@ -36,12 +36,20 @@ const MIGRATIONS = {
 
 const _isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-// Deep-merge `over` onto `base`: recurse plain objects, replace arrays/primitives.
+// Deep-merge `over` onto `base`. `defaults()` (the base) defines the expected shape:
+//  - default slot is an object → recurse if the save is also an object, otherwise KEEP
+//    the default (the saved value is corrupt/wrong-type for that slot — discard it, don't
+//    crash consumers). This is the content validation: a hand-deleted or garbled slice
+//    (e.g. `settings: null`) heals to defaults instead of throwing later.
+//  - default slot is a leaf (string/number/array) → take the saved value (replace).
+//  - key only in the save (unknown/future field) → preserved as-is (forward-compatible).
 const _merge = (base, over) => {
   if (!_isObj(base) || !_isObj(over)) return over;
   const out = { ...base };
   for (const k of Object.keys(over)) {
-    out[k] = (_isObj(base[k]) && _isObj(over[k])) ? _merge(base[k], over[k]) : over[k];
+    out[k] = _isObj(base[k])
+      ? (_isObj(over[k]) ? _merge(base[k], over[k]) : base[k])
+      : over[k];
   }
   return out;
 };

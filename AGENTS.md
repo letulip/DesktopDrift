@@ -179,7 +179,10 @@ stays readable. No framework, no bundler.
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
     `save()` / `collectedCaps()` / `capCollect()`. Key `'desktop-drift'`, `VERSION = 1`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
-    `defaults()` (missing keys filled, saved values win, arrays replaced). So adding a
+    `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
+    is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
+    hand-edited `settings: null`) is discarded and that slot heals to its default — content
+    validation, so a garbled save can't `TypeError` a consumer. So adding a
     field/slice = just edit `defaults()` — no `VERSION` bump, no reset (this replaced the
     old `stats` lazy-init hack — `stats` is a normal slice now). `VERSION` + the
     `MIGRATIONS` table are only for **breaking** reshapes: bump `VERSION` and add
