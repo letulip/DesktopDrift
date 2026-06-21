@@ -12,7 +12,7 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
-import { nearestCenter } from './track-util.js';
+import { nearestCenter, circularAdvance } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 
@@ -90,6 +90,7 @@ export const startGame = (T, opts = {}) => {
   const resetCombo = () => {
     S.comboPoints = 0; S.mult = 1; S.driftTime = 0;
     S.transitions = 0; S.lastSlipSign = 0; S.multBuild = 0; S.nearMisses = 0;
+    driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
   };
 
   const bankCombo = () => {
@@ -133,7 +134,14 @@ export const startGame = (T, opts = {}) => {
     }
   };
 
-  let nearIdx = 0;
+  const N_CTR      = center.length; // centerline point count for circular-index arithmetic
+  const ZONE_ADV   = 8;             // forward indices required to reset the no-progress timer
+  const ZONE_STALL = 3.0;           // seconds without progress before multiplier growth freezes
+
+  let nearIdx        = 0;
+  let driftZoneRef   = 0;     // nearIdx at the last zone reset
+  let driftZoneTimer = 0;     // seconds the car has been in the same zone while drifting
+  let driftZoned     = false; // true once stall fired; ref frozen at stall-start until car exits
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -306,19 +314,32 @@ export const startGame = (T, opts = {}) => {
     if (drifting && onTrack && S.crashCd <= 0) {
       S.driftTime += dt;
       const quality = driftQuality(slip, speed);
-      S.multBuild += dt * MULT_GAIN_PER_S * quality;
-      const sgn = slipSign(vS);
-      if (sgn !== 0) {
-        if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-          S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
+      if (circularAdvance(nearIdx, driftZoneRef, N_CTR) >= ZONE_ADV) {
+        driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
+      } else {
+        driftZoneTimer += dt;
+        if (driftZoneTimer >= ZONE_STALL && !driftZoned) {
+          driftZoned = true;
+          driftZoneRef = nearIdx; // anchor to current position so recovery needs only 8 forward indices
         }
-        S.lastSlipSign = sgn;
       }
-      if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
-        S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+      if (!driftZoned) {
+        S.multBuild += dt * MULT_GAIN_PER_S * quality;
+        const sgn = slipSign(vS);
+        if (sgn !== 0) {
+          if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
+            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
+          }
+          S.lastSlipSign = sgn;
+        }
+        if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
+          S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+        }
+        S.mult = comboMult(S.multBuild);
+        S.comboPoints += comboGain(slip, speed, dt, S.mult);
+      } else {
+        flash('NO PROGRESS!', '#ffa040');
       }
-      S.mult = comboMult(S.multBuild);
-      S.comboPoints += comboGain(slip, speed, dt, S.mult);
       S.driftGrace = 0;
     } else {
       S.driftGrace += dt;

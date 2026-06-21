@@ -122,6 +122,84 @@ export const sampleCheckpoints = (center, K) => {
   return cps;
 };
 
+// K checkpoints biased toward corners.
+// Sectors are defined by equal ARC LENGTH (not equal index count) so that
+// Chaikin-dense corners — which accumulate far more index points than straights
+// per unit of track distance — cannot consume multiple sectors and cluster
+// checkpoints, while leaving long straights uncovered.
+// Within each arc-length sector the point with highest curvature (circumradius
+// formula) is chosen as the checkpoint; falls back to the index-midpoint of the
+// sector on pure straights (cross product = 0 everywhere in sector).
+//
+// Post-processing guarantees:
+//  1. checkpoints[0] = center[0] always — finish-line detection (game-engine.js)
+//     uses checkpoints[0] as the reference point; it must match the visual
+//     chequered flag which render.js always draws at center[0].
+//  2. Minimum arc-length spacing of totalLen/K/2 between consecutive checkpoints.
+//     A 180° hairpin spanning two sectors places curvature peaks at both the entry
+//     and exit; the later checkpoint is pushed to its sector's index-midpoint so
+//     the two no longer cluster at the hairpin endpoints.
+export const sampleCheckpointsByCorner = (center, K) => {
+  const N = center.length;
+
+  // arc[i] = cumulative distance from center[0] to center[i].
+  // The closing edge (center[N-1] → center[0]) is added to totalLen so every
+  // sector covers an equal share of the full loop distance.
+  const arc = [0];
+  for (let i = 1; i < N; i++)
+    arc.push(arc[i - 1] + Math.hypot(center[i].x - center[i - 1].x, center[i].y - center[i - 1].y));
+  const totalLen = arc[N - 1] + Math.hypot(center[0].x - center[N - 1].x, center[0].y - center[N - 1].y);
+
+  const cpIdxs  = [];
+  const midIdxs = [];
+
+  for (let i = 0; i < K; i++) {
+    const loLen = (i / K) * totalLen;
+    const hiLen = ((i + 1) / K) * totalLen;
+
+    // lo = first index whose arc-length position falls at or past loLen
+    let lo = 0;
+    while (lo < N - 1 && arc[lo + 1] <= loLen) lo++;
+    // hi = first index past hiLen (exclusive upper bound)
+    let hi = lo + 1;
+    while (hi < N && arc[hi] < hiLen) hi++;
+
+    const midIdx = Math.floor((lo + hi) / 2);
+    midIdxs.push(midIdx);
+
+    let bestIdx = midIdx;
+    let bestCurv = -1;
+    for (let j = lo; j < hi; j++) {
+      const prev = center[(j - 1 + N) % N];
+      const c    = center[j];
+      const next = center[(j + 1) % N];
+      const ax = prev.x - c.x, ay = prev.y - c.y;
+      const bx = next.x - c.x, by = next.y - c.y;
+      const cross = Math.abs(ax * by - ay * bx);
+      if (cross === 0) continue;
+      const R = (Math.hypot(ax, ay) * Math.hypot(bx, by) * Math.hypot(ax - bx, ay - by))
+                / (2 * cross);
+      const curv = 1 / R;
+      if (curv > bestCurv) { bestCurv = curv; bestIdx = j; }
+    }
+    cpIdxs.push(bestIdx);
+  }
+
+  // Post-process 1: anchor checkpoint[0] at center[0] (the finish line).
+  cpIdxs[0] = 0;
+
+  // Post-process 2: enforce minimum arc-length gap between consecutive checkpoints.
+  const minGap = totalLen / K / 2;
+  for (let i = 1; i < K; i++) {
+    const gap = (arc[cpIdxs[i]] - arc[cpIdxs[i - 1]] + totalLen) % totalLen;
+    if (gap < minGap) cpIdxs[i] = midIdxs[i];
+  }
+  // Also check the wrap-around gap from cps[K-1] back to cps[0].
+  if ((totalLen - arc[cpIdxs[K - 1]]) % totalLen < minGap) cpIdxs[K - 1] = midIdxs[K - 1];
+
+  return cpIdxs.map(idx => center[idx]);
+};
+
 // SVG track file text → smoothed game-world centreline points (Array of {x,y}).
 // Reads the `track_path` element and derives the game origin from the SVG viewBox
 // automatically, so callers don't need to know the viewBox dimensions.
@@ -164,4 +242,11 @@ export const nearestCenter = (carX, carY, center, prevIdx, window = 24) => {
     if (d < best) { best = d; bi = i; }
   }
   return { dist: Math.sqrt(best), idx: bi };
+};
+
+// Returns the forward advancement from ref to idx on a circular track of N points.
+// Values > N/2 are treated as backward movement and return 0.
+export const circularAdvance = (idx, ref, N) => {
+  const d = (idx - ref + N) % N;
+  return d <= N / 2 ? d : 0;
 };

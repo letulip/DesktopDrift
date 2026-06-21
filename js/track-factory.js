@@ -4,7 +4,7 @@
 
 import * as ITEMS from './items.js';
 import { COLA_CAP } from './collectibles.js';
-import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp } from './track-util.js';
+import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpointsByCorner, prepProp } from './track-util.js';
 
 // ── Shared constants (same for every track) ───────────────────────────────────
 export const TRACK_HALF = 100;
@@ -97,7 +97,7 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
   });
 
   // ── Checkpoints + start position ────────────────────────────────────────────
-  const checkpoints = sampleCheckpoints(center, K);
+  const checkpoints = sampleCheckpointsByCorner(center, K);
   const _c0 = center[0], _c1 = center[1];
   const startPos   = { x: _c0.x, y: _c0.y };
   const startAngle = Math.atan2(_c1.y - _c0.y, _c1.x - _c0.x);
