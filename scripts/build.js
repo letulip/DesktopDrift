@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, cpSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 import { minify as terserMinify } from 'terser';
 import CleanCSS from 'clean-css';
 
@@ -30,6 +31,11 @@ for (const file of readdirSync(ROOT).filter(f => f.endsWith('.html'))) {
   cpSync(join(ROOT, file), join(DIST, file));
 }
 
+// Accumulate minified content for the SW cache-buster hash.
+// Any JS or CSS change produces a new hash → the build always emits a fresh
+// CACHE key in dist/sw.js without requiring a manual version bump.
+const hashInputs = [];
+
 // --- Minify CSS ---
 mkdirSync(join(DIST, 'css'), { recursive: true });
 const css = new CleanCSS({ level: 2, returnPromise: false });
@@ -42,6 +48,7 @@ for (const file of readdirSync(join(ROOT, 'css')).filter(f => f.endsWith('.css')
     process.exit(1);
   }
   writeFileSync(join(DIST, 'css', file), result.styles);
+  hashInputs.push(result.styles);
   cssCount++;
 }
 
@@ -56,13 +63,22 @@ for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js')))
     process.exit(1);
   }
   writeFileSync(join(DIST, 'js', file), result.code);
+  hashInputs.push(result.code);
   jsCount++;
 }
 
 // --- Minify sw.js (root service worker) ---
+// Inject a content-derived hash as the CACHE key before minification so every
+// build that changes any JS or CSS file gets a unique cache version automatically.
+const contentHash = createHash('sha1').update(hashInputs.join('')).digest('hex').slice(0, 8);
 const swInput = readFileSync(join(ROOT, 'sw.js'), 'utf8');
-const swResult = await terserMinify(swInput, { compress: true, mangle: true });
+const swPatched = swInput.replace(/const CACHE\s*=\s*'[^']+'/, `const CACHE='desktop-drift-${contentHash}'`);
+if (swPatched === swInput) {
+  console.error("build: could not inject content hash — 'const CACHE' not found in sw.js");
+  process.exit(1);
+}
+const swResult = await terserMinify(swPatched, { compress: true, mangle: true });
 if (swResult.error) { console.error('JS error in sw.js:', swResult.error); process.exit(1); }
 writeFileSync(join(DIST, 'sw.js'), swResult.code);
 
-console.log(`Built dist/  (${jsCount + 1} JS files, ${cssCount} CSS files)`);
+console.log(`Built dist/  (${jsCount + 1} JS files, ${cssCount} CSS files, cache=desktop-drift-${contentHash})`);

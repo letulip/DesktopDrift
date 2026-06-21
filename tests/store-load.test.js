@@ -12,7 +12,7 @@ installLocalStorage({
     version:      1,
     settings:     { units: 'mph' },
     garage:       { carIndex: 3, bodyColor: '#00ff00' },
-    records:      { oval: { timeattack: { bestLap: 12345, bestScore: 999 } } },
+    records:      { oval: { timeattack: { bestPPS: 1250, bestPPSTotal: 45000, bestPPSTime: 36 } } },
     achievements: { firstDrift: { unlocked: true, progress: 1 } },
   }),
 });
@@ -30,8 +30,8 @@ test('loads persisted garage + fills missing fields', () => {
   assert.deepEqual(garage(), { carIndex: 3, bodyColor: '#00ff00', neonColor: null });
 });
 
-test('loads persisted records / achievements', () => {
-  assert.equal(records().oval.timeattack.bestLap, 12345);
+test('loads persisted records / achievements (real PPS record shape)', () => {
+  assert.deepEqual(records().oval.timeattack, { bestPPS: 1250, bestPPSTotal: 45000, bestPPSTime: 36 });
   assert.equal(achievements().firstDrift.unlocked, true);
 });
 
@@ -59,10 +59,28 @@ test('unknown version preserves data (no reset)', async () => {
   assert.equal(fresh.records().oval.timeattack.bestPPS, 42);           // records preserved
 });
 
-// Corrupt / unparseable data is the ONLY case that resets to defaults.
+// Corrupt / unparseable data is the ONLY case that resets the whole store to defaults.
 test('corrupt save falls back to defaults', async () => {
   installLocalStorage({ 'desktop-drift': '{ not valid json' });
   const fresh = await import('../js/store.js?v=corrupt');
   assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true });
   assert.deepEqual(fresh.records(), {});
+});
+
+// Content validation: a present-but-corrupt slice (wrong type / hand-deleted then a
+// garbage value) heals to its default instead of throwing in a consumer later.
+test('corrupt slice (wrong type) heals to default, other data kept', async () => {
+  installLocalStorage({
+    'desktop-drift': JSON.stringify({
+      version: 1,
+      settings: null,                 // garbled object → must heal to default shape
+      garage: 'oops',                 // wrong type → must heal to default shape
+      records: { oval: { timeattack: { bestPPS: 7 } } }, // valid → preserved
+    }),
+  });
+  const fresh = await import('../js/store.js?v=corruptslice');
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true }); // no TypeError
+  assert.equal(fresh.settings().units, 'kmh');
+  assert.deepEqual(fresh.garage(), { carIndex: 0, bodyColor: null, neonColor: null });
+  assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
 });
