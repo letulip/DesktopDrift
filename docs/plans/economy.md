@@ -51,7 +51,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       collect; skip collected ones (or draw faded). Dispatch collectibles by `kind` in the
       world pass. Browser smoke: tires visible, pop on pickup.
 
-- [ ] **A6. HUD wallet counter.** **[sonnet-high]**
+- [x] **A6. HUD wallet counter.** **[sonnet-high]**
       Add a wallet element to the game HUD (markup in `game.html`) + per-frame write in
       `render.js` HUD section (use a prev-value guard like the others). Also show the wallet
       total on the menu (`index.html`) — small inline read of `store.wallet()`.

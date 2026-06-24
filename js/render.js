@@ -1,5 +1,6 @@
 import { CARS, TABLE } from './config.js';
 import { car, S } from './state.js';
+import { wallet } from './store.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -18,6 +19,7 @@ const _hudSpd       = document.getElementById('spd');
 const _hudCombo     = document.getElementById('combo');
 const _hudFlash     = document.getElementById('flash');
 const _hudCount     = document.getElementById('count');
+const _hudWallet    = document.getElementById('wallet');
 
 // Previous values for rarely-changing fields — only write DOM when the value changes.
 // lapTime and speed are skipped (they change every frame; a prev-check would add overhead
@@ -27,6 +29,7 @@ let _prevLastLap   = undefined;
 let _prevBestLap   = undefined;
 let _prevScore     = -1;
 let _prevLapScoresLen = -1;
+let _prevWallet    = -1;
 
 export let W, H, DPR;
 export const resize = () => {
@@ -113,7 +116,7 @@ export const initRender = (T) => {
   _TABLE = T.TABLE ?? TABLE;
   // Reset HUD prev-value guards so the first draw() after init always writes all fields.
   _prevLapNum = -1; _prevLastLap = undefined; _prevBestLap = undefined;
-  _prevScore = -1; _prevLapScoresLen = -1;
+  _prevScore = -1; _prevLapScoresLen = -1; _prevWallet = -1;
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -605,6 +608,9 @@ export const draw = (speed) => {
       S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
     _prevLapScoresLen = S.lapScores.length;
   }
+
+  const w = wallet();
+  if (w !== _prevWallet) { _hudWallet.textContent = w; _prevWallet = w; }
 
   if (S.comboPoints > 0) { _hudCombo.style.opacity = 1; _hudCombo.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
   else _hudCombo.style.opacity = 0;

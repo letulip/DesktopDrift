@@ -50,6 +50,7 @@
       </a>
     </div>
     <a class="settings-link" href="settings.html">⚙ Settings</a>
+    <div class="menu-foot" id="menu-wallet" style="display:none">Tires: <span id="wallet-count">0</span></div>
     <div class="menu-foot">Keyboard: ← → to steer</div>
     <div class="menu-foot menu-foot-support">
       <a href="donate.html" class="support-link">☕ Support the Dev ☕</a>
@@ -79,6 +80,10 @@ try {
       el.textContent = total === 1 ? ` • 1 cap collected` : ` • ${total} caps collected`;
       el.style.display = '';
     }
+  }
+  if (data?.wallet > 0) {
+    document.getElementById('wallet-count').textContent = data.wallet;
+    document.getElementById('menu-wallet').style.display = '';
   }
 } catch {}
 </script>
