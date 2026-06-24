@@ -360,6 +360,9 @@ const drawCaps = () => {
 
 const drawTires = () => {
   const collectibles = _T.collectibles ?? [];
+  // Slow spin shared across all tires; per-tire phase offset keeps them independent.
+  const spinBase = Date.now() * 0.0006;
+
   for (let i = 0; i < collectibles.length; i++) {
     const desc = collectibles[i];
     if (desc.kind !== 'tire') continue;
@@ -385,11 +388,23 @@ const drawTires = () => {
       ctx.globalAlpha  = 1;
       ctx.shadowBlur   = 0;
       ctx.shadowColor  = 'transparent';
-    } else if (_img?.complete && _img.naturalWidth > 0) {
-      ctx.drawImage(_img, -r, -r, r * 2, r * 2);
     } else {
-      ctx.fillStyle = '#ffe48a';
-      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      // 1:3 aspect (thin wheel lying on the table). Rotate slowly; each tire has its
+      // own phase based on position so they don't all spin in lockstep.
+      const phase = (desc.x * 17 + desc.y * 13) % (Math.PI * 2);
+      ctx.rotate(spinBase + phase);
+      const tw = r * (2 / 3);  // width = 1/3 of height
+      const th = r * 2;
+      ctx.shadowColor = '#ffe48a';
+      ctx.shadowBlur  = 7;
+      if (_img?.complete && _img.naturalWidth > 0) {
+        ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
+      } else {
+        ctx.fillStyle = '#ffe48a';
+        ctx.beginPath(); ctx.ellipse(0, 0, tw / 2, th / 2, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.shadowBlur  = 0;
+      ctx.shadowColor = 'transparent';
     }
 
     ctx.restore();
