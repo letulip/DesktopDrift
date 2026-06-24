@@ -3,7 +3,7 @@
 // (SVG source + origin, id, laps, theme) and re-exports the result.
 
 import * as ITEMS from './items.js';
-import { COLA_CAP } from './collectibles.js';
+import { COLA_CAP, TIRE } from './collectibles.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpointsByCorner, prepProp } from './track-util.js';
 
 // ── Shared constants (same for every track) ───────────────────────────────────
@@ -68,6 +68,18 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
       const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
       const cx = Math.round(x), cy = Math.round(y);
       collectibles.push({ ...COLA_CAP, x: cx, y: cy, capId: `${cx},${cy}` });
+      return;
+    }
+
+    // Tire — proximity pickup, feeds wallet; not a physics prop
+    if (rawId === 'ITEM_TIRE') {
+      const x1 = parseFloat(el.getAttribute('x1'));
+      const y1 = parseFloat(el.getAttribute('y1'));
+      const x2 = parseFloat(el.getAttribute('x2'));
+      const y2 = parseFloat(el.getAttribute('y2'));
+      const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
+      const cx = Math.round(x), cy = Math.round(y);
+      collectibles.push({ ...TIRE, x: cx, y: cy, capId: `${cx},${cy}` });
       return;
     }
 

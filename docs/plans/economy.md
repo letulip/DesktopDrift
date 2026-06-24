@@ -35,7 +35,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       In `js/collectibles.js`: `export const TIRE = { kind:'tire', r, value, imgSrc:'objects/tire.svg' }`.
       (`tire.svg` already exists.) `value` = tires per pickup (start: 5 — tune later).
 
-- [ ] **A3. Parse `ITEM_TIRE` proxy-lines.** **[sonnet-high]**
+- [x] **A3. Parse `ITEM_TIRE` proxy-lines.** **[sonnet-high]**
       In `js/track-factory.js`, add an `ITEM_TIRE` special-case next to `ITEM_COLA_CAP`:
       push `{ ...TIRE, x, y, capId }` into `collectibles` (no collision). Verify a track with
       `ITEM_TIRE` lines parses the expected count (browser/node sentinel).
