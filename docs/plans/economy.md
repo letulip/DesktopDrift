@@ -71,7 +71,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       placement archetypes (on-line / off-line / drift-zone / greedy). Add `tires: n` to that
       registry entry (badge denominator, like `caps`). Roll out to other tracks after it plays well.
 
-- [ ] **A8. Docs + SW + PR.** **[sonnet-high]**
+- [x] **A8. Docs + SW + PR.** **[sonnet-high]**
       `sw.js`: bump cache (new modules already mostly listed; add any). AGENTS.md: document the
       tire economy (store slices, `kind:'tire'`, payout). Tick A1–A8; PR.
 

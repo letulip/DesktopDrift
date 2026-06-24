@@ -82,7 +82,8 @@ stays readable. No framework, no bundler.
     SVGs live in `items/`.
   - `js/collectibles.js` — collectible catalog (SVGs in `objects/`). Exports
     `COLA_CAP` (`{ kind:'cola', r, imgSrc, imgFull }`) — the drift-collected cola cap
-    (see **Cola-cap collectibles** below) — plus the legacy `ITEM_TIRE_COIN` stub.
+    (see **Cola-cap collectibles** below) — and `TIRE` (`{ kind:'tire', r:20, value:5,
+    imgSrc:'objects/tire.svg' }`) — proximity pickup that feeds the wallet.
   - `js/cola.js` — **pure cola-cap math** (no imports, no state): `angDelta(a,b)`
     (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
     angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
@@ -149,6 +150,10 @@ stays readable. No framework, no bundler.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+    **Collectible rendering:** `drawCaps()` handles `kind:'cola'`; `drawTires()`
+    handles `kind:'tire'` (1:3 aspect, slow spin, amber glow, pop burst on pickup).
+    Both called from `draw()`. **Wallet HUD:** `#wallet` span updated each frame
+    via `wallet()` from `store.js` with a prev-value guard.
     **Theme (dependency injection):** world colours live in `THEME_DEFAULT`
     (background/table/tableEdge/track/cone/skid); `initRender` merges `T.theme`
     over it (same pattern as `T.TABLE`). Tracks ship their palette; no per-track
@@ -410,6 +415,9 @@ axis maps to the capsule long axis.
   `nearestCenter` (track distance) → scoring helpers → finish/checkpoint logic → `draw`.
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
   Banked on clean drift end; burned on crash/off-track. Cone hit = flat −100.
+- **Tire economy:** `updateCaps` dispatches by `kind`. `kind:'tire'` → proximity
+  pickup (`dist < r + TIRE_CR`): `tireCollect`, `addTires(value)`, flash. On race
+  finish: `addTires(finishPayout(pps))` adds 2–12 coins scaled by star rating.
 - **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
   score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
   Car/colour controls are **not** in the game HUD — selection lives entirely on
