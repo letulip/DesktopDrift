@@ -385,7 +385,7 @@ const drawTires = () => {
       // Pop burst: expanding ring that fades out (pop counts 0.4 → 0)
       const t = 1 - pop / 0.4;
       ctx.globalAlpha = (1 - t) * 0.85;
-      ctx.strokeStyle = '#BADA55';
+      ctx.strokeStyle = 'rgba(125,212,255,0.9)';
       ctx.lineWidth   = 3;
       ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 2.0), 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
@@ -411,7 +411,7 @@ const drawTires = () => {
       const th = r * 2;
 
       // Glow: explicit circle drawn under the sprite
-      ctx.fillStyle   = '#BADA55';
+      ctx.fillStyle   = 'rgba(125,212,255,1)';
       ctx.globalAlpha = 0.28;
       ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
@@ -421,7 +421,7 @@ const drawTires = () => {
       if (_img?.complete && _img.naturalWidth > 0) {
         ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
       } else {
-        ctx.fillStyle = '#BADA55';
+        ctx.fillStyle = 'rgba(125,212,255,1)';
         ctx.beginPath(); ctx.ellipse(0, 0, tw / 2, th / 2, 0, 0, Math.PI * 2); ctx.fill();
       }
     }
