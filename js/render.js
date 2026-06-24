@@ -358,11 +358,14 @@ const drawCaps = () => {
   }
 };
 
-// Ratchet animation: tire rests at angle N×30°, bounces up while rotating to (N+1)×30°.
-// Each bounce advances by TIRE_STEP_RAD; tires are out of phase via index offset.
-const TIRE_CYCLE_S  = 1.4;
-const TIRE_BOUNCE_S = 0.5;
-const TIRE_STEP_RAD = Math.PI / 6;  // 30° per bounce
+// Idle animation: a continuous slow spin (always turning) PLUS an independent
+// periodic hop (scale arch). Rotation and bounce are decoupled — the tire never
+// freezes between hops; it keeps rotating the whole time. Tires are out of phase
+// via an index-derived offset so they don't all bounce in unison.
+const TIRE_CYCLE_S  = 1.4;          // hop period
+const TIRE_BOUNCE_S = 0.5;          // hop duration within the period
+const TIRE_SPIN     = 0.7;          // rad/s — gentle continuous rotation
+const TAU           = Math.PI * 2;
 
 const drawTires = () => {
   const collectibles = _T.collectibles ?? [];
@@ -391,21 +394,15 @@ const drawTires = () => {
       ctx.globalAlpha = 1;
     } else {
       const phase = ((i * 1597) & 0xFF) / 256;
-      const t      = now + phase * TIRE_CYCLE_S;
-      const cycleN = Math.floor(t / TIRE_CYCLE_S);
-      const cycleT = t % TIRE_CYCLE_S;
 
-      // During the bounce: scale up + rotate from N×step to (N+1)×step.
-      // At rest: hold at (N+1)×step angle, scale 1.0.
-      let scale, angle;
-      if (cycleT < TIRE_BOUNCE_S) {
-        const bt = cycleT / TIRE_BOUNCE_S;          // 0 → 1
-        scale = 1.0 + Math.sin(bt * Math.PI) * 0.2; // arch 1.0→1.2→1.0
-        angle = (cycleN + bt) * TIRE_STEP_RAD;       // smooth sweep +30°
-      } else {
-        scale = 1.0;
-        angle = (cycleN + 1) * TIRE_STEP_RAD;
-      }
+      // Continuous rotation: always advancing, never holds still.
+      const angle = (now * TIRE_SPIN + phase * TAU) % TAU;
+
+      // Independent hop: arch the scale during the bounce window of each cycle.
+      const cycleT = (now + phase * TIRE_CYCLE_S) % TIRE_CYCLE_S;
+      const scale  = cycleT < TIRE_BOUNCE_S
+        ? 1.0 + Math.sin((cycleT / TIRE_BOUNCE_S) * Math.PI) * 0.2  // 1.0→1.2→1.0
+        : 1.0;
 
       const tw = r * 0.8;  // 1:2.5 aspect
       const th = r * 2;
