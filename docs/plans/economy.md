@@ -40,7 +40,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       push `{ ...TIRE, x, y, capId }` into `collectibles` (no collision). Verify a track with
       `ITEM_TIRE` lines parses the expected count (browser/node sentinel).
 
-- [ ] **A4. Engine: pickup + finish payout.** **[opus]** (touches the race-finish/results flow)
+- [x] **A4. Engine: pickup + finish payout.** **[opus]** (touches the race-finish/results flow)
       In `game-engine.js`: extend the collectible update so `kind:'tire'` collects on
       **proximity** (dist < r+CR), one-time, persists via `tireCollect`, `addTires(value)`,
       flash + pop (cheaper than the cap drift-arc). On race finish, compute

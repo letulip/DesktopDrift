@@ -3,7 +3,8 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect } from './store.js';
+import { finishPayout } from './economy.js';
 import { createRaceResults } from './race-results.js';
 import {
   driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
@@ -57,6 +58,7 @@ export const startGame = (T, opts = {}) => {
   const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
   const CAP_BONUS   = 500;
   const CAP_LOOPS   = 2;               // full circles required to collect
+  const TIRE_CR     = 35;              // car half-length proxy for proximity pickup radius
 
   const collectibles = T.collectibles ?? [];
   // Preload images onto the descriptor (same pattern as _cos/_sin on props).
@@ -66,7 +68,10 @@ export const startGame = (T, opts = {}) => {
   }
   // S.caps: pure runtime state only — static data stays in collectibles[].
   // Restore previously collected caps from store so they stay permanently collected.
-  const _prevCollected = new Set(collectedCaps(T.id ?? ''));
+  const _prevCollected = new Set([
+    ...collectedCaps(T.id ?? ''),
+    ...tiresFor(T.id ?? ''),
+  ]);
   S.caps = {};
   collectibles.forEach((c, i) => {
     // Two-format lookup: new saves use a coordinate string capId; saves made before
@@ -113,9 +118,22 @@ export const startGame = (T, opts = {}) => {
         if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
         continue;
       }
-      const { x, y } = collectibles[i];
-      const dx = car.x - x, dy = car.y - y;
+      const c  = collectibles[i];
+      const dx = car.x - c.x, dy = car.y - c.y;
       const dist = Math.hypot(dx, dy);
+
+      if (c.kind === 'tire') {
+        if (dist < c.r + TIRE_CR) {
+          cap.collected = true;
+          cap.pop = 0.4;
+          tireCollect(T.id ?? '', c.capId ?? i);
+          addTires(c.value);
+          flash('+' + c.value + ' tires', '#ffe48a');
+        }
+        continue;
+      }
+
+      // kind === 'cola': drift-donut collection
       const inDonut = dist > CAP_INNER_R && dist < CAP_OUTER_R;
       const ang = Math.atan2(dy, dx);
       const engaged = inDonut && drifting;
@@ -129,7 +147,7 @@ export const startGame = (T, opts = {}) => {
         cap.sweep     = 0;
         if (!ZEN) { S.score += CAP_BONUS; capBonus += CAP_BONUS; }
         flash('CAP! +' + CAP_BONUS, '#ff9999');
-        capCollect(T.id ?? '', collectibles[i].capId ?? i);
+        capCollect(T.id ?? '', c.capId ?? i);
       }
     }
   };
@@ -386,6 +404,7 @@ export const startGame = (T, opts = {}) => {
           // versus runs where the cap was already collected (or not present).
           const ppsScore   = Math.max(0, totalScore - capBonus);
           const pps        = pointsPerSecond(ppsScore, totalTime);
+          addTires(finishPayout(pps));
 
           let isNewRecord = false;
           if (T.id) {
