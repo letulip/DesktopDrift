@@ -31,7 +31,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       `finishPayout(pps)` = `2 + 2*stars` (2..12). Tests: `tests/economy.test.js` +
       wallet/tires in store tests. 121 tests green, node --check clean. SW v71→v72.
 
-- [ ] **A2. `TIRE` collectible descriptor.** **[sonnet-high]**
+- [x] **A2. `TIRE` collectible descriptor.** **[sonnet-high]**
       In `js/collectibles.js`: `export const TIRE = { kind:'tire', r, value, imgSrc:'objects/tire.svg' }`.
       (`tire.svg` already exists.) `value` = tires per pickup (start: 5 — tune later).
 
