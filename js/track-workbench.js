@@ -12,6 +12,7 @@ export const {
   svgPath: './tracks/workbench.svg',
   id:      'workbench',
   laps:    3,
+  tires:   13,   // seeded along the centerline (see js/tire-seed.js); must match registry `tires`
   theme:   {
     background: '#181d1d',
     table:      '#574b39',
