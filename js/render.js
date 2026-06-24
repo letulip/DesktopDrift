@@ -302,6 +302,7 @@ const drawCaps = () => {
     const state = S.caps[i];
     if (!state) continue;
     const desc = collectibles[i];
+    if (desc.kind !== 'cola') continue;
     const { x, y, r, _img, _imgFull, c } = desc;
     const { sweep, collected, pop } = state;
 
@@ -348,6 +349,44 @@ const drawCaps = () => {
       ctx.globalAlpha = collected ? 0.88 : 0.72;
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
+    }
+
+    ctx.restore();
+  }
+};
+
+const drawTires = () => {
+  const collectibles = _T.collectibles ?? [];
+  for (let i = 0; i < collectibles.length; i++) {
+    const desc = collectibles[i];
+    if (desc.kind !== 'tire') continue;
+    const state = S.caps[i];
+    if (!state) continue;
+    const { x, y, r, _img } = desc;
+    const { collected, pop } = state;
+
+    if (collected && pop <= 0) continue;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (collected) {
+      // Pop burst: expanding ring that fades out (pop counts 0.4 → 0)
+      const t = 1 - pop / 0.4;
+      ctx.globalAlpha  = (1 - t) * 0.8;
+      ctx.strokeStyle  = '#ffe48a';
+      ctx.lineWidth    = 3;
+      ctx.shadowColor  = '#ffcc00';
+      ctx.shadowBlur   = 14;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 1.8), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha  = 1;
+      ctx.shadowBlur   = 0;
+      ctx.shadowColor  = 'transparent';
+    } else if (_img?.complete && _img.naturalWidth > 0) {
+      ctx.drawImage(_img, -r, -r, r * 2, r * 2);
+    } else {
+      ctx.fillStyle = '#ffe48a';
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
     }
 
     ctx.restore();
@@ -428,8 +467,9 @@ export const draw = (speed) => {
   // props
   for (const o of props) drawProp(o);
 
-  // cola cap collectibles
+  // collectibles
   drawCaps();
+  drawTires();
 
   // cones — standing batch (3 fill() calls total) + per-cone draw for knocked ones
   {

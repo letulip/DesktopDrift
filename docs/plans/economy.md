@@ -46,7 +46,7 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       flash + pop (cheaper than the cap drift-arc). On race finish, compute
       `finishPayout(pps, stars)` and `addTires(...)`. Keep cap logic untouched; dispatch by `kind`.
 
-- [ ] **A5. Render: `drawTires`.** **[sonnet-high]**
+- [x] **A5. Render: `drawTires`.** **[sonnet-high]**
       Mirror `drawCaps` — draw `tire.svg` sprite at each uncollected tire + a brief pop on
       collect; skip collected ones (or draw faded). Dispatch collectibles by `kind` in the
       world pass. Browser smoke: tires visible, pop on pickup.
