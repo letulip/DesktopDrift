@@ -358,25 +358,9 @@ const drawCaps = () => {
   }
 };
 
-// Jump-flip collectible animation for a single tire.
-// Cycle: bounce up (scale 1→1.3) while rotating 180°, rest, repeat.
-// CYCLE_S = total cycle length; BOUNCE_S = portion spent jumping.
+// Bounce cycle: scale 1.0 → 1.2 → 1.0 over TIRE_BOUNCE_S, then rest.
 const TIRE_CYCLE_S  = 1.4;
-const TIRE_BOUNCE_S = 0.6;
-
-const _tireAnim = (i, r, now) => {
-  // Phase offset: each tire gets a unique start time spread across the cycle.
-  const phase = ((i * 1597) & 0xFF) / 256 * TIRE_CYCLE_S;
-  const t  = (now + phase) % TIRE_CYCLE_S;
-  const baseAngle = Math.floor((now + phase) / TIRE_CYCLE_S) * Math.PI;
-
-  if (t < TIRE_BOUNCE_S) {
-    const bt    = t / TIRE_BOUNCE_S;             // 0 → 1 within the bounce
-    const arch  = Math.sin(bt * Math.PI);        // smooth arch 0→1→0
-    return { scale: 1.0 + arch * 0.30, angle: baseAngle + bt * Math.PI };
-  }
-  return { scale: 1.0, angle: baseAngle + Math.PI };
-};
+const TIRE_BOUNCE_S = 0.5;
 
 const drawTires = () => {
   const collectibles = _T.collectibles ?? [];
@@ -398,33 +382,42 @@ const drawTires = () => {
     if (collected) {
       // Pop burst: expanding ring that fades out (pop counts 0.4 → 0)
       const t = 1 - pop / 0.4;
-      ctx.globalAlpha  = (1 - t) * 0.85;
-      ctx.strokeStyle  = '#BADA55';
-      ctx.lineWidth    = 3;
-      ctx.shadowColor  = '#BADA55';
-      ctx.shadowBlur   = 20;
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.strokeStyle = '#BADA55';
+      ctx.lineWidth   = 3;
       ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 2.0), 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha  = 1;
-      ctx.shadowBlur   = 0;
-      ctx.shadowColor  = 'transparent';
+      ctx.globalAlpha = 1;
     } else {
-      // 1:2.5 aspect — thin wheel; jump+flip animation
-      const { scale, angle } = _tireAnim(i, r, now);
-      const tw = r * 0.8;   // 1:2.5 (tw/th = 0.8r / 2r)
+      // Per-tile phase offset so they don't all move in sync
+      const phase = ((i * 1597) & 0xFF) / 256;
+      const t = now + phase * TIRE_CYCLE_S;
+
+      // Scale bounce: 1.0 → 1.2 → 1.0 during BOUNCE window, then hold 1.0
+      const cycleT = t % TIRE_CYCLE_S;
+      const scale  = cycleT < TIRE_BOUNCE_S
+        ? 1.0 + Math.sin(cycleT / TIRE_BOUNCE_S * Math.PI) * 0.2
+        : 1.0;
+
+      // Continuous spin: 1 full turn per 3 s — clearly visible on 1:2.5 shape
+      const spin = t * (Math.PI * 2 / 3.0);
+
+      const tw = r * 0.8;  // 1:2.5 aspect
       const th = r * 2;
 
-      ctx.rotate(angle);
+      // Glow: explicit circle (shadowBlur unreliable on drawImage across browsers)
+      ctx.fillStyle   = '#BADA55';
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.rotate(spin);
       ctx.scale(scale, scale);
-      ctx.shadowColor = '#BADA55';
-      ctx.shadowBlur  = 14;
       if (_img?.complete && _img.naturalWidth > 0) {
         ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
       } else {
         ctx.fillStyle = '#BADA55';
         ctx.beginPath(); ctx.ellipse(0, 0, tw / 2, th / 2, 0, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.shadowBlur  = 0;
-      ctx.shadowColor = 'transparent';
     }
 
     ctx.restore();
