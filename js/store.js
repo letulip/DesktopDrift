@@ -25,7 +25,8 @@ const defaults = () => ({
   garage:       { carIndex: 0, bodyColor: null, neonColor: null },
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
-  stats:        { caps: {} }, // { caps: { [trackId]: number[] } } — collected cap indices
+  wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
+  stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
 });
 
 // Breaking-change migrations, keyed by the target version. Empty while VERSION === 1.
@@ -101,4 +102,34 @@ export const capCollect = (trackId, idx) => {
   if (!st.caps) st.caps = {};
   const arr = st.caps[trackId] ?? (st.caps[trackId] = []);
   if (!arr.includes(idx)) { arr.push(idx); save(); }
+};
+
+// ── Tire-coin economy (see ROADMAP Phase 2.5) ─────────────────────────────────
+// wallet = soft-currency balance; tires are one-time pickups persisted per track by id
+// (same model as caps). Pure payout/price formulas live in js/economy.js.
+
+// Current tire-coin balance.
+export const wallet = () => { _ensure(); return _s.wallet; };
+
+// Add (or remove, if n<0) tire coins; clamped at 0. Persists. Returns the new balance.
+export const addTires = (n) => {
+  _ensure();
+  _s.wallet = Math.max(0, _s.wallet + n);
+  save();
+  return _s.wallet;
+};
+
+// Ids of tires already collected on a track (empty if none yet).
+export const tiresFor = (trackId) => {
+  const st = stats();
+  if (!st.tires) st.tires = {};
+  return st.tires[trackId] ?? [];
+};
+
+// Mark a tire id as permanently collected for a track. No-op if already recorded.
+export const tireCollect = (trackId, id) => {
+  const st = stats();
+  if (!st.tires) st.tires = {};
+  const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
+  if (!arr.includes(id)) { arr.push(id); save(); }
 };

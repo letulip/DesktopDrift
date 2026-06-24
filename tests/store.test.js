@@ -14,7 +14,8 @@ import { installLocalStorage } from './helpers.js';
 // lazily, but getItem is called on the first getter — install it upfront to be safe).
 const store = installLocalStorage();
 
-const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect } =
+const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
+        wallet, addTires, tiresFor, tireCollect } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -34,8 +35,24 @@ test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
 });
 
-test('stats: defaults to { caps: {} }', () => {
-  assert.deepEqual(stats(), { caps: {} });
+test('stats: defaults to { caps: {}, tires: {} }', () => {
+  assert.deepEqual(stats(), { caps: {}, tires: {} });
+});
+
+test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
+  assert.equal(wallet(), 0);
+  assert.equal(addTires(5), 5);
+  assert.equal(addTires(3), 8);
+  assert.equal(wallet(), 8);
+  assert.equal(addTires(-100), 0);   // clamped, never negative
+});
+
+test('tiresFor / tireCollect: one-time collection per track (mirrors caps)', () => {
+  assert.deepEqual(tiresFor('green-study'), []);
+  tireCollect('green-study', 't0');
+  tireCollect('green-study', 't0');  // no-op (already collected)
+  tireCollect('green-study', 't1');
+  assert.deepEqual(tiresFor('green-study'), ['t0', 't1']);
 });
 
 test('collectedCaps: returns [] for unknown track', () => {

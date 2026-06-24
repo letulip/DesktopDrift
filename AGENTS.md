@@ -86,6 +86,10 @@ stays readable. No framework, no bundler.
   - `js/cola.js` — **pure cola-cap math** (no imports, no state): `angDelta(a,b)`
     (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
     angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
+  - `js/economy.js` — **pure tire-coin formulas** (no imports, no state): `starsForPps(pps)`
+    (1 star / 100 PPS, cap 5) and `finishPayout(pps)` = `2 + 2*stars` tires. The soft-
+    currency maths for the Phase 2.5 economy; persistence lives in `store.js`. Unit-tested
+    in `tests/economy.test.js`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as the Time Attack track modules. Does NOT import `items.js`
     (no props). Used by `sandbox.html`.
@@ -177,7 +181,9 @@ stays readable. No framework, no bundler.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
-    `save()` / `collectedCaps()` / `capCollect()`. Key `'desktop-drift'`, `VERSION = 1`.
+    `save()` / `collectedCaps()` / `capCollect()` and the economy:
+    `wallet()` / `addTires(n)` / `tiresFor(id)` / `tireCollect(id, tireId)`
+    (`wallet` int + `stats.tires` mirror the caps model). Key `'desktop-drift'`, `VERSION = 1`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
     `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
     is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
@@ -300,7 +306,7 @@ stays readable. No framework, no bundler.
     over touch when non-zero. Called once per `frame()`. Unit-tested in `tests/input.test.js`.
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `collision.js` / `input.js` /
-    `track-registry.js` (no imports) →
+    `economy.js` / `cola.js` / `track-registry.js` (no imports) →
     `physics.js` → `config.js` → `items.js` → `track*.js` →
     (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.

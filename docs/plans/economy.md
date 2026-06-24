@@ -23,12 +23,13 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
 
 ## Phase A — earn & wallet (NO shop yet). Ship first.
 
-- [ ] **A1. Store schema + economy helpers.** **[opus]** (sets the shape everything depends on)
-      Add to `defaults()`: `wallet: 0` and tire persistence (mirror caps:
-      `stats.tires: { [trackId]: string[] }` keyed by coordinate capId). Add pure/near-pure
-      exports: `wallet()`, `addTires(n)`, `tiresFor(trackId)`, `tireCollect(trackId, id)`,
-      and a pure `finishPayout(pps, stars)` formula (per ROADMAP: `flat + perStar*stars`,
-      one-time pickups handled separately). Unit tests for `finishPayout` + persistence.
+- [x] **A1. Store schema + economy helpers.** **[opus]** DONE.
+      `defaults()` gained `wallet: 0` and `stats.tires: { [trackId]: id[] }` (mirrors caps;
+      merge-store fills both for old saves — no migration). store.js exports `wallet()`,
+      `addTires(n)` (clamped ≥0, persists), `tiresFor(trackId)`, `tireCollect(trackId, id)`.
+      Pure formulas in new **`js/economy.js`**: `starsForPps(pps)` (1/100, cap 5) +
+      `finishPayout(pps)` = `2 + 2*stars` (2..12). Tests: `tests/economy.test.js` +
+      wallet/tires in store tests. 121 tests green, node --check clean. SW v71→v72.
 
 - [ ] **A2. `TIRE` collectible descriptor.** **[sonnet-high]**
       In `js/collectibles.js`: `export const TIRE = { kind:'tire', r, value, imgSrc:'objects/tire.svg' }`.
