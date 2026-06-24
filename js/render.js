@@ -358,9 +358,11 @@ const drawCaps = () => {
   }
 };
 
-// Bounce cycle: scale 1.0 → 1.2 → 1.0 over TIRE_BOUNCE_S, then rest.
+// Ratchet animation: tire rests at angle N×30°, bounces up while rotating to (N+1)×30°.
+// Each bounce advances by TIRE_STEP_RAD; tires are out of phase via index offset.
 const TIRE_CYCLE_S  = 1.4;
 const TIRE_BOUNCE_S = 0.5;
+const TIRE_STEP_RAD = Math.PI / 6;  // 30° per bounce
 
 const drawTires = () => {
   const collectibles = _T.collectibles ?? [];
@@ -388,29 +390,33 @@ const drawTires = () => {
       ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 2.0), 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
     } else {
-      // Per-tile phase offset so they don't all move in sync
       const phase = ((i * 1597) & 0xFF) / 256;
-      const t = now + phase * TIRE_CYCLE_S;
-
-      // Scale bounce: 1.0 → 1.2 → 1.0 during BOUNCE window, then hold 1.0
+      const t      = now + phase * TIRE_CYCLE_S;
+      const cycleN = Math.floor(t / TIRE_CYCLE_S);
       const cycleT = t % TIRE_CYCLE_S;
-      const scale  = cycleT < TIRE_BOUNCE_S
-        ? 1.0 + Math.sin(cycleT / TIRE_BOUNCE_S * Math.PI) * 0.2
-        : 1.0;
 
-      // Continuous spin: 1 full turn per 3 s — clearly visible on 1:2.5 shape
-      const spin = t * (Math.PI * 2 / 3.0);
+      // During the bounce: scale up + rotate from N×step to (N+1)×step.
+      // At rest: hold at (N+1)×step angle, scale 1.0.
+      let scale, angle;
+      if (cycleT < TIRE_BOUNCE_S) {
+        const bt = cycleT / TIRE_BOUNCE_S;          // 0 → 1
+        scale = 1.0 + Math.sin(bt * Math.PI) * 0.2; // arch 1.0→1.2→1.0
+        angle = (cycleN + bt) * TIRE_STEP_RAD;       // smooth sweep +30°
+      } else {
+        scale = 1.0;
+        angle = (cycleN + 1) * TIRE_STEP_RAD;
+      }
 
       const tw = r * 0.8;  // 1:2.5 aspect
       const th = r * 2;
 
-      // Glow: explicit circle (shadowBlur unreliable on drawImage across browsers)
+      // Glow: explicit circle drawn under the sprite
       ctx.fillStyle   = '#BADA55';
       ctx.globalAlpha = 0.28;
       ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
 
-      ctx.rotate(spin);
+      ctx.rotate(angle);
       ctx.scale(scale, scale);
       if (_img?.complete && _img.naturalWidth > 0) {
         ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
