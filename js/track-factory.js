@@ -4,6 +4,7 @@
 
 import * as ITEMS from './items.js';
 import { COLA_CAP, TIRE } from './collectibles.js';
+import { seedTires } from './tire-seed.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpointsByCorner, prepProp } from './track-util.js';
 
 // ── Shared constants (same for every track) ───────────────────────────────────
@@ -29,7 +30,7 @@ const resolveKey = (rawId) => {
 // laps     — race length
 // theme    — colour palette object passed to render.js via initRender(T)
 // (svgCx / svgCy are no longer params — auto-derived from the SVG viewBox)
-export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
+export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires = 0 }) => {
   // ── SVG load ────────────────────────────────────────────────────────────────
   const svgText = await fetch(svgPath).then(r => r.text());
   const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
@@ -107,6 +108,13 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
     const ang = Math.atan2(-(y2 - y1), x2 - x1);
     props.push(prepProp({ ...item, x: Math.round(gx), y: Math.round(gy), ang: parseFloat(ang.toFixed(3)) }));
   });
+
+  // ── Tire coins — algorithmically seeded (no hand-placed proxy lines) ──────────
+  // `tires` count scatters pickups along the centerline (on-line on straights, pushed
+  // toward the inner edge on corners). Positions double as the persistent capId.
+  for (const { x, y } of seedTires(center, inner, outer, tires)) {
+    collectibles.push({ ...TIRE, x, y, capId: `${x},${y}` });
+  }
 
   // ── Checkpoints + start position ────────────────────────────────────────────
   const checkpoints = sampleCheckpointsByCorner(center, K);

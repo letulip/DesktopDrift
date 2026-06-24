@@ -13,6 +13,7 @@ export const TRACKS = [
     desc:   `Drift across a classic green baize desk. Dodge sharp compasses and leave tire marks on important documents!`,
     svgSrc: `tracks/green-study.svg`,
     caps:   1,
+    tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
     // Canvas-world colours from tracks/track_themes.json (not CSS tokens)
     theme:  { background: `#14130e`, table: `#2f4034`, tableEdge: `#7a6334`, track: `#cdbf9e` },
   },

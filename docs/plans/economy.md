@@ -56,7 +56,17 @@ just an edit to `defaults()` — no VERSION bump, no data loss** (old players ge
       `render.js` HUD section (use a prev-value guard like the others). Also show the wallet
       total on the menu (`index.html`) — small inline read of `store.wallet()`.
 
-- [ ] **A7. Place tires + registry denominator.** **[sonnet-high]** (SVG authoring is the user's, in Figma)
+- [x] **A7. Seed tires + registry denominator + tracks.html badge.** **[opus]** DONE.
+      Chose an **algorithmic seeder** over hand-placed SVG lines: new pure `js/tire-seed.js`
+      `seedTires(center, inner, outer, n)` — even arc-spacing; on straights it sits on the
+      racing line, on corners it's pushed toward the inner (concave) edge ∝ sharpness (harder
+      to grab). `track-factory.makeTrack({ tires })` calls it; green-study seeds **12**
+      (registry `tires: 12` mirrors it as the badge denominator). `tracks.html` shows a
+      "🛞 N/M" badge under the cap badge. Unit-tested (`tests/tire-seed.test.js`, 5 cases:
+      count, empty, inner-offset on a curve, ≈centerline on near-straight, determinism).
+      Verified in browser: 12 tires seeded, pickup → wallet 0→5 + HUD + persist, badge shows
+      "🛞 0/12". 126 tests green, console clean. Rollout to other tracks = `tires:N` + registry.
+      *(was [sonnet-high]; upgraded to [opus] — the placement algorithm has feel implications.)*
       Author `<line id="ITEM_TIRE">` lines in ONE track SVG (green-study) per ROADMAP
       placement archetypes (on-line / off-line / drift-zone / greedy). Add `tires: n` to that
       registry entry (badge denominator, like `caps`). Roll out to other tracks after it plays well.

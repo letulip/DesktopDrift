@@ -110,6 +110,25 @@
   border-color: rgba(200, 50, 20, 0.55);
 }
 
+/* Tire-coin badge — stacked just below the cap badge (top-right) */
+.track-tire-badge {
+  position: absolute;
+  top: 34px; right: 9px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font: 700 10px var(--font-body);
+  letter-spacing: .3px;
+  background: rgba(255, 180, 60, 0.14);
+  color: rgba(255, 200, 110, 0.7);
+  border: 1px solid rgba(255, 180, 60, 0.28);
+  pointer-events: none;
+}
+.track-tire-badge.is-done {
+  background: rgba(255, 180, 60, 0.34);
+  color: #ffce6a;
+  border-color: rgba(255, 190, 80, 0.55);
+}
+
 .track-card-score { display: none; }
 
 .track-thumb {

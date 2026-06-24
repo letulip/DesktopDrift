@@ -11,6 +11,7 @@ export const {
   svgPath: './tracks/green-study.svg',
   id:      'green-study',
   laps:    3,
+  tires:   12,   // seeded along the centerline (see js/tire-seed.js); must match registry `tires`
   theme:   {
     background: '#14130e',
     table:      '#2f4034',

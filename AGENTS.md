@@ -90,6 +90,12 @@ stays readable. No framework, no bundler.
     (1 star / 100 PPS, cap 5) and `finishPayout(pps)` = `2 + 2*stars` tires. The soft-
     currency maths for the Phase 2.5 economy; persistence lives in `store.js`. Unit-tested
     in `tests/economy.test.js`.
+  - `js/tire-seed.js` — **pure tire placement** (no imports, no state): `seedTires(center,
+    inner, outer, n)` scatters `n` tire pickups by even arc-length — on the racing line on
+    straights, pushed toward the inner (concave) edge on corners ∝ sharpness. Deterministic
+    (positions = the persistent `capId`). Called by `track-factory.makeTrack({ tires })`;
+    the count is also declared on the registry entry (`tires`) as the badge denominator.
+    Unit-tested in `tests/tire-seed.test.js`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as the Time Attack track modules. Does NOT import `items.js`
     (no props). Used by `sandbox.html`.

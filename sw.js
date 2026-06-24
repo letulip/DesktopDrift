@@ -54,6 +54,7 @@ const ASSETS = [
   'js/haptics.js',
   'js/race-results.js',
   'js/cola.js',
+  'js/tire-seed.js',
   'tracks/green-study.svg',
   'tracks/steel-kitchen.svg',
   'tracks/workbench.svg',
