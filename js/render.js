@@ -358,10 +358,29 @@ const drawCaps = () => {
   }
 };
 
+// Jump-flip collectible animation for a single tire.
+// Cycle: bounce up (scale 1→1.3) while rotating 180°, rest, repeat.
+// CYCLE_S = total cycle length; BOUNCE_S = portion spent jumping.
+const TIRE_CYCLE_S  = 1.4;
+const TIRE_BOUNCE_S = 0.6;
+
+const _tireAnim = (i, r, now) => {
+  // Phase offset: each tire gets a unique start time spread across the cycle.
+  const phase = ((i * 1597) & 0xFF) / 256 * TIRE_CYCLE_S;
+  const t  = (now + phase) % TIRE_CYCLE_S;
+  const baseAngle = Math.floor((now + phase) / TIRE_CYCLE_S) * Math.PI;
+
+  if (t < TIRE_BOUNCE_S) {
+    const bt    = t / TIRE_BOUNCE_S;             // 0 → 1 within the bounce
+    const arch  = Math.sin(bt * Math.PI);        // smooth arch 0→1→0
+    return { scale: 1.0 + arch * 0.30, angle: baseAngle + bt * Math.PI };
+  }
+  return { scale: 1.0, angle: baseAngle + Math.PI };
+};
+
 const drawTires = () => {
   const collectibles = _T.collectibles ?? [];
-  // Slow spin shared across all tires; per-tire phase offset keeps them independent.
-  const spinBase = Date.now() * 0.0006;
+  const now = Date.now() * 0.001;
 
   for (let i = 0; i < collectibles.length; i++) {
     const desc = collectibles[i];
@@ -379,28 +398,29 @@ const drawTires = () => {
     if (collected) {
       // Pop burst: expanding ring that fades out (pop counts 0.4 → 0)
       const t = 1 - pop / 0.4;
-      ctx.globalAlpha  = (1 - t) * 0.8;
-      ctx.strokeStyle  = '#ffe48a';
+      ctx.globalAlpha  = (1 - t) * 0.85;
+      ctx.strokeStyle  = '#BADA55';
       ctx.lineWidth    = 3;
-      ctx.shadowColor  = '#ffcc00';
-      ctx.shadowBlur   = 14;
-      ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 1.8), 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowColor  = '#BADA55';
+      ctx.shadowBlur   = 20;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 2.0), 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha  = 1;
       ctx.shadowBlur   = 0;
       ctx.shadowColor  = 'transparent';
     } else {
-      // 1:3 aspect (thin wheel lying on the table). Rotate slowly; each tire has its
-      // own phase based on position so they don't all spin in lockstep.
-      const phase = (desc.x * 17 + desc.y * 13) % (Math.PI * 2);
-      ctx.rotate(spinBase + phase);
-      const tw = r * (2 / 3);  // width = 1/3 of height
+      // 1:2.5 aspect — thin wheel; jump+flip animation
+      const { scale, angle } = _tireAnim(i, r, now);
+      const tw = r * 0.8;   // 1:2.5 (tw/th = 0.8r / 2r)
       const th = r * 2;
-      ctx.shadowColor = '#ffe48a';
-      ctx.shadowBlur  = 7;
+
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+      ctx.shadowColor = '#BADA55';
+      ctx.shadowBlur  = 14;
       if (_img?.complete && _img.naturalWidth > 0) {
         ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
       } else {
-        ctx.fillStyle = '#ffe48a';
+        ctx.fillStyle = '#BADA55';
         ctx.beginPath(); ctx.ellipse(0, 0, tw / 2, th / 2, 0, 0, Math.PI * 2); ctx.fill();
       }
       ctx.shadowBlur  = 0;
