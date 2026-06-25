@@ -26,14 +26,14 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null) => {
   // 3% end | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% end
   // Drawn in path coordinates (after scale+translate), before the car body.
   if (neonColor) {
-    const glowH = M.vh * 0.70;
+    const glowH = M.vh * 0.78;
     const gy    = (M.vh - glowH) / 2;
     const s1p = M.vw * 0.03, s2p = M.vw * 0.58, s3p = M.vw * 0.08;
     const gpp = M.vw * 0.155;  // gap per wheel
 
     ctx.shadowColor = neonColor;
-    ctx.shadowBlur  = 18;
-    ctx.globalAlpha = 0.65;
+    ctx.shadowBlur  = 26;      // brighter, wider halo so the underglow reads in the preview
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle   = neonColor;
 
     const ei_p = M.vw * 0.02;  // inset from path tips

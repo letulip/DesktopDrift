@@ -222,8 +222,10 @@
 #modify #content {
   overflow-y: auto;
   align-items: center;
+  justify-content: flex-start;  /* flow from the top so tall content scrolls (mobile: the
+                                   centered default clipped the bottom paid section) */
   gap: 22px;                 /* equal vertical rhythm between every group */
-  padding: 8px 0 96px;       /* room for the fixed apply bar */
+  padding: 8px 0 120px;      /* room for the fixed apply bar (warning row can grow) */
 }
 #car-name {
   margin: 0; font: 800 clamp(20px, 6vw, 34px) var(--font-display);
@@ -236,9 +238,10 @@
   display: flex; align-items: center; justify-content: center;
   padding: 18px 26px;
   border-radius: var(--r-card);
+  /* Dark base so the neon underglow reads; a faint top light gives it some depth. */
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.07), rgba(255,255,255,0) 72%),
-    var(--surface);
+    radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.05), rgba(255,255,255,0) 70%),
+    var(--bg-deep);
   border: 1px solid var(--surface-line);
 }
 #preview {
