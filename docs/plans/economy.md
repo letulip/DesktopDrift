@@ -82,18 +82,8 @@ finish payout), HUD/menu show it, `npm test` green, browser smoke clean on ≥1 
 
 ## Phase B — shop + cosmetics
 
-- [ ] **B1. Owned-items schema + spend.** **[opus]** `defaults().owned` (array of item ids) +
-      pure `canAfford(price)` / `buy(itemId, price)` (deduct wallet, add to owned; reject if
-      broke or already owned). Tests.
-- [ ] **B2. Cosmetics catalog (data).** **[sonnet-high]** `js/shop-catalog.js` — data table of
-      cosmetics `{ id, name, price, kind:'finish'|'livery'|'wheel'|'trail', apply }`. Free 20
-      body + 10 neon colours stay free; catalog is additive.
-- [ ] **B3. Shop UI.** **[opus]** Garage tab in `select.html` (or `shop.html` — decide; leaning
-      garage tab): list catalog, show price/owned/wallet, buy button → `buy()`, gate owned
-      cosmetics in the existing garage palette/picker by `owned`.
-- [ ] **B4. Apply cosmetics in render.** **[opus]** Paint finishes / livery / wheel / trail
-      colour in `drawCar` + skids, driven by the equipped cosmetic. Feel/visual — careful.
-- [ ] **B5. Docs + SW + PR.** **[sonnet-high]**
+Detailed step-by-step build moved to its own doc: **`docs/plans/shop.md`** (B1–B5, with the
+shop-location / cosmetic-scope / pricing decisions locked there).
 
 ## Phase C — new cars + per-car records
 
