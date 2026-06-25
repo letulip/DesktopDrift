@@ -227,11 +227,22 @@
 .shop-tab:hover { color: var(--ink); }
 .shop-tab.is-active { background: var(--accent-tint); color: var(--accent); }
 
-/* One customization panel (Colour / Neon / Finish / Trail) */
+/* One customization panel (Colour / Neon / Trail) */
 .cust-panel {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 .cust-panel[hidden] { display: none; }
+
+/* Finish sub-section, grouped under the body colour (they're related) */
+.finish-sub {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 6px;
+}
+.cust-sublabel {
+  font: 700 11px var(--font-body);
+  letter-spacing: .6px; text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
 
 /* ── Modify screen (modify.html) ────────────────────────────────────────── */
 #modify {

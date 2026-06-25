@@ -43,14 +43,17 @@
       <div class="shop-tabs" role="tablist">
         <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
         <button class="shop-tab" type="button" data-panel="neon">Neon</button>
-        <button class="shop-tab" type="button" data-panel="finish">Finish</button>
         <button class="shop-tab" type="button" data-panel="trail">Trail</button>
       </div>
 
-      <!-- Body colour (free) -->
+      <!-- Colour: body colour (free) + finish (paid) — they belong together -->
       <div class="cust-panel" data-panel="colour">
         <div id="body-palette" class="swatch-grid"></div>
         <div id="body-name" class="swatch-name"></div>
+        <div class="finish-sub">
+          <div class="cust-sublabel">Finish</div>
+          <div id="shop-finish" class="shop-grid"></div>
+        </div>
       </div>
 
       <!-- Neon underglow (free) -->
@@ -58,11 +61,6 @@
         <button id="neon-btn" type="button">✦ Neon</button>
         <div id="neon-palette" class="swatch-grid"></div>
         <div id="neon-name" class="swatch-name"></div>
-      </div>
-
-      <!-- Paint finish (paid) -->
-      <div class="cust-panel" data-panel="finish" hidden>
-        <div id="shop-finish" class="shop-grid"></div>
       </div>
 
       <!-- Trail colour (paid) -->
