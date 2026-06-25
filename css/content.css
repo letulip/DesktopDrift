@@ -18,6 +18,7 @@
   align-items: center;
   gap: 12px;
   justify-content: center;
+  overflow-y: unset !important;
 }
 
 #content::-webkit-scrollbar { display: none; }
