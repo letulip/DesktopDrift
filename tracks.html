@@ -137,22 +137,23 @@
     canvas.height = 140;
     top.appendChild(canvas);
 
-    // Cap collectible badge — only shown on tracks that have caps
+    // Collectible chips (caps + tires) — placed in the card body so they read on the
+    // solid surface instead of over the busy thumbnail (and never overlap the score).
+    const meta = document.createElement('div');
+    meta.className = 'track-meta';
     if (track.caps > 0) {
       const collected = collectedCaps(track.id).length;
-      const badge = document.createElement('div');
-      badge.className = 'track-cap-badge' + (collected >= track.caps ? ' is-done' : '');
-      badge.textContent = collected + ' / ' + track.caps + ' cap' + (track.caps !== 1 ? 's' : '');
-      top.appendChild(badge);
+      const chip = document.createElement('span');
+      chip.className = 'track-chip cap' + (collected >= track.caps ? ' is-done' : '');
+      chip.textContent = collected + '/' + track.caps + ' cap' + (track.caps !== 1 ? 's' : '');
+      meta.appendChild(chip);
     }
-
-    // Tire-coin badge — only shown on tracks that have tires
     if (track.tires > 0) {
       const got = tiresFor(track.id).length;
-      const tbadge = document.createElement('div');
-      tbadge.className = 'track-tire-badge' + (got >= track.tires ? ' is-done' : '');
-      tbadge.textContent = '🛞 ' + got + ' / ' + track.tires;
-      top.appendChild(tbadge);
+      const chip = document.createElement('span');
+      chip.className = 'track-chip tire' + (got >= track.tires ? ' is-done' : '');
+      chip.textContent = '🛞 ' + got + '/' + track.tires;
+      meta.appendChild(chip);
     }
 
     const record = bestRecord(track.id);
@@ -203,6 +204,7 @@
       : '—';
 
     body.appendChild(name);
+    if (meta.children.length) body.appendChild(meta);
     body.appendChild(desc);
     body.appendChild(rec);
     link.appendChild(body);

@@ -91,43 +91,22 @@
 .track-stars .star-dim { font-size: 13px; color: rgba(255,255,255,0.28); }
 .track-stars .star-lit { font-size: 13px; color: #ffc840; text-shadow: 0 0 6px rgba(255,180,0,0.6); }
 
-/* Cap collectible badge — top-right corner of thumbnail */
-.track-cap-badge {
-  position: absolute;
-  top: 9px; right: 9px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font: 700 10px var(--font-body);
-  letter-spacing: .3px;
-  background: rgba(180, 28, 0, 0.18);
-  color: rgba(220, 80, 50, 0.65);
-  border: 1px solid rgba(180, 28, 0, 0.28);
-  pointer-events: none;
+/* Collectible chips (caps + tires) — in the card body, readable on the surface */
+.track-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-block: 1px 2px;
 }
-.track-cap-badge.is-done {
-  background: rgba(180, 28, 0, 0.38);
-  color: #ff7755;
-  border-color: rgba(200, 50, 20, 0.55);
+.track-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px;
+  font: 700 11px var(--font-body); letter-spacing: .3px;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.5);
 }
-
-/* Tire-coin badge — stacked just below the cap badge (top-right) */
-.track-tire-badge {
-  position: absolute;
-  top: 34px; right: 9px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font: 700 10px var(--font-body);
-  letter-spacing: .3px;
-  background: rgba(255, 180, 60, 0.14);
-  color: rgba(255, 200, 110, 0.7);
-  border: 1px solid rgba(255, 180, 60, 0.28);
-  pointer-events: none;
-}
-.track-tire-badge.is-done {
-  background: rgba(255, 180, 60, 0.34);
-  color: #ffce6a;
-  border-color: rgba(255, 190, 80, 0.55);
-}
+.track-chip.cap.is-done  { background: rgba(180,28,0,.20);   color: #ff7755; border-color: rgba(200,50,20,.5); }
+.track-chip.tire.is-done { background: rgba(255,180,60,.18); color: #ffce6a; border-color: rgba(255,190,80,.5); }
 
 .track-card-score { display: none; }
 
