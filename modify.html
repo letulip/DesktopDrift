@@ -117,9 +117,20 @@
   const previewCvs = document.getElementById('preview');
   previewCvs.width  = 440;
   previewCvs.height = 164;
-  const redraw = () => {
+
+  // The trail preview only shows on the Trail tab (when a colour is picked); there it
+  // animates via requestAnimationFrame, otherwise the car is drawn once and centred.
+  let activeTab = 'colour';
+  let phase = 0, rafId = null;
+  const trailNow = () => (activeTab === 'trail' ? pending.trail : null);
+  const draw = () => {
     M.body = pending.body;
-    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null, pending.finish);
+    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null, pending.finish, trailNow(), phase);
+  };
+  const loop = (ts) => { phase = ts * 0.001; draw(); rafId = requestAnimationFrame(loop); };
+  const redraw = () => {
+    if (trailNow()) { if (rafId == null) rafId = requestAnimationFrame(loop); }   // animate
+    else { if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; } draw(); }
   };
 
   // ── Body colour (free → just updates the pending look) ────────────────────────
@@ -243,13 +254,15 @@
   buildGroup('finish', 'shop-finish');
   buildGroup('trail',  'shop-trail');
 
-  // ── Tabs: show one customization panel at a time (Colour / Neon / Finish / Trail) ──
+  // ── Tabs: show one customization panel at a time (Colour / Neon / Trail) ──────
   const tabs   = [...document.querySelectorAll('.shop-tab')];
   const panels = [...document.querySelectorAll('.cust-panel')];
   for (const tab of tabs) {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.toggle('is-active', t === tab));
       panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.panel; });
+      activeTab = tab.dataset.panel;
+      redraw();   // start/stop the trail animation for this tab
     });
   }
 
