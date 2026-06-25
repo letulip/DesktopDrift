@@ -89,13 +89,17 @@ These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
       1000→920, `owned:[finish-matte,trail-crimson]`, `garage.finish/trailColor` set, back to
       select. `node --check` clean, 145 tests green. (Render of the look = B4.)
 
-- [ ] **B4. Apply cosmetics in render.** **[opus]** (feel/visual — careful)
-      Paint the equipped **finish** in `drawCar` (game) and `drawPreview` (garage) — a small
-      shading/gloss tweak per finish (matte = flat, metallic/chrome = highlight gradient,
-      pearl = tinted sheen), driven by `garage.finish`. Paint the equipped **trail colour** in
-      the skid/trail render, driven by `garage.trailColor` (falls back to the theme skid colour
-      when null). Keep it subtle; no perf regressions. Visual smoke on ≥1 track + the garage
-      preview.
+- [x] **B4. Apply cosmetics in render.** **[opus]** DONE (finish verified in browser preview;
+      in-game trail colour handed to user — preview cache).
+      New **`js/finish.js`**: `paintBody(ctx, path, base, finish, vw, vh)` fills the body then
+      clips + overlays a subtle sheen per finish — matte = faint flat darken, metallic/chrome =
+      cylindrical highlight (chrome brighter), pearl = white→tinted lengthwise sheen; plus pure
+      `hexToRgbStr()` (unit-tested) + `FINISHES`. `render.js` `drawCar` paints via `paintBody`;
+      `setCarPaint(body, neon, finish, trail)` now also stores the finish and parses the trail
+      hex → `drawSkids` uses the trail colour (falls back to the theme skid when null).
+      `car-preview.js` `drawCarPreview(cvs, M, neon, finish)` mirrors it; `select.html` cards +
+      `modify.html` preview pass the finish (live). `game-engine` passes `g.finish/g.trailColor`.
+      `tests/finish.test.js` (hex parse + FINISHES). 148 tests green, node --check clean. SW v90→v91.
 
 - [ ] **B5. Docs + SW + PR.** **[sonnet-high]**
       `sw.js`: bump cache + add `js/shop-catalog.js` to `ASSETS`. AGENTS.md: document the shop

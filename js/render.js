@@ -1,6 +1,7 @@
 import { CARS, TABLE } from './config.js';
 import { car, S } from './state.js';
 import { wallet } from './store.js';
+import { paintBody, hexToRgbStr } from './finish.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -75,7 +76,14 @@ let _TABLE = null;
 // read by draw() — never written back to the CARS descriptor.
 let _carBody = null;
 let _carNeon = null;
-export const setCarPaint = (body, neon) => { _carBody = body ?? null; _carNeon = neon ?? null; };
+let _carFinish = null;          // equipped paint finish (matte/metallic/pearl/chrome) or null
+let _trailRgb  = null;          // "r,g,b" for skid marks, from the equipped trail colour, or null
+export const setCarPaint = (body, neon, finish, trail) => {
+  _carBody   = body ?? null;
+  _carNeon   = neon ?? null;
+  _carFinish = finish ?? null;
+  _trailRgb  = hexToRgbStr(trail);   // null when no trail equipped → falls back to theme skid
+};
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
@@ -168,8 +176,9 @@ const drawSkids = () => {
     if (b > SKID_LEVELS - 1) b = SKID_LEVELS - 1;
     paths[b].rect(sk.x - 3, sk.y - 3, 6, 6);
   }
+  const skidRgb = _trailRgb || _skidRgb;   // equipped trail colour overrides the theme skid
   for (let i = 0; i < SKID_LEVELS; i++) {
-    ctx.fillStyle = `rgba(${_skidRgb},${(i + 0.5) * 0.1})`;
+    ctx.fillStyle = `rgba(${skidRgb},${(i + 0.5) * 0.1})`;
     ctx.fill(paths[i]);
   }
 };
@@ -200,7 +209,7 @@ const drawCar = (M) => {
     ctx.save();
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    ctx.fillStyle = _carBody ?? M.body; ctx.fill(M._p2d);
+    paintBody(ctx, M._p2d, _carBody ?? M.body, _carFinish, M.vw, M.vh);
     if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
     ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = M.stroke;
     ctx.stroke(M._p2d);

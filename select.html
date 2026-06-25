@@ -74,6 +74,7 @@
   let sel = g.carIndex;
   if (g.bodyColor) CARS.forEach(M => { M.body = g.bodyColor; });
   const neonColor = g.neonColor || null;
+  const finish    = g.finish || null;
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
   // Scale is intentionally above current values — headroom for future upgrades.
@@ -168,7 +169,7 @@
   });
 
   // ── Initial render — each car shows the saved look; selected one shows neon ────
-  CARS.forEach((M, i) => drawCarPreview(cards[i].cvs, M, i === sel ? neonColor : null));
+  CARS.forEach((M, i) => drawCarPreview(cards[i].cvs, M, i === sel ? neonColor : null, finish));
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

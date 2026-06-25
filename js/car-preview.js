@@ -2,13 +2,15 @@
 // modify screen (modify.html). Pure drawing: it only touches the canvas it is given.
 // Internal coordinates use the canvas's own width/height, so callers control the
 // resolution (small cards vs a large modify preview) via the canvas size.
-// NOTE: B4 (shop) extends this to paint the equipped finish.
+// Paints the equipped finish via the shared paintBody helper.
+import { paintBody } from './finish.js';
 
 export const CANVAS_W = 220;   // default card resolution
 export const CANVAS_H = 82;
 
-// Draw car model M onto canvas `cvs`, optionally with a neon underglow colour.
-export const drawCarPreview = (cvs, M, neonColor = null) => {
+// Draw car model M onto canvas `cvs`, optionally with a neon underglow colour and
+// a paint finish (matte/metallic/pearl/chrome or null for the plain look).
+export const drawCarPreview = (cvs, M, neonColor = null, finish = null) => {
   const W = cvs.width, H = cvs.height;
   const ctx = cvs.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -43,8 +45,7 @@ export const drawCarPreview = (cvs, M, neonColor = null) => {
     ctx.shadowBlur  = 0;
     ctx.shadowColor = 'transparent';
   }
-  ctx.fillStyle = M.body;
-  ctx.fill(M._p2d);
+  paintBody(ctx, M._p2d, M.body, finish, M.vw, M.vh);
   if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
   ctx.lineJoin   = 'round';
   ctx.lineWidth  = 5;

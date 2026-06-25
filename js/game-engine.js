@@ -239,7 +239,7 @@ export const startGame = (T, opts = {}) => {
   // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  setCarPaint(g.bodyColor ?? null, g.neonColor ?? null);
+  setCarPaint(g.bodyColor ?? null, g.neonColor ?? null, g.finish ?? null, g.trailColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).

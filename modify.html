@@ -109,8 +109,8 @@
   previewCvs.width  = 440;
   previewCvs.height = 164;
   const redraw = () => {
-    M.body = pending.body;   // B4 will also paint pending.finish here
-    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null);
+    M.body = pending.body;
+    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null, pending.finish);
   };
 
   // ── Body colour (free → just updates the pending look) ────────────────────────
