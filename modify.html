@@ -24,14 +24,15 @@
 <body>
 <div id="modify">
 
-  <div id="wallet-hud" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
-
   <header id="ts-header">
     <h1 id="car-name"></h1>
     <p id="ts-sub">Customize &amp; buy</p>
   </header>
 
   <div id="content" class="content--column">
+
+    <!-- Tire-coin balance — between the header and the car -->
+    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
 
     <div class="preview-stage">
       <canvas id="preview"></canvas>
@@ -53,23 +54,24 @@
       </div>
     </div>
 
-    <!-- Paint finish (paid) -->
-    <div class="shop-group">
-      <div class="shop-group-label">Finish</div>
-      <div id="shop-finish" class="shop-grid"></div>
-    </div>
-
-    <!-- Trail colour (paid) -->
-    <div class="shop-group">
-      <div class="shop-group-label">Trail</div>
-      <div id="shop-trail" class="shop-grid"></div>
+    <!-- Paid cosmetics — tabbed (one category shown at a time) -->
+    <div id="shop">
+      <div class="shop-tabs" role="tablist">
+        <button class="shop-tab is-active" type="button" data-kind="finish">Finish</button>
+        <button class="shop-tab" type="button" data-kind="trail">Trail</button>
+      </div>
+      <div id="shop-finish" class="shop-grid" data-panel="finish"></div>
+      <div id="shop-trail" class="shop-grid" data-panel="trail" hidden></div>
     </div>
 
   </div>
 
   <footer id="modify-bar">
-    <a id="backLink" class="ts-back" href="select.html">← Cancel</a>
-    <button id="applyBtn" type="button">Apply</button>
+    <div id="buy-warning" class="buy-warning" hidden></div>
+    <div class="modify-bar-row">
+      <a id="backLink" class="ts-back" href="select.html">← Cancel</a>
+      <button id="applyBtn" type="button">Apply</button>
+    </div>
   </footer>
 </div>
 
@@ -173,6 +175,7 @@
   const FIELD = { finish: 'finish', trail: 'trail' };   // catalog kind → pending field
   const shopCards = [];
   const applyBtn  = document.getElementById('applyBtn');
+  const warnEl    = document.getElementById('buy-warning');
 
   const buildGroup = (kind, contId) => {
     const cont = document.getElementById(contId);
@@ -204,8 +207,17 @@
   };
 
   // Recompute card states + the cart (unowned selected items) and update the bar.
+  // The button keeps its normal label; affordability is communicated by a warning
+  // line above the bar (never by disabling/relabelling the button).
+  const cartTotal = () => {
+    let total = 0; let count = 0;
+    for (const { item } of shopCards) {
+      if (pending[FIELD[item.kind]] === item.value && !isOwned(item.id)) { total += item.price; count++; }
+    }
+    return { total, count };
+  };
+
   const refresh = () => {
-    let total = 0; const cart = [];
     for (const { el, tag, item } of shopCards) {
       const selected = pending[FIELD[item.kind]] === item.value;
       const own      = isOwned(item.id);
@@ -213,25 +225,30 @@
       el.classList.toggle('sel', selected);
       el.classList.toggle('owned', own);
       el.classList.toggle('in-cart', inCart);
-      if (inCart) { total += item.price; cart.push(item); }
       tag.textContent = own
         ? (selected ? '✓' : '')
         : (selected ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
+    const { total, count } = cartTotal();
     const have = wallet();
-    if (cart.length) {
-      const afford = have >= total;
-      applyBtn.disabled = !afford;
-      applyBtn.textContent = afford ? `Buy & Apply 🛞${total}` : `Need 🛞${total} · have ${have}`;
-    } else {
-      applyBtn.disabled = false;
-      applyBtn.textContent = 'Apply';
-    }
-    return { cart };
+    applyBtn.textContent = count ? `Buy & Apply 🛞${total}` : 'Apply';
+    const short = count && have < total;
+    warnEl.hidden = !short;
+    if (short) warnEl.textContent = `Not enough tires — need 🛞${total}, you have 🛞${have}`;
   };
 
   buildGroup('finish', 'shop-finish');
   buildGroup('trail',  'shop-trail');
+
+  // ── Tabs: show one paid category at a time (also keeps mobile compact) ─────────
+  const tabs   = [...document.querySelectorAll('.shop-tab')];
+  const panels = [...document.querySelectorAll('#shop .shop-grid')];
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.toggle('is-active', t === tab));
+      panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.kind; });
+    });
+  }
 
   // ── Apply / Buy: purchase carted items, equip the whole look, persist ─────────
   applyBtn.addEventListener('click', () => {
@@ -240,6 +257,8 @@
     const tItem = itemFor('trail',  pending.trail);
     if (fItem && !isOwned(fItem.id)) cart.push(fItem);
     if (tItem && !isOwned(tItem.id)) cart.push(tItem);
+    const total = cart.reduce((s, it) => s + it.price, 0);
+    if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
     for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
 
     const gg = garage();
