@@ -24,7 +24,8 @@
 <body>
 <div id="garage">
 
-  
+  <div id="wallet-hud" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+
   <header id="ts-header">
     <h1 id="mode-title"></h1>
     <p id="ts-sub">Choose your car</p>
@@ -50,6 +51,19 @@
       </div>
     </div>
 
+    <!-- Shop: cosmetics (finishes + trail colours) -->
+    <div id="shop-section">
+      <div class="palette-label">Shop</div>
+      <div class="shop-group">
+        <div class="shop-group-label">Finish</div>
+        <div id="shop-finish" class="shop-grid"></div>
+      </div>
+      <div class="shop-group">
+        <div class="shop-group-label">Trail</div>
+        <div id="shop-trail" class="shop-grid"></div>
+      </div>
+    </div>
+
     <button id="raceBtn">Race! 🏁</button>
   </div>
 
@@ -62,7 +76,8 @@
 <script type="module">
   import { CARS, GU_TO_KMH } from './js/config.js';
   import { PALETTE, NEON_PALETTE } from './js/palette.js';
-  import { garage, save } from './js/store.js';
+  import { garage, save, wallet, isOwned, purchase, equip } from './js/store.js';
+  import { byKind } from './js/shop-catalog.js';
   import { TRACKS } from './js/track-registry.js';
 
   const params    = new URLSearchParams(location.search);
@@ -288,6 +303,77 @@
   // Init neon UI state
   neonName.textContent = NEON_PALETTE[selNeon].name;
   updateNeonBtn();
+
+  // ── Shop: cosmetics (finishes + trail colours) ───────────────────────────────
+  // Buying spends tires (store.purchase → economy.buy); equipping writes the garage
+  // slot. The equipped look is painted by drawCar/drawPreview in B4 — here we only
+  // wire purchase/equip + the owned/equipped/locked UI states.
+  const SLOT = { finish: 'finish', trail: 'trailColor' };  // catalog kind → garage slot
+
+  const walletAmountEl = document.getElementById('wallet-amount');
+  const renderWallet   = () => { walletAmountEl.textContent = wallet(); };
+
+  const shopCards = [];  // { el, tag, item, slot }
+
+  const buildShopGroup = (kind, containerId) => {
+    const cont = document.getElementById(containerId);
+    for (const item of byKind(kind)) {
+      const el = document.createElement('button');
+      el.className = 'shop-card';
+      el.type = 'button';
+      if (kind === 'trail') {
+        const dot = document.createElement('span');
+        dot.className = 'shop-dot';
+        dot.style.background = item.value;
+        el.appendChild(dot);
+      }
+      const nm = document.createElement('span');
+      nm.className = 'shop-card-name';
+      nm.textContent = item.name;
+      el.appendChild(nm);
+      const tag = document.createElement('span');
+      tag.className = 'shop-card-tag';
+      el.appendChild(tag);
+      el.addEventListener('click', () => onShopClick(item));
+      cont.appendChild(el);
+      shopCards.push({ el, tag, item, slot: SLOT[kind] });
+    }
+  };
+
+  const refreshShop = () => {
+    const g = garage();
+    for (const { el, tag, item, slot } of shopCards) {
+      const own       = isOwned(item.id);
+      const equipped  = g[slot] === item.value;
+      const affordable = wallet() >= item.price;
+      el.classList.toggle('owned', own);
+      el.classList.toggle('equipped', equipped);
+      el.classList.toggle('locked', !own && !affordable);
+      el.disabled = !own && !affordable;
+      tag.textContent = own
+        ? (equipped ? '✓' : '')
+        : (affordable ? `🛞${item.price}` : `🔒${item.price}`);
+    }
+  };
+
+  const onShopClick = (item) => {
+    const slot = SLOT[item.kind];
+    if (isOwned(item.id)) {
+      // Toggle: clicking the equipped item again clears the slot (back to default).
+      equip(slot, garage()[slot] === item.value ? null : item.value);
+    } else {
+      if (!purchase(item).ok) return;   // broke / already owned → no change
+      equip(slot, item.value);          // auto-equip on purchase
+    }
+    renderWallet();
+    refreshShop();
+    redrawSelected();                   // B4 will repaint finish/trail here
+  };
+
+  buildShopGroup('finish', 'shop-finish');
+  buildShopGroup('trail',  'shop-trail');
+  renderWallet();
+  refreshShop();
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {

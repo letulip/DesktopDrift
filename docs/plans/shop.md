@@ -69,14 +69,16 @@ These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
       Pure data + a tiny `byKind(kind)` helper; unit-test the helper + invariants (unique ids,
       positive prices). No UI, no render.
 
-- [ ] **B3. Shop UI in the garage.** **[opus]**
-      In `select.html`: add a "Shop" section under the palette. Render `CATALOG` grouped by
-      `kind` as cards showing name + price; mark owned items, gate unowned with a lock + price.
-      Show the live `wallet()` total in the garage header. Click flow: unowned → `buy()`
-      (disabled/greyed when `!canAfford`); owned → `equip(slot, value)` and refresh the
-      preview. Selected/equipped state reflects `garage.finish` / `garage.trailColor`.
-      Update the preview immediately on equip (reuse `drawPreview`). Browser smoke: buy
-      deducts wallet + persists, re-open garage shows owned, equip changes preview.
+- [x] **B3. Shop UI in the garage.** **[opus]** DONE (code; live visual smoke handed to user
+      — preview browser stuck on cached HTML).
+      `select.html`: a "Shop" section under the neon palette with two groups (Finish, Trail) of
+      `.shop-card`s built from `byKind()`, plus a fixed wallet HUD (`#wallet-hud` → 🛞 N) wired
+      to `wallet()`. States per card: owned/equipped/locked (`disabled` + greyed when unowned &
+      `!affordable`); tag shows ✓ / `🛞price` / `🔒price`. Click flow: unowned → `purchase()`
+      (no-op on broke) then auto-`equip`; owned → toggle `equip(slot, value|null)`. Slots map
+      `finish→garage.finish`, `trail→garage.trailColor`; `redrawSelected()` called on change
+      (B4 will actually repaint finish/trail there). CSS in `css/select.css`. SW v88→v89.
+      `node --check` clean, 145 tests green; server confirmed to serve the new markup+wiring.
 
 - [ ] **B4. Apply cosmetics in render.** **[opus]** (feel/visual — careful)
       Paint the equipped **finish** in `drawCar` (game) and `drawPreview` (garage) — a small
