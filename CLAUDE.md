@@ -72,8 +72,15 @@ Run `npm run build` locally only to test the production bundle or debug CI.
 ## Branch policy
 
 - `main` → production (GitHub Pages). Pushing to `main` = live deploy.
-- New feature / fix → new branch (`feat/…`, `fix/…`), then PR.
-- **New branch for every new request with new logic** (don't keep accumulating unrelated changes on the same branch).
+- **ONE working branch per body of work — work inside it.** A multi-step feature
+  (e.g. the whole tire economy / shop) lives on a single branch through all its
+  steps. Do NOT spin up extra branches: no per-step branches, no stacked/sub-branches
+  off another feature branch. Keep committing to the one branch until that work ships.
+- **Don't proliferate branches.** If you are not sure whether a new branch is
+  warranted, **ASK the user first** — never create one on a guess. (Branching a
+  sub-branch off `docs/plan-economy` was a mistake; don't repeat it.)
+- Genuinely unrelated new work → its own branch (`feat/ fix/ chore/ refactor/ perf/`),
+  but confirm with the user if the boundary is ambiguous.
 
 ## Development rules (summary — full text in rules.md)
 
