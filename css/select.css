@@ -24,6 +24,7 @@
 
 /* ── Car cards ──────────────────────────────────────────────────────────── */
 .car-card {
+  position: relative;          /* anchor the modify (gear) button */
   max-width: 170px;
   box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -31,6 +32,18 @@
   background: var(--surface); border: 2px solid var(--surface-line);
   cursor: pointer; transition: border-color var(--ease), background var(--ease);
 }
+
+/* Modify (gear) button — top-right of each car card */
+.car-modify {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.38); color: rgba(255,255,255,.72);
+  font-size: 15px; line-height: 1; text-decoration: none;
+  border: 1px solid rgba(255,255,255,.14);
+  transition: background var(--ease), color var(--ease), transform var(--ease);
+}
+.car-modify:hover { background: var(--accent-tint); color: var(--accent); transform: rotate(45deg); }
 .car-card:hover { border-color: var(--accent); }
 .car-card.sel { border-color: var(--accent); background: var(--accent-tint); }
 .car-card canvas {
@@ -154,7 +167,10 @@
   letter-spacing: .5px; text-transform: uppercase;
   color: rgba(255,255,255,.3);
 }
-.shop-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.shop-grid {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  max-width: min(360px, calc(100vw - 32px));   /* wrap + stay centered */
+}
 .shop-card {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 10px; border-radius: 10px;
@@ -163,11 +179,11 @@
   transition: border-color var(--ease), background var(--ease), opacity var(--ease);
 }
 .shop-card:hover { border-color: var(--accent); }
-.shop-card.equipped {
+/* selected = part of the previewed look; in-cart = selected but not yet owned (will buy) */
+.shop-card.sel {
   border-color: var(--accent); background: var(--accent-tint); color: var(--accent);
 }
-.shop-card.locked { opacity: .4; cursor: not-allowed; }
-.shop-card.locked:hover { border-color: var(--surface-line); }
+.shop-card.in-cart { border-color: var(--accent-glow); box-shadow: 0 0 10px rgba(255,177,77,.2); }
 .shop-dot {
   width: 12px; height: 12px; border-radius: 50%;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
@@ -178,6 +194,50 @@
   font-variant-numeric: tabular-nums;
 }
 .shop-card.owned .shop-card-tag { color: var(--accent); }
+
+/* ── Modify screen (modify.html) ────────────────────────────────────────── */
+#modify {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--bg-screen);
+  font: 14px/1.4 var(--font-body); color: var(--ink);
+  gap: 12px;
+}
+#modify #content {
+  overflow-y: auto;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 96px;       /* room for the fixed apply bar */
+}
+#car-name {
+  margin: 0; font: 800 clamp(20px, 6vw, 34px) var(--font-display);
+  letter-spacing: .5px; line-height: 1.3;
+  background: var(--accent-text);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#preview {
+  width: min(320px, 84vw); aspect-ratio: 440 / 164;
+  background: var(--bg-deep); border-radius: var(--r-card);
+}
+
+/* bottom apply / buy bar */
+#modify-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  width: 100%; box-sizing: border-box;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg-screen) 72%, transparent);
+}
+#applyBtn {
+  flex: 1; max-width: 300px;
+  padding: 13px 24px; border-radius: 14px; cursor: pointer;
+  background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
+  color: var(--accent); font: 800 15px var(--font-display); letter-spacing: .3px;
+  transition: background var(--ease), border-color var(--ease), opacity var(--ease);
+}
+#applyBtn:hover:not(:disabled) { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+#applyBtn:disabled { opacity: .4; cursor: not-allowed; }
+#modify-bar .ts-back { flex-shrink: 0; }
 
 /* ── Buttons & nav ──────────────────────────────────────────────────────── */
 #raceBtn {

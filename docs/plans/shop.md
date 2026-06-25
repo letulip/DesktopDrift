@@ -15,10 +15,11 @@ English only. One commit per step; tick the box in the same commit.
 
 These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
 
-1. **Location — garage tab, no new page.** The shop lives inside `select.html` (which *is*
-   the garage). Add a purchasable catalog below the existing palette; gate locked cosmetics in
-   place. No `shop.html`. Rationale: car + look + buy is one mental task; reuses the existing
-   preview canvas and palette wiring.
+1. **Location — dedicated per-car modify page (`modify.html`).** *(Revised after B3 — was
+   "garage tab". The instant-buy in-garage shop was confusing UX.)* A ⚙ gear on each car card
+   in `select.html` opens `modify.html?car=N`, a full-screen customization screen with a large
+   preview. `select.html` is now just a car picker (cars + gear + Race). **All** customization —
+   body colour, neon, finishes, trail — lives on the modify page.
 2. **v1 cosmetic kinds — paint **finish** + **trail colour** only.** These two reuse the
    existing colour-swatch + `drawCar` pipeline with the smallest render change.
    **Liveries and wheel styles are deferred** to a later additive step (B6+, more art/render
@@ -69,16 +70,24 @@ These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
       Pure data + a tiny `byKind(kind)` helper; unit-test the helper + invariants (unique ids,
       positive prices). No UI, no render.
 
-- [x] **B3. Shop UI in the garage.** **[opus]** DONE (code; live visual smoke handed to user
-      — preview browser stuck on cached HTML).
-      `select.html`: a "Shop" section under the neon palette with two groups (Finish, Trail) of
-      `.shop-card`s built from `byKind()`, plus a fixed wallet HUD (`#wallet-hud` → 🛞 N) wired
-      to `wallet()`. States per card: owned/equipped/locked (`disabled` + greyed when unowned &
-      `!affordable`); tag shows ✓ / `🛞price` / `🔒price`. Click flow: unowned → `purchase()`
-      (no-op on broke) then auto-`equip`; owned → toggle `equip(slot, value|null)`. Slots map
-      `finish→garage.finish`, `trail→garage.trailColor`; `redrawSelected()` called on change
-      (B4 will actually repaint finish/trail there). CSS in `css/select.css`. SW v88→v89.
-      `node --check` clean, 145 tests green; server confirmed to serve the new markup+wiring.
+- [x] **B3. Shop UI — per-car modify page.** **[opus]** DONE (logic verified in browser; live
+      visual smoke handed to user — preview cached an old `select.css`).
+      *Redesigned from the first instant-buy in-garage attempt → a dedicated `modify.html`.*
+      - Extracted the car preview into **`js/car-preview.js`** (`drawCarPreview` reads the
+        canvas size; used by both screens — DRY, and the single place B4 will paint the finish).
+      - **`select.html`** slimmed to a car picker: each card gets a ⚙ `.car-modify` link →
+        `modify.html?car=i` (carrying track/mode params); body/neon/shop sections removed; keeps
+        the wallet HUD + Race. Selecting a card persists `carIndex`.
+      - **`modify.html`** (new): large preview + body colour + neon (free, instant pending) +
+        Finish/Trail groups (paid). Tapping toggles an item into an in-memory **pending look**;
+        unowned selected items form a **cart** (✓ + `🛒🛞price`). Bottom bar: `Apply` when the
+        cart is empty, else `Buy & Apply 🛞total` (disabled + `Need 🛞N · have M` when broke).
+        Apply purchases the cart (`store.purchase` per item), writes the whole look to the
+        garage slots, saves, returns to the garage. Cancel discards (nothing committed until Apply).
+      - CSS in `css/select.css`; `modify.html` + `js/car-preview.js` added to SW ASSETS; SW v89→v90.
+      Verified: gear → modify; cart sums Matte+Crimson → `Buy & Apply 🛞80`; Apply → wallet
+      1000→920, `owned:[finish-matte,trail-crimson]`, `garage.finish/trailColor` set, back to
+      select. `node --check` clean, 145 tests green. (Render of the look = B4.)
 
 - [ ] **B4. Apply cosmetics in render.** **[opus]** (feel/visual — careful)
       Paint the equipped **finish** in `drawCar` (game) and `drawPreview` (garage) — a small
