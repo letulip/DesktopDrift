@@ -62,7 +62,7 @@ These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
       success/dup/broke) + `store-load.test.js` (owned + garage slots merge-fill on old saves).
       136 tests green, node --check clean. SW v86→v87. **No render yet.**
 
-- [ ] **B2. Cosmetics catalog (data).** **[sonnet-high]**
+- [x] **B2. Cosmetics catalog (data).** **[sonnet-high]**
       New `js/shop-catalog.js`: `export const CATALOG = [...]` of
       `{ id, name, price, kind:'finish'|'trail', value }` where `value` is the render param
       (finish name e.g. `'matte'`, or a trail hex). Seed the v1 set from the Decisions pricing.
