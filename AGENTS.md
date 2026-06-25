@@ -82,10 +82,21 @@ stays readable. No framework, no bundler.
     SVGs live in `items/`.
   - `js/collectibles.js` — collectible catalog (SVGs in `objects/`). Exports
     `COLA_CAP` (`{ kind:'cola', r, imgSrc, imgFull }`) — the drift-collected cola cap
-    (see **Cola-cap collectibles** below) — plus the legacy `ITEM_TIRE_COIN` stub.
+    (see **Cola-cap collectibles** below) — and `TIRE` (`{ kind:'tire', r:20, value:5,
+    imgSrc:'objects/tire.svg' }`) — proximity pickup that feeds the wallet.
   - `js/cola.js` — **pure cola-cap math** (no imports, no state): `angDelta(a,b)`
     (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
     angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
+  - `js/economy.js` — **pure tire-coin formulas** (no imports, no state): `starsForPps(pps)`
+    (1 star / 100 PPS, cap 5) and `finishPayout(pps)` = `2 + 2*stars` tires. The soft-
+    currency maths for the Phase 2.5 economy; persistence lives in `store.js`. Unit-tested
+    in `tests/economy.test.js`.
+  - `js/tire-seed.js` — **pure tire placement** (no imports, no state): `seedTires(center,
+    inner, outer, n)` scatters `n` tire pickups by even arc-length — on the racing line on
+    straights, pushed toward the inner (concave) edge on corners ∝ sharpness. Deterministic
+    (positions = the persistent `capId`). Called by `track-factory.makeTrack({ tires })`;
+    the count is also declared on the registry entry (`tires`) as the badge denominator.
+    Unit-tested in `tests/tire-seed.test.js`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as the Time Attack track modules. Does NOT import `items.js`
     (no props). Used by `sandbox.html`.
@@ -139,6 +150,10 @@ stays readable. No framework, no bundler.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+    **Collectible rendering:** `drawCaps()` handles `kind:'cola'`; `drawTires()`
+    handles `kind:'tire'` (1:3 aspect, slow spin, amber glow, pop burst on pickup).
+    Both called from `draw()`. **Wallet HUD:** `#wallet` span updated each frame
+    via `wallet()` from `store.js` with a prev-value guard.
     **Theme (dependency injection):** world colours live in `THEME_DEFAULT`
     (background/table/tableEdge/track/cone/skid); `initRender` merges `T.theme`
     over it (same pattern as `T.TABLE`). Tracks ship their palette; no per-track
@@ -177,7 +192,9 @@ stays readable. No framework, no bundler.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
-    `save()` / `collectedCaps()` / `capCollect()`. Key `'desktop-drift'`, `VERSION = 1`.
+    `save()` / `collectedCaps()` / `capCollect()` and the economy:
+    `wallet()` / `addTires(n)` / `tiresFor(id)` / `tireCollect(id, tireId)`
+    (`wallet` int + `stats.tires` mirror the caps model). Key `'desktop-drift'`, `VERSION = 1`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
     `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
     is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
@@ -300,7 +317,7 @@ stays readable. No framework, no bundler.
     over touch when non-zero. Called once per `frame()`. Unit-tested in `tests/input.test.js`.
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `collision.js` / `input.js` /
-    `track-registry.js` (no imports) →
+    `economy.js` / `cola.js` / `track-registry.js` (no imports) →
     `physics.js` → `config.js` → `items.js` → `track*.js` →
     (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
@@ -398,6 +415,9 @@ axis maps to the capsule long axis.
   `nearestCenter` (track distance) → scoring helpers → finish/checkpoint logic → `draw`.
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
   Banked on clean drift end; burned on crash/off-track. Cone hit = flat −100.
+- **Tire economy:** `updateCaps` dispatches by `kind`. `kind:'tire'` → proximity
+  pickup (`dist < r + TIRE_CR`): `tireCollect`, `addTires(value)`, flash. On race
+  finish: `addTires(finishPayout(pps))` adds 2–12 coins scaled by star rating.
 - **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
   score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
   Car/colour controls are **not** in the game HUD — selection lives entirely on

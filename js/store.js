@@ -1,6 +1,9 @@
 // Single source of persistence — the only module that touches localStorage directly.
 // All reads/writes go through the getters here + save().
 //
+// Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
+import { buy } from './economy.js';
+//
 // ── Schema evolution (never wipes player data) ────────────────────────────────
 // On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
 // from defaults, saved values win, arrays are replaced wholesale. So the common case —
@@ -22,10 +25,13 @@ const VERSION = 1;
 const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh', haptics: true },
-  garage:       { carIndex: 0, bodyColor: null, neonColor: null },
+  // garage holds the equipped look: free body/neon colours + shop cosmetics (finish, trail).
+  garage:       { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null },
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
-  stats:        { caps: {} }, // { caps: { [trackId]: number[] } } — collected cap indices
+  wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
+  owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
+  stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
 });
 
 // Breaking-change migrations, keyed by the target version. Empty while VERSION === 1.
@@ -101,4 +107,66 @@ export const capCollect = (trackId, idx) => {
   if (!st.caps) st.caps = {};
   const arr = st.caps[trackId] ?? (st.caps[trackId] = []);
   if (!arr.includes(idx)) { arr.push(idx); save(); }
+};
+
+// ── Tire-coin economy (see ROADMAP Phase 2.5) ─────────────────────────────────
+// wallet = soft-currency balance; tires are one-time pickups persisted per track by id
+// (same model as caps). Pure payout/price formulas live in js/economy.js.
+
+// Current tire-coin balance.
+export const wallet = () => { _ensure(); return _s.wallet; };
+
+// Add (or remove, if n<0) tire coins; clamped at 0. Persists. Returns the new balance.
+export const addTires = (n) => {
+  _ensure();
+  _s.wallet = Math.max(0, _s.wallet + n);
+  save();
+  return _s.wallet;
+};
+
+// Ids of tires already collected on a track (empty if none yet).
+export const tiresFor = (trackId) => {
+  const st = stats();
+  if (!st.tires) st.tires = {};
+  return st.tires[trackId] ?? [];
+};
+
+// Mark a tire id as permanently collected for a track. No-op if already recorded.
+export const tireCollect = (trackId, id) => {
+  const st = stats();
+  if (!st.tires) st.tires = {};
+  const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
+  if (!arr.includes(id)) { arr.push(id); save(); }
+};
+
+// ── Shop: owned cosmetics + equip (see docs/plans/shop.md) ────────────────────
+// Purchase decisions are pure (js/economy.js → buy); this module applies the result.
+
+// Ids of all purchased shop items.
+export const owned = () => { _ensure(); return _s.owned; };
+
+// True if the player already owns this item id.
+export const isOwned = (id) => owned().includes(id);
+
+// Record an item as owned. No-op if already present. Persists.
+export const grant = (id) => {
+  if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
+};
+
+// Set the equipped cosmetic for a garage slot ('finish' | 'trailColor'); pass null
+// to clear it. Persists. Free body/neon colours use their own garage fields.
+export const equip = (slot, value) => {
+  _ensure();
+  _s.garage[slot] = value;
+  save();
+};
+
+// Apply a purchase: pure buy() against the current wallet+owned snapshot, then
+// commit atomically (deduct tires + grant the item) only on success. Returns the
+// buy() result ({ ok, ... } | { ok:false, reason }).
+export const purchase = (item) => {
+  _ensure();
+  const result = buy({ wallet: _s.wallet, owned: _s.owned }, item);
+  if (result.ok) { addTires(-item.price); grant(item.id); }
+  return result;
 };

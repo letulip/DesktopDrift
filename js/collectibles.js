@@ -4,6 +4,17 @@
 // Tyre coin (slightly enlarged for gameplay, capsule collider)
 export const ITEM_TIRE_COIN = { hl: 15, r: 12, kind: 'board', c: '#555555', imgSrc: 'objects/tire.svg' };
 
+// --- Tire collectible ---
+// Collected by proximity (drive over); feeds the wallet (soft currency).
+// Not a physics prop — lives only in track.collectibles[].
+// Position is read from the ITEM_TIRE proxy line in each track SVG.
+export const TIRE = {
+  kind:    'tire',
+  r:       20,
+  value:   5,          // tire coins per pickup — tune per feel
+  imgSrc:  'objects/tire.svg',
+};
+
 // --- Cola cap collectible ---
 // Collected by drifting a full circle ("donut") around it.
 // Not a physics prop — no collider; lives only in track.collectibles[].

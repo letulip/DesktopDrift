@@ -1,5 +1,7 @@
 import { CARS, TABLE } from './config.js';
 import { car, S } from './state.js';
+import { wallet } from './store.js';
+import { paintBody, hexToRgbStr } from './finish.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -18,6 +20,7 @@ const _hudSpd       = document.getElementById('spd');
 const _hudCombo     = document.getElementById('combo');
 const _hudFlash     = document.getElementById('flash');
 const _hudCount     = document.getElementById('count');
+const _hudWallet    = document.getElementById('wallet');
 
 // Previous values for rarely-changing fields — only write DOM when the value changes.
 // lapTime and speed are skipped (they change every frame; a prev-check would add overhead
@@ -27,6 +30,7 @@ let _prevLastLap   = undefined;
 let _prevBestLap   = undefined;
 let _prevScore     = -1;
 let _prevLapScoresLen = -1;
+let _prevWallet    = -1;
 
 export let W, H, DPR;
 export const resize = () => {
@@ -72,7 +76,14 @@ let _TABLE = null;
 // read by draw() — never written back to the CARS descriptor.
 let _carBody = null;
 let _carNeon = null;
-export const setCarPaint = (body, neon) => { _carBody = body ?? null; _carNeon = neon ?? null; };
+let _carFinish = null;          // equipped paint finish (matte/metallic/pearl/chrome) or null
+let _trailRgb  = null;          // "r,g,b" for skid marks, from the equipped trail colour, or null
+export const setCarPaint = (body, neon, finish, trail) => {
+  _carBody   = body ?? null;
+  _carNeon   = neon ?? null;
+  _carFinish = finish ?? null;
+  _trailRgb  = hexToRgbStr(trail);   // null when no trail equipped → falls back to theme skid
+};
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
@@ -113,7 +124,7 @@ export const initRender = (T) => {
   _TABLE = T.TABLE ?? TABLE;
   // Reset HUD prev-value guards so the first draw() after init always writes all fields.
   _prevLapNum = -1; _prevLastLap = undefined; _prevBestLap = undefined;
-  _prevScore = -1; _prevLapScoresLen = -1;
+  _prevScore = -1; _prevLapScoresLen = -1; _prevWallet = -1;
   // Colour theme: T.theme overrides the default (dependency injection, same pattern as TABLE)
   TH = T.theme ? { ...THEME_DEFAULT, ...T.theme } : THEME_DEFAULT;
   const _sm = TH.skid.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -165,8 +176,9 @@ const drawSkids = () => {
     if (b > SKID_LEVELS - 1) b = SKID_LEVELS - 1;
     paths[b].rect(sk.x - 3, sk.y - 3, 6, 6);
   }
+  const skidRgb = _trailRgb || _skidRgb;   // equipped trail colour overrides the theme skid
   for (let i = 0; i < SKID_LEVELS; i++) {
-    ctx.fillStyle = `rgba(${_skidRgb},${(i + 0.5) * 0.1})`;
+    ctx.fillStyle = `rgba(${skidRgb},${(i + 0.5) * 0.1})`;
     ctx.fill(paths[i]);
   }
 };
@@ -197,7 +209,7 @@ const drawCar = (M) => {
     ctx.save();
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
-    ctx.fillStyle = _carBody ?? M.body; ctx.fill(M._p2d);
+    paintBody(ctx, M._p2d, _carBody ?? M.body, _carFinish, M.vw, M.vh);
     if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
     ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = M.stroke;
     ctx.stroke(M._p2d);
@@ -302,6 +314,7 @@ const drawCaps = () => {
     const state = S.caps[i];
     if (!state) continue;
     const desc = collectibles[i];
+    if (desc.kind !== 'cola') continue;
     const { x, y, r, _img, _imgFull, c } = desc;
     const { sweep, collected, pop } = state;
 
@@ -348,6 +361,75 @@ const drawCaps = () => {
       ctx.globalAlpha = collected ? 0.88 : 0.72;
       ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
+    }
+
+    ctx.restore();
+  }
+};
+
+// Idle animation: a continuous slow spin (always turning) PLUS an independent
+// periodic hop (scale arch). Rotation and bounce are decoupled — the tire never
+// freezes between hops; it keeps rotating the whole time. Tires are out of phase
+// via an index-derived offset so they don't all bounce in unison.
+const TIRE_CYCLE_S  = 1.4;          // hop period
+const TIRE_BOUNCE_S = 0.5;          // hop duration within the period
+const TIRE_SPIN     = 0.7;          // rad/s — gentle continuous rotation
+const TAU           = Math.PI * 2;
+
+const drawTires = () => {
+  const collectibles = _T.collectibles ?? [];
+  const now = Date.now() * 0.001;
+
+  for (let i = 0; i < collectibles.length; i++) {
+    const desc = collectibles[i];
+    if (desc.kind !== 'tire') continue;
+    const state = S.caps[i];
+    if (!state) continue;
+    const { x, y, r, _img } = desc;
+    const { collected, pop } = state;
+
+    if (collected && pop <= 0) continue;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (collected) {
+      // Pop burst: expanding ring that fades out (pop counts 0.4 → 0)
+      const t = 1 - pop / 0.4;
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.strokeStyle = 'rgba(125,212,255,0.9)';
+      ctx.lineWidth   = 3;
+      ctx.beginPath(); ctx.arc(0, 0, r * (1.3 + t * 2.0), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else {
+      const phase = ((i * 1597) & 0xFF) / 256;
+
+      // Continuous rotation: always advancing, never holds still.
+      const angle = (now * TIRE_SPIN + phase * TAU) % TAU;
+
+      // Independent hop: arch the scale during the bounce window of each cycle.
+      const cycleT = (now + phase * TIRE_CYCLE_S) % TIRE_CYCLE_S;
+      const scale  = cycleT < TIRE_BOUNCE_S
+        ? 1.0 + Math.sin((cycleT / TIRE_BOUNCE_S) * Math.PI) * 0.2  // 1.0→1.2→1.0
+        : 1.0;
+
+      const tw = r * 0.8;  // 1:2.5 aspect
+      const th = r * 2;
+
+      // Glow: explicit circle drawn under the sprite
+      ctx.fillStyle   = 'rgba(125,212,255,1)';
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+      if (_img?.complete && _img.naturalWidth > 0) {
+        ctx.drawImage(_img, -tw / 2, -th / 2, tw, th);
+      } else {
+        ctx.fillStyle = 'rgba(125,212,255,1)';
+        ctx.beginPath(); ctx.ellipse(0, 0, tw / 2, th / 2, 0, 0, Math.PI * 2); ctx.fill();
+      }
     }
 
     ctx.restore();
@@ -428,8 +510,9 @@ export const draw = (speed) => {
   // props
   for (const o of props) drawProp(o);
 
-  // cola cap collectibles
+  // collectibles
   drawCaps();
+  drawTires();
 
   // cones — standing batch (3 fill() calls total) + per-cone draw for knocked ones
   {
@@ -565,6 +648,9 @@ export const draw = (speed) => {
       S.lapScores.slice().reverse().map(l => 'lap ' + l.n + ': +' + l.pts).join('<br>');
     _prevLapScoresLen = S.lapScores.length;
   }
+
+  const w = wallet();
+  if (w !== _prevWallet) { _hudWallet.textContent = w; _prevWallet = w; }
 
   if (S.comboPoints > 0) { _hudCombo.style.opacity = 1; _hudCombo.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
   else _hudCombo.style.opacity = 0;

@@ -1,0 +1,111 @@
+# Plan — tire-coin economy (implementation)
+
+Concept + numbers live in **ROADMAP.md → Phase 2.5**. This is the step-by-step build.
+Each step is tagged **[sonnet-high]** (mechanical, well-specified, behind tests) or
+**[opus]** (design / schema / feel / cross-cutting UX). Workflow per `desktopdrift-pr`
+(branch from main → `npm test` + `node --check js/*.js` → ONE SW-clear browser smoke →
+bump SW cache → PR). English only. One commit per step; tick the box in the same commit.
+
+## Reuse the cola-cap pipeline (already in the codebase)
+Tires mirror cola caps but with **proximity pickup** (drive over it) instead of the
+drift-arc, and they feed the **wallet** instead of score. The template to copy:
+- parse: `ITEM_COLA_CAP` special-case in **`js/track-factory.js`** → `collectibles`.
+- engine: `updateCaps()` in `js/game-engine.js`.
+- render: `drawCaps()` in `js/render.js`.
+- persist: `capCollect` / `collectedCaps` in `js/store.js`.
+- badges: `tracks.html` / `index.html`.
+Tires are a **separate `kind:'tire'`** collectible (no collision, like caps).
+
+`js/store.js` now deep-merges saves over `defaults()`, so **adding `wallet`/tire slices is
+just an edit to `defaults()` — no VERSION bump, no data loss** (old players get them filled).
+
+---
+
+## Phase A — earn & wallet (NO shop yet). Ship first.
+
+- [x] **A1. Store schema + economy helpers.** **[opus]** DONE.
+      `defaults()` gained `wallet: 0` and `stats.tires: { [trackId]: id[] }` (mirrors caps;
+      merge-store fills both for old saves — no migration). store.js exports `wallet()`,
+      `addTires(n)` (clamped ≥0, persists), `tiresFor(trackId)`, `tireCollect(trackId, id)`.
+      Pure formulas in new **`js/economy.js`**: `starsForPps(pps)` (1/100, cap 5) +
+      `finishPayout(pps)` = `2 + 2*stars` (2..12). Tests: `tests/economy.test.js` +
+      wallet/tires in store tests. 121 tests green, node --check clean. SW v71→v72.
+
+- [x] **A2. `TIRE` collectible descriptor.** **[sonnet-high]**
+      In `js/collectibles.js`: `export const TIRE = { kind:'tire', r, value, imgSrc:'objects/tire.svg' }`.
+      (`tire.svg` already exists.) `value` = tires per pickup (start: 5 — tune later).
+
+- [x] **A3. Parse `ITEM_TIRE` proxy-lines.** **[sonnet-high]**
+      In `js/track-factory.js`, add an `ITEM_TIRE` special-case next to `ITEM_COLA_CAP`:
+      push `{ ...TIRE, x, y, capId }` into `collectibles` (no collision). Verify a track with
+      `ITEM_TIRE` lines parses the expected count (browser/node sentinel).
+
+- [x] **A4. Engine: pickup + finish payout.** **[opus]** (touches the race-finish/results flow)
+      In `game-engine.js`: extend the collectible update so `kind:'tire'` collects on
+      **proximity** (dist < r+CR), one-time, persists via `tireCollect`, `addTires(value)`,
+      flash + pop (cheaper than the cap drift-arc). On race finish, compute
+      `finishPayout(pps, stars)` and `addTires(...)`. Keep cap logic untouched; dispatch by `kind`.
+
+- [x] **A5. Render: `drawTires`.** **[sonnet-high]**
+      Mirror `drawCaps` — draw `tire.svg` sprite at each uncollected tire + a brief pop on
+      collect; skip collected ones (or draw faded). Dispatch collectibles by `kind` in the
+      world pass. Browser smoke: tires visible, pop on pickup.
+
+- [x] **A6. HUD wallet counter.** **[sonnet-high]**
+      Add a wallet element to the game HUD (markup in `game.html`) + per-frame write in
+      `render.js` HUD section (use a prev-value guard like the others). Also show the wallet
+      total on the menu (`index.html`) — small inline read of `store.wallet()`.
+
+- [x] **A7. Seed tires + registry denominator + tracks.html badge.** **[opus]** DONE.
+      Chose an **algorithmic seeder** over hand-placed SVG lines: new pure `js/tire-seed.js`
+      `seedTires(center, inner, outer, n)` — even arc-spacing; on straights it sits on the
+      racing line, on corners it's pushed toward the inner (concave) edge ∝ sharpness (harder
+      to grab). `track-factory.makeTrack({ tires })` calls it; green-study seeds **12**
+      (registry `tires: 12` mirrors it as the badge denominator). `tracks.html` shows a
+      "🛞 N/M" badge under the cap badge. Unit-tested (`tests/tire-seed.test.js`, 5 cases:
+      count, empty, inner-offset on a curve, ≈centerline on near-straight, determinism).
+      Verified in browser: 12 tires seeded, pickup → wallet 0→5 + HUD + persist, badge shows
+      "🛞 0/12". 126 tests green, console clean. Rollout to other tracks = `tires:N` + registry.
+      *(was [sonnet-high]; upgraded to [opus] — the placement algorithm has feel implications.)*
+      Author `<line id="ITEM_TIRE">` lines in ONE track SVG (green-study) per ROADMAP
+      placement archetypes (on-line / off-line / drift-zone / greedy). Add `tires: n` to that
+      registry entry (badge denominator, like `caps`). Roll out to other tracks after it plays well.
+
+- [x] **A8. Docs + SW + PR.** **[sonnet-high]**
+      `sw.js`: bump cache (new modules already mostly listed; add any). AGENTS.md: document the
+      tire economy (store slices, `kind:'tire'`, payout). Tick A1–A8; PR.
+
+**Phase A done when:** tires collect on contact, persist per-track, wallet rises (pickups +
+finish payout), HUD/menu show it, `npm test` green, browser smoke clean on ≥1 track.
+
+---
+
+## Phase B — shop + cosmetics
+
+Detailed step-by-step build moved to its own doc: **`docs/plans/shop.md`** (B1–B5, with the
+shop-location / cosmetic-scope / pricing decisions locked there).
+
+## Phase C — new cars + per-car records
+
+- [ ] **C1. Per-car records schema.** **[opus]** Re-key `records[trackId].timeattack` by car
+      (`[carId]`), with a migration that moves the existing single best under the current car
+      id (the merge-store + a `MIGRATIONS` entry — this is the first real breaking migration).
+      Update `tracks.html` to show best-per-selected-car. Tests for the migration.
+- [ ] **C2. Car roster (art + stats).** **[opus]** New `CARS` entries (top-down SVG layers +
+      Path2D + a sidegrade stat profile per ROADMAP: Wagon/Kei/Muscle/Wedge) + price. Art is
+      content work; balance is feel-critical.
+- [ ] **C3. Buy/unlock cars in shop.** **[sonnet-high]** Extend the shop + garage to gate cars
+      by `owned`; `buy()` reused.
+- [ ] **C4. Docs + SW + PR.** **[sonnet-high]**
+
+---
+
+## Notes / guardrails
+- **Records-safe:** the spend is cosmetic + sidegrade cars only — never raw power. Per-car
+  records (C1) keep PPS comparisons fair. Do not add stat upgrades that inflate the global best.
+- **One currency** (tires). Caps stay a separate skill-flex collectible (score + badge), not money.
+- **Anti-grind:** one-time pickups (finite per track) + PPS-scaled finish payout (the ongoing
+  faucet). No respawning pickups.
+- **Tag rationale:** schema/records/feel/UX-integration → opus; descriptors, parsing, sprite
+  render, catalog data, wiring-behind-a-spec → sonnet-high.
+```

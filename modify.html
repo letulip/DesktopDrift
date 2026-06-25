@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Desktop Drift — Modify</title>
+  <meta name="description" content="Customize your car in the Desktop Drift garage: body colour, neon underglow, paint finishes and trail colours.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#14110f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/select.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/content.css">
+</head>
+<body>
+<div id="modify">
+
+  <header id="ts-header">
+    <div class="ts-header-text">
+      <h1 id="car-name"></h1>
+      <p id="ts-sub">Customize &amp; buy</p>
+    </div>
+    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+  </header>
+
+  <div id="content" class="content--column">
+
+    <div class="preview-stage">
+      <canvas id="preview"></canvas>
+    </div>
+
+    <!-- All customization in one tabbed selector (one panel shown at a time) -->
+    <div id="custom">
+      <div class="shop-tabs" role="tablist">
+        <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
+        <button class="shop-tab" type="button" data-panel="neon">Neon</button>
+        <button class="shop-tab" type="button" data-panel="trail">Trail</button>
+      </div>
+
+      <!-- Colour: body colour (free) + finish (paid) — they belong together -->
+      <div class="cust-panel" data-panel="colour">
+        <div id="body-palette" class="swatch-grid"></div>
+        <div id="body-name" class="swatch-name"></div>
+        <div class="finish-sub">
+          <div class="cust-sublabel">Finish</div>
+          <div id="shop-finish" class="shop-grid"></div>
+        </div>
+      </div>
+
+      <!-- Neon underglow (free) -->
+      <div class="cust-panel" data-panel="neon" hidden>
+        <button id="neon-btn" type="button">✦ Neon</button>
+        <div id="neon-palette" class="swatch-grid"></div>
+        <div id="neon-name" class="swatch-name"></div>
+      </div>
+
+      <!-- Trail colour (paid) -->
+      <div class="cust-panel" data-panel="trail" hidden>
+        <div id="shop-trail" class="shop-grid"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer id="modify-bar">
+    <div id="buy-warning" class="buy-warning" hidden></div>
+    <div class="modify-bar-row">
+      <a id="backLink" class="ts-back" href="select.html">← Cancel</a>
+      <button id="applyBtn" type="button">Apply</button>
+    </div>
+  </footer>
+</div>
+
+<script type="module">
+  import { CARS } from './js/config.js';
+  import { PALETTE, NEON_PALETTE } from './js/palette.js';
+  import { garage, save, wallet, isOwned, purchase } from './js/store.js';
+  import { CATALOG, byKind } from './js/shop-catalog.js';
+  import { drawCarPreview } from './js/car-preview.js';
+
+  const params = new URLSearchParams(location.search);
+  const carIdx = Math.max(0, Math.min(parseInt(params.get('car'), 10) || 0, CARS.length - 1));
+  const M = CARS[carIdx];
+
+  // Cancel returns to the garage, preserving the track/mode context.
+  const back = new URLSearchParams(params); back.delete('car');
+  const backHref = 'select.html' + (back.toString() ? '?' + back.toString() : '');
+  document.getElementById('backLink').href = backHref;
+
+  document.getElementById('car-name').textContent = M.name;
+
+  // ── Pending look (in-memory; committed only on Apply / Buy) ───────────────────
+  const g = garage();
+  const pending = {
+    body:   g.bodyColor || M.body,
+    neonOn: !!g.neonColor,
+    neon:   g.neonColor || NEON_PALETTE[0].hex,
+    finish: g.finish ?? null,
+    trail:  g.trailColor ?? null,
+  };
+
+  const itemFor = (kind, value) =>
+    value ? CATALOG.find(c => c.kind === kind && c.value === value) : null;
+
+  document.getElementById('wallet-amount').textContent = wallet();
+
+  // ── Preview (reflects the pending look) ───────────────────────────────────────
+  const previewCvs = document.getElementById('preview');
+  previewCvs.width  = 440;
+  previewCvs.height = 164;
+
+  // The trail preview only shows on the Trail tab (when a colour is picked); there it
+  // animates via requestAnimationFrame, otherwise the car is drawn once and centred.
+  let activeTab = 'colour';
+  let phase = 0, rafId = null;
+  const trailNow = () => (activeTab === 'trail' ? pending.trail : null);
+  const draw = () => {
+    M.body = pending.body;
+    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null, pending.finish, trailNow(), phase);
+  };
+  const loop = (ts) => { phase = ts * 0.001; draw(); rafId = requestAnimationFrame(loop); };
+  const redraw = () => {
+    if (trailNow()) { if (rafId == null) rafId = requestAnimationFrame(loop); }   // animate
+    else { if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; } draw(); }
+  };
+
+  // ── Body colour (free → just updates the pending look) ────────────────────────
+  const bodyPaletteEl = document.getElementById('body-palette');
+  const bodyName      = document.getElementById('body-name');
+  const bodyEls = PALETTE.map((entry, idx) => {
+    const el = document.createElement('div');
+    el.className = 'swatch';
+    el.style.background = entry.hex;
+    el.title = entry.name;
+    el.addEventListener('click', () => {
+      pending.body = entry.hex;
+      bodyEls.forEach((e, j) => e.classList.toggle('sel', j === idx));
+      bodyName.textContent = entry.name;
+      redraw();
+    });
+    bodyPaletteEl.appendChild(el);
+    return el;
+  });
+  const bInit = PALETTE.findIndex(p => p.hex.toLowerCase() === (pending.body || '').toLowerCase());
+  if (bInit >= 0) { bodyEls[bInit].classList.add('sel'); bodyName.textContent = PALETTE[bInit].name; }
+
+  // ── Neon underglow (free) ─────────────────────────────────────────────────────
+  const neonBtn   = document.getElementById('neon-btn');
+  const neonPalEl = document.getElementById('neon-palette');
+  const neonName  = document.getElementById('neon-name');
+  let selNeon = Math.max(0, NEON_PALETTE.findIndex(p => p.hex === pending.neon));
+
+  const updateNeon = () => {
+    const nc = NEON_PALETTE[selNeon].hex;
+    neonBtn.style.setProperty('--nc', nc);
+    neonBtn.classList.toggle('active', pending.neonOn);
+    neonPalEl.style.setProperty('--ring', nc);
+  };
+  const neonEls = NEON_PALETTE.map((entry, idx) => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (idx === selNeon ? ' sel' : '');
+    el.style.background = entry.hex;
+    el.title = entry.name;
+    el.addEventListener('click', () => {
+      selNeon = idx; pending.neon = entry.hex; pending.neonOn = true;
+      neonEls.forEach((e, j) => e.classList.toggle('sel', j === idx));
+      neonName.textContent = entry.name;
+      updateNeon(); redraw();
+    });
+    neonPalEl.appendChild(el);
+    return el;
+  });
+  neonBtn.addEventListener('click', () => { pending.neonOn = !pending.neonOn; updateNeon(); redraw(); });
+  neonName.textContent = NEON_PALETTE[selNeon].name;
+  updateNeon();
+
+  // ── Shop: finishes + trail colours (paid → cart) ──────────────────────────────
+  // Tapping toggles the item into the pending look. Owned items apply for free;
+  // unowned items go into the cart (checkmark) and are bought together on Apply.
+  const FIELD = { finish: 'finish', trail: 'trail' };   // catalog kind → pending field
+  const shopCards = [];
+  const applyBtn  = document.getElementById('applyBtn');
+  const warnEl    = document.getElementById('buy-warning');
+
+  const buildGroup = (kind, contId) => {
+    const cont = document.getElementById(contId);
+    for (const item of byKind(kind)) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'shop-card';
+      if (kind === 'trail') {
+        const dot = document.createElement('span');
+        dot.className = 'shop-dot';
+        dot.style.background = item.value;
+        el.appendChild(dot);
+      }
+      const nm = document.createElement('span');
+      nm.className = 'shop-card-name';
+      nm.textContent = item.name;
+      el.appendChild(nm);
+      const tag = document.createElement('span');
+      tag.className = 'shop-card-tag';
+      el.appendChild(tag);
+      el.addEventListener('click', () => {
+        const f = FIELD[item.kind];
+        pending[f] = pending[f] === item.value ? null : item.value;  // toggle
+        refresh(); redraw();
+      });
+      cont.appendChild(el);
+      shopCards.push({ el, tag, item });
+    }
+  };
+
+  // Recompute card states + the cart (unowned selected items) and update the bar.
+  // The button keeps its normal label; affordability is communicated by a warning
+  // line above the bar (never by disabling/relabelling the button).
+  const cartTotal = () => {
+    let total = 0; let count = 0;
+    for (const { item } of shopCards) {
+      if (pending[FIELD[item.kind]] === item.value && !isOwned(item.id)) { total += item.price; count++; }
+    }
+    return { total, count };
+  };
+
+  const refresh = () => {
+    for (const { el, tag, item } of shopCards) {
+      const selected = pending[FIELD[item.kind]] === item.value;
+      const own      = isOwned(item.id);
+      const inCart   = selected && !own;
+      el.classList.toggle('sel', selected);
+      el.classList.toggle('owned', own);
+      el.classList.toggle('in-cart', inCart);
+      tag.textContent = own
+        ? (selected ? '✓' : '')
+        : (selected ? `🛒🛞${item.price}` : `🛞${item.price}`);
+    }
+    const { total, count } = cartTotal();
+    const have  = wallet();
+    const short = count > 0 && have < total;
+    // Total shown on its own line above the bar; the button stays a short label and
+    // goes inactive when there aren't enough tires.
+    applyBtn.textContent = count ? 'Buy & Apply' : 'Apply';
+    applyBtn.disabled    = short;
+    warnEl.hidden = count === 0;
+    if (count) {
+      warnEl.textContent = short
+        ? `Total 🛞${total} — not enough (you have 🛞${have})`
+        : `Total 🛞${total}`;
+      warnEl.classList.toggle('is-short', short);
+    }
+  };
+
+  buildGroup('finish', 'shop-finish');
+  buildGroup('trail',  'shop-trail');
+
+  // ── Tabs: show one customization panel at a time (Colour / Neon / Trail) ──────
+  const tabs   = [...document.querySelectorAll('.shop-tab')];
+  const panels = [...document.querySelectorAll('.cust-panel')];
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.toggle('is-active', t === tab));
+      panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.panel; });
+      activeTab = tab.dataset.panel;
+      redraw();   // start/stop the trail animation for this tab
+    });
+  }
+
+  // ── Apply / Buy: purchase carted items, equip the whole look, persist ─────────
+  applyBtn.addEventListener('click', () => {
+    const cart = [];
+    const fItem = itemFor('finish', pending.finish);
+    const tItem = itemFor('trail',  pending.trail);
+    if (fItem && !isOwned(fItem.id)) cart.push(fItem);
+    if (tItem && !isOwned(tItem.id)) cart.push(tItem);
+    const total = cart.reduce((s, it) => s + it.price, 0);
+    if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
+    for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
+
+    const gg = garage();
+    gg.carIndex   = carIdx;
+    gg.bodyColor  = pending.body;
+    gg.neonColor  = pending.neonOn ? pending.neon : null;
+    gg.finish     = pending.finish;
+    gg.trailColor = pending.trail;
+    save();
+    location.href = backHref;
+  });
+
+  // ── Initial render ────────────────────────────────────────────────────────────
+  refresh();
+  redraw();
+</script>
+
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>

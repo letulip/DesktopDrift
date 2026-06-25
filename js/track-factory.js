@@ -3,7 +3,8 @@
 // (SVG source + origin, id, laps, theme) and re-exports the result.
 
 import * as ITEMS from './items.js';
-import { COLA_CAP } from './collectibles.js';
+import { COLA_CAP, TIRE } from './collectibles.js';
+import { seedTires } from './tire-seed.js';
 import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpointsByCorner, prepProp } from './track-util.js';
 
 // ── Shared constants (same for every track) ───────────────────────────────────
@@ -29,7 +30,7 @@ const resolveKey = (rawId) => {
 // laps     — race length
 // theme    — colour palette object passed to render.js via initRender(T)
 // (svgCx / svgCy are no longer params — auto-derived from the SVG viewBox)
-export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
+export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires = 0 }) => {
   // ── SVG load ────────────────────────────────────────────────────────────────
   const svgText = await fetch(svgPath).then(r => r.text());
   const _doc    = new DOMParser().parseFromString(svgText, 'image/svg+xml');
@@ -71,6 +72,18 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
       return;
     }
 
+    // Tire — proximity pickup, feeds wallet; not a physics prop
+    if (rawId === 'ITEM_TIRE') {
+      const x1 = parseFloat(el.getAttribute('x1'));
+      const y1 = parseFloat(el.getAttribute('y1'));
+      const x2 = parseFloat(el.getAttribute('x2'));
+      const y2 = parseFloat(el.getAttribute('y2'));
+      const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
+      const cx = Math.round(x), cy = Math.round(y);
+      collectibles.push({ ...TIRE, x: cx, y: cy, capId: `${cx},${cy}` });
+      return;
+    }
+
     const key = resolveKey(rawId);
     if (!key) {
       console.warn(`[track: ${id}] unknown item id "${rawId}" — not found in items.js`);
@@ -95,6 +108,13 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme }) => {
     const ang = Math.atan2(-(y2 - y1), x2 - x1);
     props.push(prepProp({ ...item, x: Math.round(gx), y: Math.round(gy), ang: parseFloat(ang.toFixed(3)) }));
   });
+
+  // ── Tire coins — algorithmically seeded (no hand-placed proxy lines) ──────────
+  // `tires` count scatters pickups along the centerline (on-line on straights, pushed
+  // toward the inner edge on corners). Positions double as the persistent capId.
+  for (const { x, y } of seedTires(center, inner, outer, tires)) {
+    collectibles.push({ ...TIRE, x, y, capId: `${x},${y}` });
+  }
 
   // ── Checkpoints + start position ────────────────────────────────────────────
   const checkpoints = sampleCheckpointsByCorner(center, K);

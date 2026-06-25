@@ -24,31 +24,17 @@
 <body>
 <div id="garage">
 
-  
   <header id="ts-header">
-    <h1 id="mode-title"></h1>
-    <p id="ts-sub">Choose your car</p>
+    <div class="ts-header-text">
+      <h1 id="mode-title"></h1>
+      <p id="ts-sub">Choose your car</p>
+    </div>
+    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
   </header>
 
   <div id="content" class="content--column">
 
-   <div id="cars"></div>
-
-    <!-- Body colour -->
-    <div class="palette-section">
-      <div class="palette-label">Body colour</div>
-      <div id="body-palette" class="swatch-grid"></div>
-      <div id="body-name" class="swatch-name"></div>
-    </div>
-
-    <!-- Neon underglow -->
-    <div id="neon-section">
-      <button id="neon-btn">✦ Neon</button>
-      <div id="neon-palette-wrap">
-        <div id="neon-palette" class="swatch-grid"></div>
-        <div id="neon-name" class="swatch-name"></div>
-      </div>
-    </div>
+    <div id="cars"></div>
 
     <button id="raceBtn">Race! 🏁</button>
   </div>
@@ -61,8 +47,8 @@
 
 <script type="module">
   import { CARS, GU_TO_KMH } from './js/config.js';
-  import { PALETTE, NEON_PALETTE } from './js/palette.js';
-  import { garage, save } from './js/store.js';
+  import { garage, save, wallet } from './js/store.js';
+  import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { TRACKS } from './js/track-registry.js';
 
   const params    = new URLSearchParams(location.search);
@@ -80,18 +66,16 @@
 
   if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
 
-  // ── Restore from store ───────────────────────────────────────────────────────
+  // Wallet HUD
+  document.getElementById('wallet-amount').textContent = wallet();
+
+  // ── Restore the saved look (global, applied to every car preview) ─────────────
   const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-
   let sel = g.carIndex;
-  if (g.bodyColor) CARS[sel].body = g.bodyColor;
-
-  // Neon state — global preference (not per-car).
-  let neonEnabled = !!g.neonColor;
-  let selNeon     = g.neonColor
-    ? Math.max(0, NEON_PALETTE.findIndex(p => p.hex === g.neonColor))
-    : 0;
+  if (g.bodyColor) CARS.forEach(M => { M.body = g.bodyColor; });
+  const neonColor = g.neonColor || null;
+  const finish    = g.finish || null;
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
   // Scale is intentionally above current values — headroom for future upgrades.
@@ -127,59 +111,15 @@
     return row;
   };
 
-  // ── Car preview canvas ───────────────────────────────────────────────────────
-  const CANVAS_W = 220, CANVAS_H = 82;
-
-  const drawPreview = (cvs, M, neonColor = null) => {
-    const ctx = cvs.getContext('2d');
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    const pad = 6;
-    const sc  = Math.min((CANVAS_W - pad * 2) / M.vw, (CANVAS_H - pad * 2) / M.vh);
-    ctx.save();
-    ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
-    ctx.scale(M.flip ? -sc : sc, sc);
-    ctx.translate(-M.vw / 2, -M.vh / 2);
-    // Neon glow — three segments: nose→front axle | between axles | rear axle→tail.
-    // 3% end | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% end
-    // Drawn in path coordinates (after scale+translate), before the car body.
-    if (neonColor) {
-      const glowH = M.vh * 0.70;
-      const gy    = (M.vh - glowH) / 2;
-      const s1p = M.vw * 0.03, s2p = M.vw * 0.58, s3p = M.vw * 0.08;
-      const gpp = M.vw * 0.155;  // gap per wheel
-
-      ctx.shadowColor = neonColor;
-      ctx.shadowBlur  = 18;
-      ctx.globalAlpha = 0.65;
-      ctx.fillStyle   = neonColor;
-
-      const ei_p = M.vw * 0.02;  // inset from path tips
-      ctx.beginPath();
-      ctx.rect(ei_p,         gy, s1p - ei_p, glowH);  // end 1 (inset from tip)
-      ctx.rect(s1p + gpp,    gy, s2p,        glowH);  // between axles
-      ctx.rect(M.vw - s3p,   gy, s3p - ei_p, glowH);  // end 2 (inset from tip)
-      ctx.fill();
-
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur  = 0;
-      ctx.shadowColor = 'transparent';
-    }
-    ctx.fillStyle = M.body;
-    ctx.fill(M._p2d);
-    if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
-    ctx.lineJoin   = 'round';
-    ctx.lineWidth  = 5;
-    ctx.strokeStyle = M.stroke;
-    ctx.stroke(M._p2d);
-    if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
-    ctx.restore();
-  };
-
-  const redrawSelected = () =>
-    drawPreview(cards[sel].cvs, CARS[sel], neonEnabled ? NEON_PALETTE[selNeon].hex : null);
-
-  // ── Car cards ────────────────────────────────────────────────────────────────
+  // ── Car cards (pick a car; gear opens the modify screen) ──────────────────────
   const carsEl = document.getElementById('cars');
+
+  // Gear → modify.html for that car, carrying the current track/mode params.
+  const modifyHref = (i) => {
+    const p = new URLSearchParams(params);
+    p.set('car', i);
+    return 'modify.html?' + p.toString();
+  };
 
   const cards = CARS.map((M, i) => {
     const card = document.createElement('div');
@@ -189,6 +129,16 @@
     cvs.width  = CANVAS_W;
     cvs.height = CANVAS_H;
     card.appendChild(cvs);
+
+    // Modify (gear) — opens the per-car customization screen. The gear glyph is the
+    // accent-coloured icons/settings.svg, applied via CSS mask (see .car-modify).
+    const gear = document.createElement('a');
+    gear.className = 'car-modify';
+    gear.href      = modifyHref(i);
+    gear.title     = 'Modify';
+    gear.setAttribute('aria-label', 'Modify');
+    gear.addEventListener('click', (e) => e.stopPropagation());  // don't trigger card select
+    card.appendChild(gear);
 
     const stats = document.createElement('div');
     stats.className = 'car-stats';
@@ -210,99 +160,18 @@
   const selectCar = (i) => {
     sel = i;
     cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
-    // Sync body palette highlight to this car's current body colour.
-    const match = PALETTE.findIndex(p => p.hex === CARS[i].body);
-    selBody = match;
-    bodySwatchEls.forEach((el, j) => el.classList.toggle('sel', j === match));
-    bodyName.textContent = match >= 0 ? PALETTE[match].name : '';
-    redrawSelected();
+    garage().carIndex = i; save();
   };
-
-  // ── Body colour palette ──────────────────────────────────────────────────────
-  const bodyPaletteEl = document.getElementById('body-palette');
-  const bodyName      = document.getElementById('body-name');
-
-  const findBody = hex => PALETTE.findIndex(p => p.hex.toLowerCase() === hex.toLowerCase());
-  let selBody = findBody(CARS[sel].body);
-
-  const bodySwatchEls = PALETTE.map((entry, idx) => {
-    const el = document.createElement('div');
-    el.className = 'swatch' + (idx === selBody ? ' sel' : '');
-    el.style.background = entry.hex;
-    el.title = entry.name;
-    el.addEventListener('click', () => applyBody(idx));
-    bodyPaletteEl.appendChild(el);
-    return el;
-  });
-
-  const applyBody = (idx) => {
-    const entry = PALETTE[idx];
-    CARS[sel].body = entry.hex;
-    selBody = idx;
-    bodySwatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
-    bodyName.textContent = entry.name;
-    redrawSelected();
-  };
-
-  bodyName.textContent = selBody >= 0 ? PALETTE[selBody].name : '';
-
-  // ── Neon underglow ───────────────────────────────────────────────────────────
-  const neonBtn        = document.getElementById('neon-btn');
-  const neonPaletteWrap = document.getElementById('neon-palette-wrap');
-  const neonPaletteEl  = document.getElementById('neon-palette');
-  const neonName       = document.getElementById('neon-name');
-
-  const updateNeonBtn = () => {
-    const nc = NEON_PALETTE[selNeon].hex;
-    neonBtn.style.setProperty('--nc', nc);
-    neonBtn.classList.toggle('active', neonEnabled);
-    neonPaletteWrap.classList.toggle('open', neonEnabled);
-    // Update neon swatch ring colour to match selection
-    neonPaletteEl.style.setProperty('--ring', nc);
-  };
-
-  const neonSwatchEls = NEON_PALETTE.map((entry, idx) => {
-    const el = document.createElement('div');
-    el.className = 'swatch' + (idx === selNeon ? ' sel' : '');
-    el.style.background = entry.hex;
-    el.title = entry.name;
-    el.addEventListener('click', () => applyNeon(idx));
-    neonPaletteEl.appendChild(el);
-    return el;
-  });
-
-  const applyNeon = (idx) => {
-    selNeon = idx;
-    neonSwatchEls.forEach((el, j) => el.classList.toggle('sel', j === idx));
-    neonName.textContent = NEON_PALETTE[idx].name;
-    updateNeonBtn();
-    redrawSelected();
-  };
-
-  neonBtn.addEventListener('click', () => {
-    neonEnabled = !neonEnabled;
-    updateNeonBtn();
-    redrawSelected();
-  });
-
-  // Init neon UI state
-  neonName.textContent = NEON_PALETTE[selNeon].name;
-  updateNeonBtn();
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
-    const g = garage();
-    g.carIndex  = sel;
-    g.bodyColor = CARS[sel].body;
-    g.neonColor = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
-    save();
+    garage().carIndex = sel; save();
     if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
     else location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
   });
 
-  // ── Initial render ───────────────────────────────────────────────────────────
-  const initNeon = neonEnabled ? NEON_PALETTE[selNeon].hex : null;
-  CARS.forEach((M, i) => drawPreview(cards[i].cvs, M, i === sel ? initNeon : null));
+  // ── Initial render — each car shows the saved look; selected one shows neon ────
+  CARS.forEach((M, i) => drawCarPreview(cards[i].cvs, M, i === sel ? neonColor : null, finish));
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

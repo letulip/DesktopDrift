@@ -11,6 +11,7 @@ export const {
   svgPath: './tracks/steel-kitchen.svg',
   id:      'steel-kitchen',
   laps:    3,
+  tires:   11,   // seeded along the centerline (see js/tire-seed.js); must match registry `tires`
   theme:   {
     background:    '#c6cace',
     table:         '#6b7178',

@@ -8,6 +8,24 @@
   font: 14px/1.4 var(--font-body); color: var(--ink);
 }
 
+/* ── Two-column header: title/subtitle left, tire-coin balance right ───────── */
+#track-select .ts-header-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: min(440px, calc(100vw - 28px));
+  text-align: left;
+}
+#track-select .ts-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#track-select .wallet-pill { flex-shrink: 0; }
+
+.wallet-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(255,180,60,.14);
+  border: 1px solid rgba(255,180,60,.3);
+  color: #ffce6a; font: 700 14px var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Normal / Reversed toggle ────────────────────────────────────────────── */
 #ts-mode {
   display: flex; gap: 8px;
@@ -91,24 +109,23 @@
 .track-stars .star-dim { font-size: 13px; color: rgba(255,255,255,0.28); }
 .track-stars .star-lit { font-size: 13px; color: #ffc840; text-shadow: 0 0 6px rgba(255,180,0,0.6); }
 
-/* Cap collectible badge — top-right corner of thumbnail */
-.track-cap-badge {
-  position: absolute;
-  top: 9px; right: 9px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font: 700 10px var(--font-body);
-  letter-spacing: .3px;
-  background: rgba(180, 28, 0, 0.18);
-  color: rgba(220, 80, 50, 0.65);
-  border: 1px solid rgba(180, 28, 0, 0.28);
-  pointer-events: none;
+/* Collectible chips (caps + tires) — in the card body, readable on the surface */
+.track-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 8px;            /* sits at the card bottom, below the record line */
 }
-.track-cap-badge.is-done {
-  background: rgba(180, 28, 0, 0.38);
-  color: #ff7755;
-  border-color: rgba(200, 50, 20, 0.55);
+.track-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px;
+  font: 700 11px var(--font-body); letter-spacing: .3px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
 }
+/* Translucent red (caps) / amber (tires) plates; brighter once everything's collected */
+.track-chip.cap  { background: rgba(180,28,0,.18);   color: rgba(220,90,60,.85);  border-color: rgba(180,28,0,.30); }
+.track-chip.tire { background: rgba(255,180,60,.14); color: rgba(255,200,110,.9); border-color: rgba(255,180,60,.30); }
+.track-chip.cap.is-done  { background: rgba(180,28,0,.34);   color: #ff7755; border-color: rgba(200,50,20,.55); }
+.track-chip.tire.is-done { background: rgba(255,180,60,.30); color: #ffce6a; border-color: rgba(255,190,80,.55); }
 
 .track-card-score { display: none; }
 
