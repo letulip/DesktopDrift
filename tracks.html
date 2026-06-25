@@ -25,8 +25,13 @@
 <div id="track-select">
 
   <header id="ts-header">
-    <h1 id="ts-title">Time Attack</h1>
-    <p  id="ts-sub">Choose a track</p>
+    <div class="ts-header-row">
+      <div class="ts-header-text">
+        <h1 id="ts-title">Time Attack</h1>
+        <p  id="ts-sub">Choose a track</p>
+      </div>
+      <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+    </div>
     <div id="ts-mode">
       <button class="mode-btn is-active" id="btn-normal">Normal</button>
       <button class="mode-btn is-locked" id="btn-reversed" disabled>
@@ -51,8 +56,10 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records, collectedCaps, tiresFor } from './js/store.js';
+  import { records, collectedCaps, tiresFor, wallet } from './js/store.js';
   import { svgToCentreline } from './js/track-util.js';
+
+  document.getElementById('wallet-amount').textContent = wallet();
 
   // ── Track preview rendering on canvas ───────────────────────────────────────
   const TRACK_GU = 100;
@@ -204,9 +211,9 @@
       : '—';
 
     body.appendChild(name);
-    if (meta.children.length) body.appendChild(meta);
     body.appendChild(desc);
     body.appendChild(rec);
+    if (meta.children.length) body.appendChild(meta);   // collectible chips at the card bottom
     link.appendChild(body);
     container.appendChild(link);
 
