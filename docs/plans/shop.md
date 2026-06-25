@@ -50,16 +50,17 @@ These resolve the ROADMAP "open decisions" so the steps below are unambiguous:
 
 ## Phase B — shop + cosmetics
 
-- [ ] **B1. Owned-items schema + spend logic.** **[opus]**
-      `defaults()` gains `owned: []` (array of catalog item ids) and `garage` gains the
-      *equipped* cosmetic slots `finish: null`, `trailColor: null` (selected look, like
-      `bodyColor`). store.js exports `owned()`, `isOwned(id)`, `grant(id)` (push if absent,
-      persist), and `equip(slot, value)` (writes the garage slot). Pure economy in
-      `js/economy.js`: `canAfford(balance, price)` and `buy(state, item)` →
-      `{ ok, wallet, owned }` or a reject reason (`'broke'` / `'owned'`); store wires `buy()`
-      to `addTires(-price)` + `grant(id)` atomically. Tests: `tests/economy.test.js` (buy
-      success/broke/already-owned) + `tests/store.test.js` (owned merge-fill, grant idempotent,
-      equip persists). **No render yet.**
+- [x] **B1. Owned-items schema + spend logic.** **[opus]** DONE.
+      `defaults()` gained `owned: []` and `garage` gained equipped slots `finish: null`,
+      `trailColor: null` (merge-store fills both for old saves — no migration). store.js exports
+      `owned()`, `isOwned(id)`, `grant(id)` (idempotent), `equip(slot, value)`, and `purchase(item)`
+      (wires the pure `buy()` → `addTires(-price)` + `grant` atomically, only on success). Pure
+      `js/economy.js`: `canAfford(balance, price)` + `buy({wallet,owned}, item)` →
+      `{ ok, wallet, owned }` or `{ ok:false, reason:'owned'|'broke' }` (owned checked first;
+      snapshot never mutated). Tests: `economy.test.js` (canAfford + buy success/owned/broke/
+      defaults) + `store.test.js` (owned default, grant idempotent, equip persists, purchase
+      success/dup/broke) + `store-load.test.js` (owned + garage slots merge-fill on old saves).
+      136 tests green, node --check clean. SW v86→v87. **No render yet.**
 
 - [ ] **B2. Cosmetics catalog (data).** **[sonnet-high]**
       New `js/shop-catalog.js`: `export const CATALOG = [...]` of

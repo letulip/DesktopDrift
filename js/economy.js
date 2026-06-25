@@ -15,3 +15,19 @@ export const starsForPps = (pps) =>
 export const FINISH_FLAT     = 2;
 export const FINISH_PER_STAR = 2;
 export const finishPayout = (pps) => FINISH_FLAT + FINISH_PER_STAR * starsForPps(pps);
+
+// ── Shop purchase logic (see ROADMAP Phase 2.5 + docs/plans/shop.md) ───────────
+// Pure decision only — no state, no persistence. js/store.js applies the result to
+// the wallet + owned list. Cosmetics are sidegrades; never sell power (records-safe).
+
+// True when the balance covers the price.
+export const canAfford = (balance, price) => (balance || 0) >= price;
+
+// Resolve a purchase of `item` against a snapshot { wallet, owned }.
+// Success → { ok: true, wallet, owned } with the new balance + extended owned list.
+// Failure → { ok: false, reason: 'owned' | 'broke' }, snapshot left untouched.
+export const buy = ({ wallet = 0, owned = [] }, item) => {
+  if (owned.includes(item.id)) return { ok: false, reason: 'owned' };
+  if (!canAfford(wallet, item.price)) return { ok: false, reason: 'broke' };
+  return { ok: true, wallet: wallet - item.price, owned: [...owned, item.id] };
+};

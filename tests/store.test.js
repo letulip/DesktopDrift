@@ -15,7 +15,8 @@ import { installLocalStorage } from './helpers.js';
 const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
-        wallet, addTires, tiresFor, tireCollect } =
+        wallet, addTires, tiresFor, tireCollect,
+        owned, isOwned, grant, equip, purchase } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -23,6 +24,8 @@ test('defaults: garage', () => {
   assert.equal(g.carIndex, 0);
   assert.equal(g.bodyColor, null);
   assert.equal(g.neonColor, null);
+  assert.equal(g.finish, null);
+  assert.equal(g.trailColor, null);
 });
 
 test('defaults: settings / records / achievements', () => {
@@ -87,4 +90,48 @@ test('mutate live object + save() persists correct JSON shape', () => {
   assert.equal(raw.garage.bodyColor, '#ff0000');
   assert.equal(raw.garage.neonColor, '#39FF14');
   assert.deepEqual(raw.settings, { units: 'kmh', haptics: true });
+});
+
+// ── Shop: owned / grant / equip / purchase ────────────────────────────────────
+
+test('owned: defaults to [] empty', () => {
+  assert.deepEqual(owned(), []);
+});
+
+test('grant: records ownership; idempotent; isOwned reflects it', () => {
+  assert.equal(isOwned('finish-matte'), false);
+  grant('finish-matte');
+  grant('finish-matte');                       // no-op (already owned)
+  assert.deepEqual(owned(), ['finish-matte']);
+  assert.equal(isOwned('finish-matte'), true);
+});
+
+test('equip: writes a garage slot and persists', () => {
+  equip('finish', 'matte');
+  equip('trailColor', '#ff00aa');
+  assert.equal(garage().finish, 'matte');
+  assert.equal(garage().trailColor, '#ff00aa');
+  const raw = JSON.parse(store.get('desktop-drift'));
+  assert.equal(raw.garage.finish, 'matte');
+  assert.equal(raw.garage.trailColor, '#ff00aa');
+});
+
+test('purchase: success deducts wallet, grants item; failure leaves state intact', () => {
+  // wallet is 0 here (earlier addTires test clamped it back to 0) — top it up.
+  addTires(100);                               // wallet → 100
+  const ok = purchase({ id: 'finish-pearl', price: 80 });
+  assert.deepEqual(ok, { ok: true, wallet: 20, owned: ['finish-matte', 'finish-pearl'] });
+  assert.equal(wallet(), 20);
+  assert.equal(isOwned('finish-pearl'), true);
+
+  // already owned → rejected, no further deduction
+  const dup = purchase({ id: 'finish-pearl', price: 80 });
+  assert.deepEqual(dup, { ok: false, reason: 'owned' });
+  assert.equal(wallet(), 20);
+
+  // too expensive → rejected, wallet untouched
+  const broke = purchase({ id: 'finish-chrome', price: 250 });
+  assert.deepEqual(broke, { ok: false, reason: 'broke' });
+  assert.equal(wallet(), 20);
+  assert.equal(isOwned('finish-chrome'), false);
 });

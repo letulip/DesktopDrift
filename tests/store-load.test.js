@@ -17,7 +17,8 @@ installLocalStorage({
   }),
 });
 
-const { settings, garage, records, achievements, stats, collectedCaps, wallet, tiresFor } =
+const { settings, garage, records, achievements, stats, collectedCaps, wallet, tiresFor,
+        owned } =
   await import('../js/store.js');
 
 test('loads persisted settings + fills missing fields from defaults', () => {
@@ -26,8 +27,14 @@ test('loads persisted settings + fills missing fields from defaults', () => {
 });
 
 test('loads persisted garage + fills missing fields', () => {
-  // neonColor absent in the save → filled from defaults.
-  assert.deepEqual(garage(), { carIndex: 3, bodyColor: '#00ff00', neonColor: null });
+  // neonColor + shop slots (finish/trailColor) absent in the save → filled from defaults.
+  assert.deepEqual(garage(),
+    { carIndex: 3, bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null });
+});
+
+test('owned: missing slice on an old save is filled from defaults ([])', () => {
+  // The seeded save predates the shop — owned must appear as [], not undefined.
+  assert.deepEqual(owned(), []);
 });
 
 test('loads persisted records / achievements (real PPS record shape)', () => {
@@ -86,7 +93,8 @@ test('corrupt slice (wrong type) heals to default, other data kept', async () =>
   const fresh = await import('../js/store.js?v=corruptslice');
   assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true }); // no TypeError
   assert.equal(fresh.settings().units, 'kmh');
-  assert.deepEqual(fresh.garage(), { carIndex: 0, bodyColor: null, neonColor: null });
+  assert.deepEqual(fresh.garage(),
+    { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null });
   assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
 });
 

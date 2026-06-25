@@ -1,6 +1,9 @@
 // Single source of persistence — the only module that touches localStorage directly.
 // All reads/writes go through the getters here + save().
 //
+// Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
+import { buy } from './economy.js';
+//
 // ── Schema evolution (never wipes player data) ────────────────────────────────
 // On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
 // from defaults, saved values win, arrays are replaced wholesale. So the common case —
@@ -22,10 +25,12 @@ const VERSION = 1;
 const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh', haptics: true },
-  garage:       { carIndex: 0, bodyColor: null, neonColor: null },
+  // garage holds the equipped look: free body/neon colours + shop cosmetics (finish, trail).
+  garage:       { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null },
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
+  owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
   stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
 });
 
@@ -132,4 +137,36 @@ export const tireCollect = (trackId, id) => {
   if (!st.tires) st.tires = {};
   const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
   if (!arr.includes(id)) { arr.push(id); save(); }
+};
+
+// ── Shop: owned cosmetics + equip (see docs/plans/shop.md) ────────────────────
+// Purchase decisions are pure (js/economy.js → buy); this module applies the result.
+
+// Ids of all purchased shop items.
+export const owned = () => { _ensure(); return _s.owned; };
+
+// True if the player already owns this item id.
+export const isOwned = (id) => owned().includes(id);
+
+// Record an item as owned. No-op if already present. Persists.
+export const grant = (id) => {
+  if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
+};
+
+// Set the equipped cosmetic for a garage slot ('finish' | 'trailColor'); pass null
+// to clear it. Persists. Free body/neon colours use their own garage fields.
+export const equip = (slot, value) => {
+  _ensure();
+  _s.garage[slot] = value;
+  save();
+};
+
+// Apply a purchase: pure buy() against the current wallet+owned snapshot, then
+// commit atomically (deduct tires + grant the item) only on success. Returns the
+// buy() result ({ ok, ... } | { ok:false, reason }).
+export const purchase = (item) => {
+  _ensure();
+  const result = buy({ wallet: _s.wallet, owned: _s.owned }, item);
+  if (result.ok) { addTires(-item.price); grant(item.id); }
+  return result;
 };
