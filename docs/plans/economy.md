@@ -6,6 +6,51 @@ Each step is tagged **[sonnet-high]** (mechanical, well-specified, behind tests)
 (branch from main → `npm test` + `node --check js/*.js` → ONE SW-clear browser smoke →
 bump SW cache → PR). English only. One commit per step; tick the box in the same commit.
 
+## Economy balance & numbers (the source of truth for tuning)
+
+Concept lives in **ROADMAP.md → Phase 2.5**; this section pins the *actual* numbers so we
+tune from facts, not memory.
+
+### Currency rule
+- **1 tire pickup = 1 coin.** This is the ROADMAP intent ("plentiful, Mario-coin feel",
+  Phase 2.5 → Currency). The history reads cleanly under it: "Track — N tires" == +N coins.
+- ⚠️ **Drift to fix:** the code currently awards **5** per pickup (`TIRE.value` in
+  `js/collectibles.js`). Decision: set it back to **1**.
+
+### Faucets (income)
+| Faucet | Per | Status |
+|---|---|---|
+| Tire pickups (one-time per track) | 1 / tire | implemented (value drifted to 5 — fixing to 1) |
+| Finish payout (repeatable) | `2 + 2×stars` → 2–12 / race | implemented (`js/economy.js`) |
+| First-clear bonus per instance | ROADMAP: +20 | **not implemented yet** |
+
+Current live pickups (forward only): green-study **12** + steel-kitchen **11** + workbench
+**13** = **36** one-time coins at 1/tire. ROADMAP target was ~560 one-time across 14
+instances (7 tracks × fwd/reversed + first-clear bonus) — we're early; reversed mode, more
+tracks, and the first-clear bonus all still to come.
+
+### Sinks (spend) — current shop catalog (`js/shop-catalog.js`)
+| Item | Price |
+|---|---|
+| Finish — Matte / Metallic / Pearl / Chrome | 40 / 80 / 150 / 250 |
+| Trail colours ×8 | 40 each (320) |
+| **Catalog total (today)** | **840** |
+
+ROADMAP planned catalog ≈ 1,800 once liveries/wheels/cars land.
+
+### Open balance decisions
+- With 1/tire, the early one-time bank is small (**36** from pickups) until the first-clear
+  bonus + reversed mode + more tracks arrive. Options when we get there: add the **first-clear
+  bonus** (biggest lever), and/or lower entry-tier finish prices. **For now: keep prices, fix
+  value→1, ship the clearer history.** Revisit once content grows.
+
+### History (ledger) granularity
+- Aggregate **per race**, not per pickup: one entry **"{Track} — N tires"** (sum of the run's
+  pickups) + one **"{Track} — finish bonus"**. Pickups still credit the wallet live (HUD), but
+  the ledger logs the global events only. (Fixes the "5 per tire" + "one row per tire" noise.)
+
+---
+
 ## Reuse the cola-cap pipeline (already in the codebase)
 Tires mirror cola caps but with **proximity pickup** (drive over it) instead of the
 drift-arc, and they feed the **wallet** instead of score. The template to copy:

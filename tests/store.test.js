@@ -16,7 +16,7 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, equip, purchase, ledger } =
+        owned, isOwned, grant, equip, purchase, ledger, recordTxn } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -153,6 +153,28 @@ test('ledger: a zero-delta change records nothing', () => {
   const before = ledger().length;
   addTires(0, 'noop');
   assert.equal(ledger().length, before);
+});
+
+test('ledger: addTires WITHOUT a reason changes wallet but logs nothing (silent pickups)', () => {
+  const before = ledger().length;
+  const w = wallet();
+  addTires(3);                                 // no reason → silent
+  assert.equal(wallet(), w + 3);
+  assert.equal(ledger().length, before);
+});
+
+test('recordTxn: logs an entry without changing the wallet (aggregated sums)', () => {
+  const w = wallet();
+  const before = ledger().length;
+  recordTxn(12, 'Stainless Speedway — 12 tires');
+  const last = ledger()[ledger().length - 1];
+  assert.equal(wallet(), w);                    // balance unchanged
+  assert.equal(ledger().length, before + 1);
+  assert.equal(last.amount, 12);
+  assert.equal(last.reason, 'Stainless Speedway — 12 tires');
+  assert.equal(last.balance, w);
+  recordTxn(0, 'noop');                         // 0 is a no-op
+  assert.equal(ledger().length, before + 1);
 });
 
 test('ledger: purchase logs a "Bought …" entry with the negative amount', () => {

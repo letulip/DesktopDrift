@@ -120,20 +120,32 @@ export const wallet = () => { _ensure(); return _s.wallet; };
 // Tire-coin ledger: keep the most recent LEDGER_MAX transactions for the history view.
 const LEDGER_MAX = 50;
 
+const _pushLedger = (amount, reason) => {
+  if (!Array.isArray(_s.ledger)) _s.ledger = [];
+  _s.ledger.push({ t: Date.now(), amount, reason, balance: _s.wallet });
+  if (_s.ledger.length > LEDGER_MAX) _s.ledger.splice(0, _s.ledger.length - LEDGER_MAX);
+};
+
 // Add (or remove, if n<0) tire coins; clamped at 0. Persists. Returns the new balance.
-// `reason` labels the transaction in the history (e.g. 'Race payout', 'Bought Matte').
+// A truthy `reason` logs a history entry; pass none for silent changes (e.g. per-tire
+// pickups, which are aggregated into one ledger entry per race via recordTxn).
 export const addTires = (n, reason = '') => {
   _ensure();
   const before = _s.wallet;
   _s.wallet = Math.max(0, _s.wallet + n);
   const delta = _s.wallet - before;
-  if (delta !== 0) {
-    if (!Array.isArray(_s.ledger)) _s.ledger = [];
-    _s.ledger.push({ t: Date.now(), amount: delta, reason, balance: _s.wallet });
-    if (_s.ledger.length > LEDGER_MAX) _s.ledger.splice(0, _s.ledger.length - LEDGER_MAX);
-  }
+  if (delta !== 0 && reason) _pushLedger(delta, reason);
   save();
   return _s.wallet;
+};
+
+// Log a history entry for coins already added to the wallet (e.g. an aggregated
+// per-race pickup sum) WITHOUT changing the balance again. No-op for amount 0.
+export const recordTxn = (amount, reason) => {
+  _ensure();
+  if (!amount) return;
+  _pushLedger(amount, reason);
+  save();
 };
 
 // The tire-coin transaction history (oldest first). Empty until the first earn/spend.

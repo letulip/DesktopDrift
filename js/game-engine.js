@@ -3,8 +3,9 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn } from './store.js';
 import { finishPayout } from './economy.js';
+import { TRACKS } from './track-registry.js';
 import { createRaceResults } from './race-results.js';
 import {
   driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
@@ -127,8 +128,9 @@ export const startGame = (T, opts = {}) => {
           cap.collected = true;
           cap.pop = 0.4;
           tireCollect(T.id ?? '', c.capId ?? i);
-          addTires(c.value, 'Tire pickup');
-          flash('+' + c.value + ' tires', '#ffe48a');
+          addTires(c.value);                 // credit live (HUD); ledger logs the per-race sum
+          tiresEarned += c.value;
+          flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
         }
         continue;
       }
@@ -211,6 +213,7 @@ export const startGame = (T, opts = {}) => {
 
   const raceResults  = createRaceResults();
   let raceFinished   = false; // flag: stop() must not destroy raceResults after a finish
+  let tiresEarned    = 0;     // tire coins picked up this run — logged as one ledger entry at finish
 
   // Menu button — ask for confirmation first so a stray tap doesn't eject the player.
   // Game is paused for the duration of the dialog.
@@ -404,7 +407,11 @@ export const startGame = (T, opts = {}) => {
           // versus runs where the cap was already collected (or not present).
           const ppsScore   = Math.max(0, totalScore - capBonus);
           const pps        = pointsPerSecond(ppsScore, totalTime);
-          addTires(finishPayout(pps), 'Race payout');
+          // Aggregate the run's tire history into global events: pickups sum + finish bonus.
+          const trackName = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
+          if (tiresEarned > 0)
+            recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
+          addTires(finishPayout(pps), `${trackName} — finish bonus`);
 
           let isNewRecord = false;
           if (T.id) {
