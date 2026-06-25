@@ -14,17 +14,20 @@ const drawTrail = (ctx, color, cx, cy, s, M, phase) => {
   const rgb     = hexToRgbStr(color) || '255,255,255';
   const halfLen = (M.vw / 2) * s;
   const rearX   = cx - halfLen + 6 * s;     // start just inside the rear bumper
-  const dy      = M.vh * 0.22 * s;          // wheel-track offset from the centreline
-  const gap = 13, sz = 5, MARKS = 26;
-  const scroll = ((phase * 30) % gap);      // ~30 px/s flow away from the car
+  const dy      = M.vh * 0.36 * s;          // tracks sit out near the car's edges (its width)
+  const mw      = M.vh * 0.10 * s;          // mark length (along travel)
+  const mh      = M.vh * 0.14 * s;          // mark width — a chunky tyre tread, not a thin dot
+  const gap     = mw * 1.6;
+  const MARKS   = 24;
+  const scroll  = (phase * 28) % gap;       // flow away from the car (~28 px/s)
   for (const ty of [cy - dy, cy + dy]) {
     for (let i = 0; i < MARKS; i++) {
       const x = rearX - i * gap - scroll;
       if (x < 3) break;                      // ran off the left edge
-      const a = (1 - (rearX - x) / (MARKS * gap)) * 0.45;   // fade with distance
+      const a = (1 - (rearX - x) / (MARKS * gap)) * 0.5;    // fade with distance
       if (a <= 0) continue;
       ctx.fillStyle = `rgba(${rgb},${a})`;
-      ctx.fillRect(x - sz / 2, ty - sz / 2, sz, sz);
+      ctx.fillRect(x - mw / 2, ty - mh / 2, mw, mh);
     }
   }
 };

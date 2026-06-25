@@ -244,11 +244,19 @@
         : (selected ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
     const { total, count } = cartTotal();
-    const have = wallet();
-    applyBtn.textContent = count ? `Buy & Apply 🛞${total}` : 'Apply';
-    const short = count && have < total;
-    warnEl.hidden = !short;
-    if (short) warnEl.textContent = `Not enough tires — need 🛞${total}, you have 🛞${have}`;
+    const have  = wallet();
+    const short = count > 0 && have < total;
+    // Total shown on its own line above the bar; the button stays a short label and
+    // goes inactive when there aren't enough tires.
+    applyBtn.textContent = count ? 'Buy & Apply' : 'Apply';
+    applyBtn.disabled    = short;
+    warnEl.hidden = count === 0;
+    if (count) {
+      warnEl.textContent = short
+        ? `Total 🛞${total} — not enough (you have 🛞${have})`
+        : `Total 🛞${total}`;
+      warnEl.classList.toggle('is-short', short);
+    }
   };
 
   buildGroup('finish', 'shop-finish');

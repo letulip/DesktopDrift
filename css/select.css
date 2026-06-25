@@ -241,7 +241,7 @@
 .cust-sublabel {
   font: 700 11px var(--font-body);
   letter-spacing: .6px; text-transform: uppercase;
-  color: rgba(255,255,255,.4);
+  color: var(--accent-gold);
 }
 
 /* ── Modify screen (modify.html) ────────────────────────────────────────── */
@@ -295,9 +295,11 @@
   width: 100%;
 }
 .buy-warning {
-  font: 600 12px var(--font-body);
-  color: #ff8a6a; text-align: center;
+  font: 700 12px var(--font-body);
+  color: #ffce6a; text-align: center;          /* total (affordable) */
+  font-variant-numeric: tabular-nums;
 }
+.buy-warning.is-short { color: #ff8a6a; }       /* not enough tires */
 .buy-warning[hidden] { display: none; }
 #applyBtn {
   flex: 1; max-width: 300px;
