@@ -14,7 +14,9 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null) => {
   const W = cvs.width, H = cvs.height;
   const ctx = cvs.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-  const pad = 6;
+  // Proportional padding leaves air around the car so the neon underglow isn't
+  // clipped at the canvas edge (≈12% on the big modify preview, a little on cards).
+  const pad = Math.min(W, H) * 0.12;
   const sc  = Math.min((W - pad * 2) / M.vw, (H - pad * 2) / M.vh);
   ctx.save();
   ctx.translate(W / 2, H / 2);

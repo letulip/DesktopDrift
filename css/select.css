@@ -33,17 +33,21 @@
   cursor: pointer; transition: border-color var(--ease), background var(--ease);
 }
 
-/* Modify (gear) button — top-right of each car card */
+/* Modify (gear) button — top-right of each car card. The icon is icons/settings.svg
+   recoloured to the accent via CSS mask (source SVG untouched). Hover: gold glow + lift. */
 .car-modify {
-  position: absolute; top: 8px; right: 8px; z-index: 2;
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,.38); color: rgba(255,255,255,.72);
-  font-size: 15px; line-height: 1; text-decoration: none;
-  border: 1px solid rgba(255,255,255,.14);
-  transition: background var(--ease), color var(--ease), transform var(--ease);
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 22px; height: 22px;
+  background-color: var(--accent);
+  -webkit-mask: url(../icons/settings.svg) center / contain no-repeat;
+          mask: url(../icons/settings.svg) center / contain no-repeat;
+  transition: background-color var(--ease), filter var(--ease), transform var(--ease);
 }
-.car-modify:hover { background: var(--accent-tint); color: var(--accent); transform: rotate(45deg); }
+.car-modify:hover {
+  background-color: var(--accent-gold);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+  transform: translateY(-2px);
+}
 .car-card:hover { border-color: var(--accent); }
 .car-card.sel { border-color: var(--accent); background: var(--accent-tint); }
 .car-card canvas {
@@ -72,12 +76,14 @@
 
 /* ── Colour palette ─────────────────────────────────────────────────────── */
 .palette-section {
-  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
 }
-.palette-label {
-  font: 600 11px var(--font-body);
-  letter-spacing: .6px; text-transform: uppercase;
-  color: rgba(255,255,255,.38);
+/* Section heading — shared by Body colour / Finish / Trail (accent, uppercase). */
+.palette-label,
+.shop-group-label {
+  font: 700 13px var(--font-body);
+  letter-spacing: .7px; text-transform: uppercase;
+  color: var(--accent);
 }
 .swatch-grid {
   display: grid;
@@ -160,12 +166,7 @@
   width: min(340px, calc(100vw - 40px));
 }
 .shop-group {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%;
-}
-.shop-group-label {
-  font: 600 10px var(--font-body);
-  letter-spacing: .5px; text-transform: uppercase;
-  color: rgba(255,255,255,.3);
+  display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%;
 }
 .shop-grid {
   display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
@@ -206,7 +207,7 @@
 #modify #content {
   overflow-y: auto;
   align-items: center;
-  gap: 16px;
+  gap: 22px;                 /* equal vertical rhythm between every group */
   padding: 8px 0 96px;       /* room for the fixed apply bar */
 }
 #car-name {
@@ -215,9 +216,20 @@
   background: var(--accent-text);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
+/* Car preview sits on a soft lit "stage" with air around it, so the neon glow reads. */
+.preview-stage {
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 26px;
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.07), rgba(255,255,255,0) 72%),
+    var(--surface);
+  border: 1px solid var(--surface-line);
+}
 #preview {
-  width: min(320px, 84vw); aspect-ratio: 440 / 164;
-  background: var(--bg-deep); border-radius: var(--r-card);
+  display: block;
+  width: min(300px, 78vw); aspect-ratio: 440 / 164;
+  background: transparent;
 }
 
 /* bottom apply / buy bar */
