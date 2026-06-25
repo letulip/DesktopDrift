@@ -25,43 +25,50 @@
 <div id="modify">
 
   <header id="ts-header">
-    <h1 id="car-name"></h1>
-    <p id="ts-sub">Customize &amp; buy</p>
+    <div class="ts-header-text">
+      <h1 id="car-name"></h1>
+      <p id="ts-sub">Customize &amp; buy</p>
+    </div>
+    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
   </header>
 
   <div id="content" class="content--column">
-
-    <!-- Tire-coin balance — between the header and the car -->
-    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
 
     <div class="preview-stage">
       <canvas id="preview"></canvas>
     </div>
 
-    <!-- Body colour (free) -->
-    <div class="palette-section">
-      <div class="palette-label">Body colour</div>
-      <div id="body-palette" class="swatch-grid"></div>
-      <div id="body-name" class="swatch-name"></div>
-    </div>
+    <!-- All customization in one tabbed selector (one panel shown at a time) -->
+    <div id="custom">
+      <div class="shop-tabs" role="tablist">
+        <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
+        <button class="shop-tab" type="button" data-panel="neon">Neon</button>
+        <button class="shop-tab" type="button" data-panel="finish">Finish</button>
+        <button class="shop-tab" type="button" data-panel="trail">Trail</button>
+      </div>
 
-    <!-- Neon underglow (free) -->
-    <div id="neon-section">
-      <button id="neon-btn">✦ Neon</button>
-      <div id="neon-palette-wrap">
+      <!-- Body colour (free) -->
+      <div class="cust-panel" data-panel="colour">
+        <div id="body-palette" class="swatch-grid"></div>
+        <div id="body-name" class="swatch-name"></div>
+      </div>
+
+      <!-- Neon underglow (free) -->
+      <div class="cust-panel" data-panel="neon" hidden>
+        <button id="neon-btn" type="button">✦ Neon</button>
         <div id="neon-palette" class="swatch-grid"></div>
         <div id="neon-name" class="swatch-name"></div>
       </div>
-    </div>
 
-    <!-- Paid cosmetics — tabbed (one category shown at a time) -->
-    <div id="shop">
-      <div class="shop-tabs" role="tablist">
-        <button class="shop-tab is-active" type="button" data-kind="finish">Finish</button>
-        <button class="shop-tab" type="button" data-kind="trail">Trail</button>
+      <!-- Paint finish (paid) -->
+      <div class="cust-panel" data-panel="finish" hidden>
+        <div id="shop-finish" class="shop-grid"></div>
       </div>
-      <div id="shop-finish" class="shop-grid" data-panel="finish"></div>
-      <div id="shop-trail" class="shop-grid" data-panel="trail" hidden></div>
+
+      <!-- Trail colour (paid) -->
+      <div class="cust-panel" data-panel="trail" hidden>
+        <div id="shop-trail" class="shop-grid"></div>
+      </div>
     </div>
 
   </div>
@@ -139,7 +146,6 @@
 
   // ── Neon underglow (free) ─────────────────────────────────────────────────────
   const neonBtn   = document.getElementById('neon-btn');
-  const neonWrap  = document.getElementById('neon-palette-wrap');
   const neonPalEl = document.getElementById('neon-palette');
   const neonName  = document.getElementById('neon-name');
   let selNeon = Math.max(0, NEON_PALETTE.findIndex(p => p.hex === pending.neon));
@@ -148,7 +154,6 @@
     const nc = NEON_PALETTE[selNeon].hex;
     neonBtn.style.setProperty('--nc', nc);
     neonBtn.classList.toggle('active', pending.neonOn);
-    neonWrap.classList.toggle('open', pending.neonOn);
     neonPalEl.style.setProperty('--ring', nc);
   };
   const neonEls = NEON_PALETTE.map((entry, idx) => {
@@ -240,13 +245,13 @@
   buildGroup('finish', 'shop-finish');
   buildGroup('trail',  'shop-trail');
 
-  // ── Tabs: show one paid category at a time (also keeps mobile compact) ─────────
+  // ── Tabs: show one customization panel at a time (Colour / Neon / Finish / Trail) ──
   const tabs   = [...document.querySelectorAll('.shop-tab')];
-  const panels = [...document.querySelectorAll('#shop .shop-grid')];
+  const panels = [...document.querySelectorAll('.cust-panel')];
   for (const tab of tabs) {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.toggle('is-active', t === tab));
-      panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.kind; });
+      panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.panel; });
     });
   }
 
