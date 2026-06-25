@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/select.css">
+  <link rel="stylesheet" href="css/wallet.css">
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
@@ -49,6 +50,7 @@
   import { CARS, GU_TO_KMH } from './js/config.js';
   import { garage, save, wallet } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
+  import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
 
   const params    = new URLSearchParams(location.search);
@@ -66,8 +68,9 @@
 
   if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
 
-  // Wallet HUD
+  // Wallet HUD + tap-for-history
   document.getElementById('wallet-amount').textContent = wallet();
+  initWalletHistory(document.querySelector('.wallet-pill'));
 
   // ── Restore the saved look (global, applied to every car preview) ─────────────
   const g = garage();

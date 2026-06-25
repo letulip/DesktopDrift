@@ -30,6 +30,7 @@ const defaults = () => ({
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
+  ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
   stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
 });
@@ -116,13 +117,27 @@ export const capCollect = (trackId, idx) => {
 // Current tire-coin balance.
 export const wallet = () => { _ensure(); return _s.wallet; };
 
+// Tire-coin ledger: keep the most recent LEDGER_MAX transactions for the history view.
+const LEDGER_MAX = 50;
+
 // Add (or remove, if n<0) tire coins; clamped at 0. Persists. Returns the new balance.
-export const addTires = (n) => {
+// `reason` labels the transaction in the history (e.g. 'Race payout', 'Bought Matte').
+export const addTires = (n, reason = '') => {
   _ensure();
+  const before = _s.wallet;
   _s.wallet = Math.max(0, _s.wallet + n);
+  const delta = _s.wallet - before;
+  if (delta !== 0) {
+    if (!Array.isArray(_s.ledger)) _s.ledger = [];
+    _s.ledger.push({ t: Date.now(), amount: delta, reason, balance: _s.wallet });
+    if (_s.ledger.length > LEDGER_MAX) _s.ledger.splice(0, _s.ledger.length - LEDGER_MAX);
+  }
   save();
   return _s.wallet;
 };
+
+// The tire-coin transaction history (oldest first). Empty until the first earn/spend.
+export const ledger = () => { _ensure(); if (!Array.isArray(_s.ledger)) _s.ledger = []; return _s.ledger; };
 
 // Ids of tires already collected on a track (empty if none yet).
 export const tiresFor = (trackId) => {
@@ -167,6 +182,6 @@ export const equip = (slot, value) => {
 export const purchase = (item) => {
   _ensure();
   const result = buy({ wallet: _s.wallet, owned: _s.owned }, item);
-  if (result.ok) { addTires(-item.price); grant(item.id); }
+  if (result.ok) { addTires(-item.price, 'Bought ' + (item.name || 'item')); grant(item.id); }
   return result;
 };

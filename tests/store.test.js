@@ -16,7 +16,7 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, equip, purchase } =
+        owned, isOwned, grant, equip, purchase, ledger } =
   await import('../js/store.js');
 
 test('defaults: garage', () => {
@@ -134,4 +134,36 @@ test('purchase: success deducts wallet, grants item; failure leaves state intact
   assert.deepEqual(broke, { ok: false, reason: 'broke' });
   assert.equal(wallet(), 20);
   assert.equal(isOwned('finish-chrome'), false);
+});
+
+// ── Ledger (tire-coin history) ────────────────────────────────────────────────
+
+test('ledger: addTires records a signed entry with reason + resulting balance', () => {
+  const before = ledger().length;
+  addTires(7, 'Test reward');
+  const last = ledger()[ledger().length - 1];
+  assert.equal(ledger().length, before + 1);
+  assert.equal(last.amount, 7);
+  assert.equal(last.reason, 'Test reward');
+  assert.equal(last.balance, wallet());
+  assert.ok(last.t > 0);
+});
+
+test('ledger: a zero-delta change records nothing', () => {
+  const before = ledger().length;
+  addTires(0, 'noop');
+  assert.equal(ledger().length, before);
+});
+
+test('ledger: purchase logs a "Bought …" entry with the negative amount', () => {
+  addTires(500, 'topup');
+  purchase({ id: 'trail-mint', name: 'Mint', price: 40, kind: 'trail', value: '#00FF88' });
+  const last = ledger()[ledger().length - 1];
+  assert.equal(last.reason, 'Bought Mint');
+  assert.equal(last.amount, -40);
+});
+
+test('ledger: capped at 50 entries (oldest dropped)', () => {
+  for (let i = 0; i < 60; i++) addTires(1, 'spam ' + i);
+  assert.ok(ledger().length <= 50);
 });

@@ -127,7 +127,7 @@ export const startGame = (T, opts = {}) => {
           cap.collected = true;
           cap.pop = 0.4;
           tireCollect(T.id ?? '', c.capId ?? i);
-          addTires(c.value);
+          addTires(c.value, 'Tire pickup');
           flash('+' + c.value + ' tires', '#ffe48a');
         }
         continue;
@@ -404,7 +404,7 @@ export const startGame = (T, opts = {}) => {
           // versus runs where the cap was already collected (or not present).
           const ppsScore   = Math.max(0, totalScore - capBonus);
           const pps        = pointsPerSecond(ppsScore, totalTime);
-          addTires(finishPayout(pps));
+          addTires(finishPayout(pps), 'Race payout');
 
           let isNewRecord = false;
           if (T.id) {

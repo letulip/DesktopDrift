@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/tracks.css">
+  <link rel="stylesheet" href="css/wallet.css">
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
@@ -58,8 +59,10 @@
   import { TRACKS } from './js/track-registry.js';
   import { records, collectedCaps, tiresFor, wallet } from './js/store.js';
   import { svgToCentreline } from './js/track-util.js';
+  import { initWalletHistory } from './js/wallet-history.js';
 
   document.getElementById('wallet-amount').textContent = wallet();
+  initWalletHistory(document.querySelector('.wallet-pill'));
 
   // ── Track preview rendering on canvas ───────────────────────────────────────
   const TRACK_GU = 100;

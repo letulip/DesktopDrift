@@ -1,0 +1,67 @@
+/* Tire-coin history modal (js/wallet-history.js) — shared by garage / modify / tracks */
+
+.wallet-pill--clickable { cursor: pointer; transition: border-color var(--ease), background var(--ease); }
+.wallet-pill--clickable:hover { border-color: rgba(255,200,110,.6); background: rgba(255,180,60,.22); }
+
+.wh-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,.55);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.wh-overlay[hidden] { display: none; }
+
+.wh-panel {
+  width: min(380px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-card);
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  overflow: hidden;
+}
+
+.wh-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--surface-line);
+}
+.wh-title {
+  font: 800 15px var(--font-display); letter-spacing: .3px;
+  color: var(--accent);
+}
+.wh-close {
+  border: none; background: none; cursor: pointer;
+  color: rgba(255,255,255,.5); font-size: 16px; line-height: 1;
+  padding: 4px; border-radius: 8px;
+  transition: color var(--ease), background var(--ease);
+}
+.wh-close:hover { color: var(--ink); background: rgba(255,255,255,.08); }
+
+.wh-list { overflow-y: auto; padding: 6px 8px 10px; }
+
+.wh-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.wh-row:last-child { border-bottom: none; }
+.wh-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wh-reason {
+  font: 600 13px var(--font-body); color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wh-time { font: 500 11px var(--font-body); color: rgba(255,255,255,.35); }
+
+.wh-row-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.wh-amt { font: 800 13px var(--font-body); font-variant-numeric: tabular-nums; }
+.wh-amt.pos { color: #6fd39a; }     /* earned — green */
+.wh-amt.neg { color: #ffce6a; }     /* spent — amber  */
+.wh-bal { font: 500 11px var(--font-body); color: rgba(255,255,255,.35); font-variant-numeric: tabular-nums; }
+
+.wh-empty {
+  padding: 32px 18px; text-align: center; line-height: 1.6;
+  font: 500 13px var(--font-body); color: rgba(255,255,255,.4);
+}
