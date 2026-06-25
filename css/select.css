@@ -238,10 +238,9 @@
   display: flex; align-items: center; justify-content: center;
   padding: 18px 26px;
   border-radius: var(--r-card);
-  /* Dark base so the neon underglow reads; a faint top light gives it some depth. */
   background:
-    radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.05), rgba(255,255,255,0) 70%),
-    var(--bg-deep);
+    radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.07), rgba(255,255,255,0) 72%),
+    var(--surface);
   border: 1px solid var(--surface-line);
 }
 #preview {
