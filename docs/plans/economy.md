@@ -110,9 +110,21 @@ behind tests + one browser smoke (per `desktopdrift-pr`).
         (bestPPS ≥ 300); per-instance records/chips; ↺ name suffix (thumbnail not mirrored —
         same geometry both ways).
 
-- [ ] **D3. Pricing validation pass.** **[opus]** After D1+D2, re-run the pacing check on real
-      numbers; tune `FINISH_FLAT`/`FINISH_PER_STAR` (income speed) or per-track tire counts
-      (collect value) — ratios, not absolutes. Probably no catalog price change.
+- [x] **D3. Pricing validation pass.** **[opus]** DONE (analysis — no code/price changes).
+      Re-checked the pacing with D1 + D2 live on the current 3 tracks (6 instances = 3 fwd + 3 rev):
+      | Source | fwd (3) | rev (3, behind 3★) | one-time |
+      |---|---|---|---|
+      | Tires @1 | 36 | 36 | 72 |
+      | First-clear +20 | 60 | 60 | 120 |
+      | **One-time bank** | **96** | **+96** | **≈192** |
+      | Finish payout | 2–12/race | 2–12/race | ∞ |
+      First-clear ~tripled the early bank (36 → 96 forward); reversed doubles it (→192). Matches
+      the model's slope (6/14 instances → ~180 expected ≈ 192). Catalog ~840 today → completion
+      is a finish-payout long tail (~80 races), early hook (Matte+trail ≈ 80) affordable fast.
+      **Findings:** prices stay; **3★ gate confirmed reasonable** (3★ readily attainable; 4–5★ is
+      the real skill challenge); don't touch `FINISH_FLAT`/`FINISH_PER_STAR` until cars (D5) add a
+      big sink; tires/track 12/11/13 (≈ target ~10) kept — collect feels juicier. Caps give score,
+      not currency, and are stripped from record-PPS, so they don't inflate payout (anti-grind ok).
 
 - [ ] **D4. Catalog completion → ~1,800.** **[sonnet-high]** Liveries + wheel styles = shop
       **B6/B7** (data + a render branch). Additive; do after faucets so there's money to spend.
