@@ -251,6 +251,10 @@ export const circularAdvance = (idx, ref, N) => {
   return d <= N / 2 ? d : 0;
 };
 
+// Persistence key for a track instance: the bare track id for forward, `${id}:rev` for
+// reversed. One key for records, tire/cap pickups, cleared-flag and first-clear (Phase D2).
+export const instanceId = (trackId, reversed) => (reversed ? `${trackId}:rev` : trackId);
+
 // Reverse a parsed track — drive the same circuit the other way (economy Phase D2).
 // Pure: returns a new object, the input is not mutated. center/inner/outer are reversed
 // in lockstep, then checkpoints/startPos/startAngle are recomputed from the reversed

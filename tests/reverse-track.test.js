@@ -2,7 +2,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { reverseTrack } from '../js/track-util.js';
+import { reverseTrack, instanceId } from '../js/track-util.js';
+
+test('instanceId: bare id forward, `${id}:rev` reversed', () => {
+  assert.equal(instanceId('green-study', false), 'green-study');
+  assert.equal(instanceId('green-study', true),  'green-study:rev');
+});
 
 // Synthetic circular track: N points around a circle, with inner/outer offset radially
 // (parallel to center, index-aligned). Enough structure to exercise the transform.

@@ -40,12 +40,14 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
       order reversed, inner/outer lockstep, double-reverse identity, start flips 180°,
       checkpoints recomputed, content carried). 162 tests green.
 
-- [ ] **R2. Instance-id keying across store + engine.** **[opus]** (schema/cross-cutting)
-      Add `instanceId(trackId, reversed)` (pure; `js/track-util.js`). Thread it through the
-      game-engine in place of the bare `T.id` for: `tireCollect`/`tiresFor`, `capCollect`/
-      `collectedCaps`, `markCleared`, and the `records[key]` slot + first-clear. Store API is
-      already keyed by string id, so this is mostly call-site changes. Tests: store treats
-      `green-study` and `green-study:rev` as independent for tires/caps/cleared/records.
+- [x] **R2. Instance-id keying across store + engine.** **[opus]** DONE.
+      `instanceId(trackId, reversed)` in `js/track-util.js`. Engine derives
+      `INSTANCE = instanceId(T.id, opts.reversed)` and uses it for restore (`collectedCaps`/
+      `tiresFor`), `tireCollect`/`capCollect`, `markCleared`, the `records[INSTANCE]` slot +
+      first-clear, and the history label (` (reversed)` suffix). `S.reversed` added.
+      `opts.reversed` defaults false → forward unchanged (INSTANCE == id); reversed reachable
+      once R3 passes it. The store already keys by string id, so directions are independent.
+      Test: `instanceId` forward/reversed. 163 tests green.
 
 - [ ] **R3. Wire reversed into the game.** **[opus]** (touches the start/finish flow)
       `game.html`: read `dir`, `if (dir==='rev') T = reverseTrack(T)`, compute the instance id,
