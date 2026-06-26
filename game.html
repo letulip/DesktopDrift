@@ -49,17 +49,19 @@
 <script type="module">
   import { TRACKS }    from './js/track-registry.js';
   import { startGame } from './js/game-engine.js';
+  import { reverseTrack } from './js/track-util.js';
 
-  const params  = new URLSearchParams(location.search);
-  const trackId = params.get('track') ?? '';
-  const isZen   = params.get('mode') === 'zen';
-  const meta    = TRACKS.find(t => t.id === trackId);
+  const params   = new URLSearchParams(location.search);
+  const trackId  = params.get('track') ?? '';
+  const isZen    = params.get('mode') === 'zen';
+  const reversed = params.get('dir') === 'rev';
+  const meta     = TRACKS.find(t => t.id === trackId);
 
   // Invalid or missing track → back to track selection
   if (!meta) { location.replace(isZen ? 'zen.html' : 'tracks.html'); throw new Error('unknown track'); }
 
   // Tab title from the registry name
-  document.title = `Desktop Drift — ${meta.name}`;
+  document.title = `Desktop Drift — ${meta.name}${reversed ? ' (Reversed)' : ''}`;
 
   if (isZen) document.body.classList.add('zen');
 
@@ -74,7 +76,9 @@
     location.replace(isZen ? 'zen.html' : 'tracks.html');
     throw err;   // stop further execution
   }
-  startGame(T, { initItems: true, zen: isZen });
+  // Reversed variant: a pure transform of the parsed track (drive it the other way).
+  if (reversed) T = reverseTrack(T);
+  startGame(T, { initItems: true, zen: isZen, reversed });
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>

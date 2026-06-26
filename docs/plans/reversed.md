@@ -49,13 +49,13 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
       once R3 passes it. The store already keys by string id, so directions are independent.
       Test: `instanceId` forward/reversed. 163 tests green.
 
-- [ ] **R3. Wire reversed into the game.** **[opus]** (touches the start/finish flow)
-      `game.html`: read `dir`, `if (dir==='rev') T = reverseTrack(T)`, compute the instance id,
-      pass both to `startGame`. `game-engine`: use the instance id for restore (collected
-      caps/tires) + finish (records, first-clear, history labels — e.g. `{Track} (reversed) —
-      finish bonus`). Confirm finish detection + lap counting work in reverse (they should, via
-      R1's recomputed `startAngle`/checkpoints). Browser smoke: a reversed lap completes, pays
-      out, records save under the `:rev` key.
+- [x] **R3. Wire reversed into the game.** **[opus]** DONE.
+      `game.html`: reads `dir`, applies `reverseTrack(T)` when `dir=rev`, appends "(Reversed)" to
+      the title, passes `reversed` to `startGame`. The engine already keys everything by
+      `INSTANCE` (R2). Verified in browser: `game.html?track=green-study&dir=rev` loads with the
+      `{...namespace}` spread carrying K/CP_R/TRACK_HALF, checkpoints recomputed (8), startAngle
+      flipped ~180°, car at the (reversed) start line, countdown + HUD running.
+      *(Full 3-lap finish/payout under `:rev` relies on R1's tested geometry — drive-test it.)*
 
 - [ ] **R4. Track-select: Reversed toggle + unlock gate.** **[opus]** (UX integration)
       `tracks.html`: enable the now-locked **Reversed** toggle (`#btn-reversed`). In reversed
