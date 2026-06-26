@@ -32,12 +32,18 @@ Follow my Devlog on YouTube https://www.youtube.com/@DesktopDrift
 
 **Responsive Controls:** Split-screen touch steering for mobile devices and keyboard support for desktop.
 
+**Game Modes:** Time Attack (PPS records + star ratings, first-clear bonus), Sandbox free-roam, and Zen drift.
+
+**Collectibles & Tire Economy:** Cola caps (collected by drifting a donut around them) and tire coins — a soft currency. A wallet with a tap-to-open transaction history.
+
+**Garage & Shop:** Per-car customization — body colour, neon underglow, paint finishes (matte / metallic / pearl / chrome) and drift-trail colours, bought with tires. Purchases are account-wide; the equipped look is saved per car.
+
 ## 🚧 Roadmap
 
-- different tracks
-- achievements
-- hidden and visible treasures
-- more cars
-- tuning parts and options for cars
-- cars customization
-- various game mods
+- ✅ Collectibles & tire-coin economy (cola caps, tires, in-garage shop)
+- ✅ Car customization (body colour, neon, paint finish, drift trail)
+- ✅ Game modes (Time Attack, Sandbox, Zen)
+- 🔜 Reversed track variants + more tracks
+- 🔜 Achievements (with tire rewards)
+- 🔜 More cars + per-car records
+- 🔜 Tuning parts, car classes & options

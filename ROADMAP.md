@@ -116,8 +116,8 @@ First add the **event seam** (spine #4). Then:
 - [ ] **Achievements** — data table of definitions + `store` flags/progress; subscribe to
       engine events.
 - [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
-- [ ] **Cosmetic mods** — paint finishes (matte / metallic), maybe liveries. Builds on the
-      palette UI from Phase 1.
+- [x] **Cosmetic mods** — paint finishes (matte / metallic / pearl / chrome) + drift-trail
+      colours shipped via the tire-shop (Phase 2.5). Liveries / wheel styles still to come.
 - [ ] **Performance tuning** — grip / thrust / steer, etc. *Depends on the progression
       system:* tuning options **unlock progressively after completing tracks**. Tune with
       care — it shifts game balance and would affect leaderboard fairness in the online era.
@@ -191,17 +191,21 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
   **Muscle** (huge thrust, loose rear — risk/reward), **Wedge** (max top, lazy turn-in — the
   aspirational flex, ~2,000).
 
-### Phasing (ship incrementally; see the `desktopdrift-feature` workflow when it exists)
-- **A** — tire pickup + persistent `wallet` + HUD counter. No shop; currency just accrues.
-  Smallest shippable; validates the collect feel. (Mirrors the cola-cap pipeline: proximity
-  pickup is cheaper than the drift-arc; dispatch collectibles by `kind`.)
-- **B** — shop (garage tab or `shop.html`) + cosmetics gated by `owned`.
-- **C** — new cars + per-car records.
-- **D** - cars classes and mods
+### Phasing (ship incrementally). Detail plans: `docs/plans/economy.md`, `docs/plans/shop.md`.
+- [x] **A** — tire pickup + persistent `wallet` + HUD counter. **DONE** (1 tire = 1 coin;
+      one-time per-track pickups; HUD + menu counter; per-race history).
+- [x] **B** — shop + cosmetics. **DONE** — a per-car **`modify.html`** (gear on each car card):
+      body colour, neon, paint finishes, drift-trail colour; cart + buy; **purchases
+      account-wide, looks per-car**; wallet history (tap the counter); first-clear bonus
+      (economy.md Phase D1). *Remaining: liveries/wheels to fill the catalog (D4).*
+- [ ] **C** — new cars + per-car records.
+- [ ] **D** — cars classes and mods
+- [ ] **D2 (reversed)** — reversed track variants + per-track unlock gate (the big content +
+      pacing lever; halves the one-time bank). Own plan to come: `docs/plans/reversed.md`.
 
-### Open decisions (revisit at Phase B/C)
-- Shop location: garage tab in `select.html` vs standalone `shop.html` (leaning: garage tab).
-- Wallet UI label: "Tires" / tire icon + number.
+### Open decisions — resolved
+- ~~Shop location~~ → a dedicated **per-car `modify.html`** opened by a gear on each car card.
+- ~~Wallet UI label~~ → 🛞 + number, tap to open the tire-coin history.
 
 ## Phase 3 — Content
 
