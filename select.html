@@ -57,6 +57,7 @@
   const trackId   = params.get('track');                          // e.g. 'green-study'
   const rawMode   = params.get('mode');                           // 'zen', 'sandbox', or null
   const isZen     = rawMode === 'zen';
+  const reversed  = params.get('dir') === 'rev';                   // reversed track variant
   const mode      = trackId ? 'timeattack' : (rawMode || 'sandbox');
   const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
 
@@ -176,8 +177,9 @@
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
     garage().carIndex = sel; save();
+    const dirParam = reversed ? '&dir=rev' : '';
     if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
-    else location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
+    else location.href = trackMeta ? `game.html?track=${trackMeta.id}${dirParam}` : 'sandbox.html';
   });
 
   // ── Initial render — each car shows its own per-car look ──────────────────────

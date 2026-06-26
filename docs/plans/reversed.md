@@ -57,12 +57,14 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
       flipped ~180°, car at the (reversed) start line, countdown + HUD running.
       *(Full 3-lap finish/payout under `:rev` relies on R1's tested geometry — drive-test it.)*
 
-- [ ] **R4. Track-select: Reversed toggle + unlock gate.** **[opus]** (UX integration)
-      `tracks.html`: enable the now-locked **Reversed** toggle (`#btn-reversed`). In reversed
-      view, a track card is **locked until its forward earns 3★** (forward `bestPPS ≥ 300`);
-      unlocked cards link to `game.html?track=X&dir=rev`. Show per-instance records/star-rating +
-      the cap/tire chips for the selected direction. Locked card = lock icon + "Earn 3★ on the
-      forward lap first".
+- [x] **R4. Track-select: Reversed toggle + unlock gate.** **[opus]** DONE.
+      `tracks.html`: card build refactored into `renderCards(reversed)`; the Normal/Reversed
+      toggle (now enabled) re-renders for the direction. Reversed cards are **locked until the
+      forward earns 3★** (`bestPPS ≥ 300`) — rendered as inert `<div>`s with a 🔒 overlay +
+      "earn 3★" copy; unlocked cards are links to `select.html?track=X&dir=rev` (and `select.html`
+      now forwards `dir=rev` to `game.html`). Records / star-rating / cap+tire chips all read per
+      instance via `instanceId`; names get a ↺ suffix. Verified in browser. *(Thumbnail is still
+      forward art — mirrored in R5.)*
 
 - [ ] **R5. Mirrored reversed thumbnail + per-mode badges.** **[sonnet-high]**
       Draw the reversed card's preview **mirrored** (horizontal flip of the thumbnail canvas) so
