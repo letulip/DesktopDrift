@@ -3,7 +3,7 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook } from './store.js';
 import { finishPayout } from './economy.js';
 import { TRACKS } from './track-registry.js';
 import { createRaceResults } from './race-results.js';
@@ -242,7 +242,8 @@ export const startGame = (T, opts = {}) => {
   // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  setCarPaint(g.bodyColor ?? null, g.neonColor ?? null, g.finish ?? null, g.trailColor ?? null);
+  const look = carLook(S.carModel);   // per-car equipped look
+  setCarPaint(look.bodyColor ?? null, look.neonColor ?? null, look.finish ?? null, look.trailColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).

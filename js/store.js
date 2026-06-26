@@ -20,13 +20,14 @@ import { buy } from './economy.js';
 // deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
-const VERSION = 1;
+const VERSION = 2;
 
 const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh', haptics: true },
-  // garage holds the equipped look: free body/neon colours + shop cosmetics (finish, trail).
-  garage:       { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null },
+  // garage: selected car + a PER-CAR equipped look (each car keeps its own body/neon/
+  // finish/trail). cars is keyed by car index. Purchases (owned) stay account-wide.
+  garage:       { carIndex: 0, cars: {} },
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
@@ -35,10 +36,27 @@ const defaults = () => ({
   stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
 });
 
-// Breaking-change migrations, keyed by the target version. Empty while VERSION === 1.
+// Breaking-change migrations, keyed by the target version.
 // Each fn receives the saved object and returns it transformed to that version's shape.
 const MIGRATIONS = {
-  // 2: (s) => { /* example: rename s.records.*.bestScore → bestPPS, etc. */ return s; },
+  // v2: the equipped look went from a single global set on `garage` to a per-car map
+  // (garage.cars[carIndex]). Carry the old global look onto the car last customized.
+  2: (s) => {
+    if (!_isObj(s.garage)) return s;   // corrupt/missing garage → let the merge heal it
+    const g = s.garage;
+    if (!g.cars) g.cars = {};
+    const hadLook = g.bodyColor != null || g.neonColor != null || g.finish != null || g.trailColor != null;
+    if (hadLook) {
+      g.cars[String(g.carIndex ?? 0)] = {
+        bodyColor:  g.bodyColor  ?? null,
+        neonColor:  g.neonColor  ?? null,
+        finish:     g.finish     ?? null,
+        trailColor: g.trailColor ?? null,
+      };
+    }
+    delete g.bodyColor; delete g.neonColor; delete g.finish; delete g.trailColor;
+    return s;
+  },
 };
 
 const _isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -180,12 +198,15 @@ export const grant = (id) => {
   if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
 };
 
-// Set the equipped cosmetic for a garage slot ('finish' | 'trailColor'); pass null
-// to clear it. Persists. Free body/neon colours use their own garage fields.
-export const equip = (slot, value) => {
+// The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car
+// index. Returns a live object — mutate the fields and call save(). Lazily created
+// with null defaults; purchases (owned) are shared across all cars, looks are not.
+export const carLook = (carIndex) => {
   _ensure();
-  _s.garage[slot] = value;
-  save();
+  if (!_s.garage.cars) _s.garage.cars = {};
+  const key = String(carIndex);
+  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null };
+  return _s.garage.cars[key];
 };
 
 // Apply a purchase: pure buy() against the current wallet+owned snapshot, then

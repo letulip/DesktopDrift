@@ -18,7 +18,7 @@ installLocalStorage({
 });
 
 const { settings, garage, records, achievements, stats, collectedCaps, wallet, tiresFor,
-        owned } =
+        owned, carLook } =
   await import('../js/store.js');
 
 test('loads persisted settings + fills missing fields from defaults', () => {
@@ -26,10 +26,14 @@ test('loads persisted settings + fills missing fields from defaults', () => {
   assert.deepEqual(settings(), { units: 'mph', haptics: true });
 });
 
-test('loads persisted garage + fills missing fields', () => {
-  // neonColor + shop slots (finish/trailColor) absent in the save → filled from defaults.
-  assert.deepEqual(garage(),
-    { carIndex: 3, bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null });
+test('v1→v2 migration: old global look moves onto the active car (per-car looks)', () => {
+  // Saved carIndex 3 + a global bodyColor → migrated under cars['3'], top-level dropped.
+  const g = garage();
+  assert.equal(g.carIndex, 3);
+  assert.equal(g.bodyColor, undefined);            // no more top-level look fields
+  assert.deepEqual(carLook(3),
+    { bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null });
+  assert.equal(carLook(0).bodyColor, null);        // other cars start clean
 });
 
 test('owned: missing slice on an old save is filled from defaults ([])', () => {
@@ -93,8 +97,7 @@ test('corrupt slice (wrong type) heals to default, other data kept', async () =>
   const fresh = await import('../js/store.js?v=corruptslice');
   assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true }); // no TypeError
   assert.equal(fresh.settings().units, 'kmh');
-  assert.deepEqual(fresh.garage(),
-    { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null });
+  assert.deepEqual(fresh.garage(), { carIndex: 0, cars: {} });
   assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
 });
 

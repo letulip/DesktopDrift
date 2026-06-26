@@ -16,16 +16,17 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, equip, purchase, ledger, recordTxn } =
+        owned, isOwned, grant, carLook, purchase, ledger, recordTxn } =
   await import('../js/store.js');
 
-test('defaults: garage', () => {
+test('defaults: garage (selected car + empty per-car looks)', () => {
   const g = garage();
   assert.equal(g.carIndex, 0);
-  assert.equal(g.bodyColor, null);
-  assert.equal(g.neonColor, null);
-  assert.equal(g.finish, null);
-  assert.equal(g.trailColor, null);
+  assert.deepEqual(g.cars, {});
+});
+
+test('carLook: lazily returns a null-default look per car index', () => {
+  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null });
 });
 
 test('defaults: settings / records / achievements', () => {
@@ -78,21 +79,21 @@ test('capCollect: appends new indices', () => {
 });
 
 test('mutate live object + save() persists correct JSON shape', () => {
-  const g = garage();
-  g.carIndex  = 2;
-  g.bodyColor = '#ff0000';
-  g.neonColor = '#39FF14';
+  garage().carIndex = 2;
+  const lk = carLook(2);
+  lk.bodyColor = '#ff0000';
+  lk.neonColor = '#39FF14';
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.version, 1);
+  assert.equal(raw.version, 2);
   assert.equal(raw.garage.carIndex, 2);
-  assert.equal(raw.garage.bodyColor, '#ff0000');
-  assert.equal(raw.garage.neonColor, '#39FF14');
+  assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
+  assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
   assert.deepEqual(raw.settings, { units: 'kmh', haptics: true });
 });
 
-// ── Shop: owned / grant / equip / purchase ────────────────────────────────────
+// ── Shop: owned / grant / purchase + per-car looks ────────────────────────────
 
 test('owned: defaults to [] empty', () => {
   assert.deepEqual(owned(), []);
@@ -106,14 +107,17 @@ test('grant: records ownership; idempotent; isOwned reflects it', () => {
   assert.equal(isOwned('finish-matte'), true);
 });
 
-test('equip: writes a garage slot and persists', () => {
-  equip('finish', 'matte');
-  equip('trailColor', '#ff00aa');
-  assert.equal(garage().finish, 'matte');
-  assert.equal(garage().trailColor, '#ff00aa');
+test('carLook: each car keeps an independent look', () => {
+  const a = carLook(0); a.finish = 'matte';     a.trailColor = '#ff00aa';
+  const b = carLook(1); b.finish = 'chrome';    b.neonColor  = '#00ffcc';
+  save();
+  assert.equal(carLook(0).finish, 'matte');
+  assert.equal(carLook(0).trailColor, '#ff00aa');
+  assert.equal(carLook(1).finish, 'chrome');
+  assert.equal(carLook(0).neonColor, null);     // car 1's neon did NOT leak onto car 0
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.garage.finish, 'matte');
-  assert.equal(raw.garage.trailColor, '#ff00aa');
+  assert.equal(raw.garage.cars['0'].finish, 'matte');
+  assert.equal(raw.garage.cars['1'].finish, 'chrome');
 });
 
 test('purchase: success deducts wallet, grants item; failure leaves state intact', () => {
