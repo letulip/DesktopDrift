@@ -64,7 +64,7 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null, trail = 
     const gpp = M.vw * 0.155;  // gap per wheel
 
     ctx.shadowColor = neonColor;
-    ctx.shadowBlur  = 42;      // wide spread + full-strength fill so the underglow pops
+    ctx.shadowBlur  = 30;      // bright underglow that still fits inside the preview
     ctx.globalAlpha = 1;
     ctx.fillStyle   = neonColor;
 

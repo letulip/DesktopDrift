@@ -8,46 +8,67 @@ bump SW cache → PR). English only. One commit per step; tick the box in the sa
 
 ## Economy balance & numbers (the source of truth for tuning)
 
-Concept lives in **ROADMAP.md → Phase 2.5**; this section pins the *actual* numbers so we
-tune from facts, not memory.
+Designed top-down from real content. **Capacity = 14 track instances** = 7 tracks × (forward +
+reversed). Decide how much currency exists → price the sinks → check the pacing.
+**Ratios matter more than absolutes** — tune the levers by feel, keep the roles intact.
 
 ### Currency rule
-- **1 tire pickup = 1 coin.** This is the ROADMAP intent ("plentiful, Mario-coin feel",
-  Phase 2.5 → Currency). The history reads cleanly under it: "Track — N tires" == +N coins.
-- ⚠️ **Drift to fix:** the code currently awards **5** per pickup (`TIRE.value` in
-  `js/collectibles.js`). Decision: set it back to **1**.
+- **1 tire pickup = 1 coin** (Mario-coin feel: plentiful, the collect is juicy). The history
+  reads cleanly: "{Track} — N tires" == +N coins.
 
-### Faucets (income)
-| Faucet | Per | Status |
+### 1) Faucets — how many tires exist
+| Source | Amount | Total over 14 |
 |---|---|---|
-| Tire pickups (one-time per track) | 1 / tire | implemented (value drifted to 5 — fixing to 1) |
-| Finish payout (repeatable) | `2 + 2×stars` → 2–12 / race | implemented (`js/economy.js`) |
-| First-clear bonus per instance | ROADMAP: +20 | **not implemented yet** |
+| Tires on track (one-time) | ~10 / instance | 140 |
+| First-clear bonus | +20 / instance | 280 |
+| Finish payout (repeatable) | `2 + 2×stars` → 2–12 / race | ∞ (thin stream) |
 
-Current live pickups (forward only): green-study **12** + steel-kitchen **11** + workbench
-**13** = **36** one-time coins at 1/tire. ROADMAP target was ~560 one-time across 14
-instances (7 tracks × fwd/reversed + first-clear bonus) — we're early; reversed mode, more
-tracks, and the first-clear bonus all still to come.
+→ **Guaranteed one-time bank ≈ 420 tires** (collect everything + clear all 14), then an endless
+trickle from finishes, tied to PPS/stars. Roles: **one-time = starting capital**, **finish
+payout = the long-progress engine**.
 
-### Sinks (spend) — current shop catalog (`js/shop-catalog.js`)
-| Item | Price |
+### 2) Sinks — what we spend on
+| Cosmetics | Price |
 |---|---|
-| Finish — Matte / Metallic / Pearl / Chrome | 40 / 80 / 150 / 250 |
-| Trail colours ×8 | 40 each (320) |
-| **Catalog total (today)** | **840** |
+| Tier 1 (trail colour, basic matte) | 40–80 |
+| Tier 2 (livery, metallic) | 150–250 |
+| Tier 3 (chrome/pearl, premium livery) | 400 |
+| **Full cosmetics catalog** | **~1,800** |
 
-ROADMAP planned catalog ≈ 1,800 once liveries/wheels/cars land.
+| Cars | Price |
+|---|---|
+| First new (the hook) | 400 |
+| Second | 800 |
+| Third (aspirational) | 1,400 |
+| **All cars** | **~2,600** |
 
-### Open balance decisions
-- With 1/tire, the early one-time bank is small (**36** from pickups) until the first-clear
-  bonus + reversed mode + more tracks arrive. Options when we get there: add the **first-clear
-  bonus** (biggest lever), and/or lower entry-tier finish prices. **For now: keep prices, fix
-  value→1, ship the clearer history.** Revisit once content grows.
+→ **Everything ≈ 4,400 tires.**
+
+### 3) Pacing check
+- Starting capital **~420** → covers starter cosmetics + **almost the first car (400)**. The
+  first car is deliberately cheap = the early hook (reach it by collecting content OR ~40 races).
+- The rest is funded by **finish payouts (~10/race for a strong driver)**: full cosmetics + the
+  other cars are a completionist long tail, never mandatory.
+- **Reversed gate splits the bank in half:** 7 forward ≈ 210 one-time → unlock reversed → +210.
+  Progression breathes.
+- Verdict: good as a start. Want faster? raise the finish payout. Want the collect to feel more
+  valuable? more tires per track. Ratios over absolutes.
+
+### Implementation status vs this model
+| Lever | Target | Built |
+|---|---|---|
+| 1 tire = 1 coin | yes | ✅ (`TIRE.value` = 1) |
+| Finish payout `2 + 2×stars` | yes | ✅ (`js/economy.js`) |
+| First-clear bonus (+20/instance) | yes | ❌ **not yet** — biggest remaining faucet |
+| Tires/track ~10 | ~10 | live: green-study 12 / steel-kitchen 11 / workbench 13 (≈ target) |
+| Reversed mode (×2 instances + gate) | yes | ❌ not yet |
+| Cosmetics catalog ~1,800 | ~1,800 | today ~840 (finishes 40/80/150/250 + 8 trails ×40); liveries/wheels pending |
+| Cars (400/800/1,400) | yes | ❌ Phase C |
 
 ### History (ledger) granularity
 - Aggregate **per race**, not per pickup: one entry **"{Track} — N tires"** (sum of the run's
   pickups) + one **"{Track} — finish bonus"**. Pickups still credit the wallet live (HUD), but
-  the ledger logs the global events only. (Fixes the "5 per tire" + "one row per tire" noise.)
+  the ledger logs the global events only.
 
 ---
 
