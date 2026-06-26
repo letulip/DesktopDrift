@@ -61,7 +61,7 @@ payout = the long-progress engine**.
 | Finish payout `2 + 2×stars` | yes | ✅ (`js/economy.js`) |
 | First-clear bonus (+20/instance) | yes | ❌ **not yet** — biggest remaining faucet |
 | Tires/track ~10 | ~10 | live: green-study 12 / steel-kitchen 11 / workbench 13 (≈ target) |
-| Reversed mode (×2 instances + gate) | yes | ❌ not yet |
+| Reversed mode (×2 instances + gate) | yes | ✅ done (reverseTrack + instanceId `:rev` keying + dir=rev + tracks.html gate + mirror; see `docs/plans/reversed.md`) |
 | Cosmetics catalog ~1,800 | ~1,800 | today ~840 (finishes 40/80/150/250 + 8 trails ×40); liveries/wheels pending |
 | Cars (400/800/1,400) | yes | ❌ Phase C |
 
@@ -99,14 +99,15 @@ behind tests + one browser smoke (per `desktopdrift-pr`).
         Ledger order: pickups sum → first clear → finish bonus.
       - Tests: granted once per instance, never re-awarded.
 
-- [ ] **D2. Reversed mode + per-track unlock gate.** **[opus]** Doubles content (×2 instances)
-      and is the bank's pacing gate. Larger — give it its own `docs/plans/reversed.md`.
-      - track-factory/registry: a reversed variant (reverse centreline direction; flip
-        start/finish + checkpoint order). Forward art unchanged; mode is a parameter.
-      - **Instance keying:** records, tire pickups, caps, and `cleared` keyed by `trackId:mode`
-        (forward = bare id for back-compat, reversed = `:rev`).
-      - `tracks.html`: enable the now-locked **Reversed** toggle; unlock a track's reversed once
-        its forward is in `cleared`; per-mode badges/records.
+- [x] **D2. Reversed mode + per-track unlock gate.** **[opus]** Doubles content (×2 instances)
+      and is the bank's pacing gate. **DONE.** Detail plan: `docs/plans/reversed.md`.
+      - `js/track-util.js`: `reverseTrack(T)` pure transform; `instanceId(trackId, reversed)`
+        → bare id (forward) or `` `${trackId}:rev` `` (reversed).
+      - **Instance keying:** records, tire pickups, caps, cleared flag, and first-clear bonus
+        all keyed by `instanceId` (forward = bare id for back-compat, reversed = `:rev`).
+      - `game.html?dir=rev` reads param, applies `reverseTrack`, passes `reversed` to `startGame`.
+      - `tracks.html`: Normal/Reversed toggle; reversed locked until forward earns 3★
+        (bestPPS ≥ 300); per-instance records/chips; ↺ name suffix; mirrored thumbnail.
 
 - [ ] **D3. Pricing validation pass.** **[opus]** After D1+D2, re-run the pacing check on real
       numbers; tune `FINISH_FLAT`/`FINISH_PER_STAR` (income speed) or per-track tire counts

@@ -112,7 +112,7 @@ Turns the tech demo into a game and fixes what bugs us now.
 
 First add the **event seam** (spine #4). Then:
 
-- [ ] **Tracks** - more tracks with reversed variants.
+- [ ] **Tracks** - more tracks. *(Reversed variants shipped — see Phase 2.5 D2; more tracks ongoing.)*
 - [ ] **Achievements** — data table of definitions + `store` flags/progress; subscribe to
       engine events.
 - [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
@@ -200,8 +200,9 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
       (economy.md Phase D1). *Remaining: liveries/wheels to fill the catalog (D4).*
 - [ ] **C** — new cars + per-car records.
 - [ ] **D** — cars classes and mods
-- [ ] **D2 (reversed)** — reversed track variants + per-track unlock gate (the big content +
-      pacing lever; halves the one-time bank). Own plan to come: `docs/plans/reversed.md`.
+- [x] **D2 (reversed)** — reversed track variants + per-track unlock gate. **DONE.**
+      `reverseTrack` + `instanceId` `:rev` keying + `game.html?dir=rev` + `tracks.html` 3★ gate
+      + mirrored thumbnail. Detail plan: `docs/plans/reversed.md`.
 
 ### Open decisions — resolved
 - ~~Shop location~~ → a dedicated **per-car `modify.html`** opened by a gear on each car card.

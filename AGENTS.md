@@ -290,6 +290,20 @@ stays readable. No framework, no bundler.
       invariant. (2) Minimum arc-length gap of `totalLen/K/2` between consecutive
       checkpoints — prevents a 180° hairpin spanning two sectors from placing both
       checkpoints at its entry and exit; the later is pushed to its sector index-midpoint.
+    - **Reversed mode** (`reverseTrack(T)` + `instanceId`): `reverseTrack(T)` is a pure
+      transform — it reverses `center`/`inner`/`outer` in lockstep, recomputes
+      `checkpoints`/`startPos`/`startAngle`, carries all other fields unchanged, and sets
+      `reversed: true`. The existing finish/checkpoint logic then works without modification.
+      `instanceId(trackId, reversed)` returns `trackId` for the forward run and
+      `` `${trackId}:rev` `` for the reversed run; this key is used consistently across
+      records, tire pickups, cola-cap pickups, the cleared flag, and the first-clear bonus
+      (all persistence in `store.js` and `game-engine.js`). Entry point: `game.html?dir=rev`
+      reads the param, calls `reverseTrack(T)`, and passes `reversed` to `startGame`.
+      `tracks.html` shows a Normal/Reversed toggle; the reversed card is **locked until the
+      forward run earns 3★ (bestPPS ≥ 300)**; the reversed card link includes `&dir=rev`,
+      shows per-instance records/chips, appends a ↺ to the name, and mirrors the thumbnail
+      via CSS `transform: scaleX(-1)`. Forward and reversed are fully independent persistence
+      instances — no store VERSION bump was needed (additive).
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
