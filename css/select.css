@@ -53,8 +53,8 @@
 .car-card.sel { border-color: var(--accent); background: var(--accent-tint); }
 .car-card canvas {
   display: block;
-  width: min(200px, 38vw);
-  aspect-ratio: 220 / 82;
+  width: min(210px, 42vw);
+  aspect-ratio: 240 / 140;
 }
 .car-name { font: 800 13px var(--font-display); letter-spacing: .3px; }
 

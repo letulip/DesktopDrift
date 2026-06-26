@@ -16,16 +16,17 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, equip, purchase } =
+        owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared } =
   await import('../js/store.js');
 
-test('defaults: garage', () => {
+test('defaults: garage (selected car + empty per-car looks)', () => {
   const g = garage();
   assert.equal(g.carIndex, 0);
-  assert.equal(g.bodyColor, null);
-  assert.equal(g.neonColor, null);
-  assert.equal(g.finish, null);
-  assert.equal(g.trailColor, null);
+  assert.deepEqual(g.cars, {});
+});
+
+test('carLook: lazily returns a null-default look per car index', () => {
+  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null });
 });
 
 test('defaults: settings / records / achievements', () => {
@@ -38,8 +39,8 @@ test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
 });
 
-test('stats: defaults to { caps: {}, tires: {} }', () => {
-  assert.deepEqual(stats(), { caps: {}, tires: {} });
+test('stats: defaults to { caps: {}, tires: {}, cleared: [] }', () => {
+  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [] });
 });
 
 test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
@@ -62,6 +63,13 @@ test('collectedCaps: returns [] for unknown track', () => {
   assert.deepEqual(collectedCaps('green-study'), []);
 });
 
+test('markCleared: true on first finish of an instance, false thereafter', () => {
+  assert.equal(markCleared('green-study'), true);   // first clear → award bonus
+  assert.equal(markCleared('green-study'), false);  // already cleared → no bonus
+  assert.equal(markCleared('green-study:rev'), true); // reversed is a separate instance
+  assert.deepEqual(stats().cleared, ['green-study', 'green-study:rev']);
+});
+
 test('capCollect: records a cap index', () => {
   capCollect('green-study', 0);
   assert.deepEqual(collectedCaps('green-study'), [0]);
@@ -78,21 +86,21 @@ test('capCollect: appends new indices', () => {
 });
 
 test('mutate live object + save() persists correct JSON shape', () => {
-  const g = garage();
-  g.carIndex  = 2;
-  g.bodyColor = '#ff0000';
-  g.neonColor = '#39FF14';
+  garage().carIndex = 2;
+  const lk = carLook(2);
+  lk.bodyColor = '#ff0000';
+  lk.neonColor = '#39FF14';
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.version, 1);
+  assert.equal(raw.version, 2);
   assert.equal(raw.garage.carIndex, 2);
-  assert.equal(raw.garage.bodyColor, '#ff0000');
-  assert.equal(raw.garage.neonColor, '#39FF14');
+  assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
+  assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
   assert.deepEqual(raw.settings, { units: 'kmh', haptics: true });
 });
 
-// ── Shop: owned / grant / equip / purchase ────────────────────────────────────
+// ── Shop: owned / grant / purchase + per-car looks ────────────────────────────
 
 test('owned: defaults to [] empty', () => {
   assert.deepEqual(owned(), []);
@@ -106,14 +114,17 @@ test('grant: records ownership; idempotent; isOwned reflects it', () => {
   assert.equal(isOwned('finish-matte'), true);
 });
 
-test('equip: writes a garage slot and persists', () => {
-  equip('finish', 'matte');
-  equip('trailColor', '#ff00aa');
-  assert.equal(garage().finish, 'matte');
-  assert.equal(garage().trailColor, '#ff00aa');
+test('carLook: each car keeps an independent look', () => {
+  const a = carLook(0); a.finish = 'matte';     a.trailColor = '#ff00aa';
+  const b = carLook(1); b.finish = 'chrome';    b.neonColor  = '#00ffcc';
+  save();
+  assert.equal(carLook(0).finish, 'matte');
+  assert.equal(carLook(0).trailColor, '#ff00aa');
+  assert.equal(carLook(1).finish, 'chrome');
+  assert.equal(carLook(0).neonColor, null);     // car 1's neon did NOT leak onto car 0
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.garage.finish, 'matte');
-  assert.equal(raw.garage.trailColor, '#ff00aa');
+  assert.equal(raw.garage.cars['0'].finish, 'matte');
+  assert.equal(raw.garage.cars['1'].finish, 'chrome');
 });
 
 test('purchase: success deducts wallet, grants item; failure leaves state intact', () => {
@@ -134,4 +145,58 @@ test('purchase: success deducts wallet, grants item; failure leaves state intact
   assert.deepEqual(broke, { ok: false, reason: 'broke' });
   assert.equal(wallet(), 20);
   assert.equal(isOwned('finish-chrome'), false);
+});
+
+// ── Ledger (tire-coin history) ────────────────────────────────────────────────
+
+test('ledger: addTires records a signed entry with reason + resulting balance', () => {
+  const before = ledger().length;
+  addTires(7, 'Test reward');
+  const last = ledger()[ledger().length - 1];
+  assert.equal(ledger().length, before + 1);
+  assert.equal(last.amount, 7);
+  assert.equal(last.reason, 'Test reward');
+  assert.equal(last.balance, wallet());
+  assert.ok(last.t > 0);
+});
+
+test('ledger: a zero-delta change records nothing', () => {
+  const before = ledger().length;
+  addTires(0, 'noop');
+  assert.equal(ledger().length, before);
+});
+
+test('ledger: addTires WITHOUT a reason changes wallet but logs nothing (silent pickups)', () => {
+  const before = ledger().length;
+  const w = wallet();
+  addTires(3);                                 // no reason → silent
+  assert.equal(wallet(), w + 3);
+  assert.equal(ledger().length, before);
+});
+
+test('recordTxn: logs an entry without changing the wallet (aggregated sums)', () => {
+  const w = wallet();
+  const before = ledger().length;
+  recordTxn(12, 'Stainless Speedway — 12 tires');
+  const last = ledger()[ledger().length - 1];
+  assert.equal(wallet(), w);                    // balance unchanged
+  assert.equal(ledger().length, before + 1);
+  assert.equal(last.amount, 12);
+  assert.equal(last.reason, 'Stainless Speedway — 12 tires');
+  assert.equal(last.balance, w);
+  recordTxn(0, 'noop');                         // 0 is a no-op
+  assert.equal(ledger().length, before + 1);
+});
+
+test('ledger: purchase logs a "Bought …" entry with the negative amount', () => {
+  addTires(500, 'topup');
+  purchase({ id: 'trail-mint', name: 'Mint', price: 40, kind: 'trail', value: '#00FF88' });
+  const last = ledger()[ledger().length - 1];
+  assert.equal(last.reason, 'Bought Mint');
+  assert.equal(last.amount, -40);
+});
+
+test('ledger: capped at 50 entries (oldest dropped)', () => {
+  for (let i = 0; i < 60; i++) addTires(1, 'spam ' + i);
+  assert.ok(ledger().length <= 50);
 });

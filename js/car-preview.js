@@ -5,8 +5,8 @@
 // Paints the equipped finish + parses the trail colour via shared helpers.
 import { paintBody, hexToRgbStr } from './finish.js';
 
-export const CANVAS_W = 220;   // default card resolution
-export const CANVAS_H = 82;
+export const CANVAS_W = 240;   // default card resolution (taller than the car so the neon fits)
+export const CANVAS_H = 140;
 
 // Two fading rows of skid marks streaming out behind the car (rear = its left edge),
 // drawn in canvas pixels. `phase` (seconds) scrolls them so the trail flows / lives.
@@ -41,7 +41,7 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null, trail = 
   ctx.clearRect(0, 0, W, H);
   // Proportional padding leaves air around the car so the neon underglow isn't
   // clipped at the canvas edge (≈12% on the big modify preview, a little on cards).
-  const pad = Math.min(W, H) * 0.12;
+  const pad = Math.min(W, H) * 0.15;
   const fit = Math.min((W - pad * 2) / M.vw, (H - pad * 2) / M.vh);
   // With a trail, shrink the car a touch and shift it right to make room behind it.
   const s  = trail ? fit * 0.86 : fit;
@@ -64,7 +64,7 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null, trail = 
     const gpp = M.vw * 0.155;  // gap per wheel
 
     ctx.shadowColor = neonColor;
-    ctx.shadowBlur  = 42;      // wide spread + full-strength fill so the underglow pops
+    ctx.shadowBlur  = 30;      // bright underglow that still fits inside the preview
     ctx.globalAlpha = 1;
     ctx.fillStyle   = neonColor;
 

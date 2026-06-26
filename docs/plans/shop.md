@@ -119,6 +119,13 @@ clean.
 - Both are data-only additions to `CATALOG` (`kind:'livery'|'wheel'`) plus their render branch;
   they slot into the same buy/equip plumbing from B1–B3.
 
+## Per-car looks vs shared purchases (added after Phase B)
+- **Purchases are account-wide:** `owned` is a single global set — buy a trail once, it's
+  unlocked for every car.
+- **Equipped looks are per-car:** `garage.cars[carIndex] = { bodyColor, neonColor, finish,
+  trailColor }`. Each car remembers its own body/neon/finish/trail; `carLook(i)` reads/writes
+  one car's set. (Schema v2 migration moved the old single global look onto the active car.)
+
 ## Notes / guardrails
 - **One currency** (tires). No second currency, no real money.
 - **Cosmetic-only** — never sell stats/power; per-car records (Phase C) keep PPS fair.

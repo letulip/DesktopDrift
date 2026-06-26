@@ -184,6 +184,16 @@ canvas { display: block; }
 }
 .rr-stars .star-dim { font-size: 22px; color: rgba(255,255,255,.22); }
 .rr-stars .star-lit { font-size: 22px; color: #ffc840; text-shadow: 0 0 8px rgba(255,180,0,.6); }
+
+/* Tire earnings breakdown */
+#rr-tires:empty { display: none; }
+#rr-tires {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  margin-top: 2px;
+}
+.rr-tires-total { font: 800 16px var(--font-display); color: #ffce6a; font-variant-numeric: tabular-nums; }
+.rr-tires-parts { font: 500 11px var(--font-body); color: rgba(255,255,255,.45); }
+
 #rr-laps {
   display: flex; flex-direction: column; gap: 5px;
   border-top: 1px solid rgba(255,255,255,.1);

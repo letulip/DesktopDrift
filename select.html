@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/select.css">
+  <link rel="stylesheet" href="css/wallet.css">
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
@@ -47,8 +48,9 @@
 
 <script type="module">
   import { CARS, GU_TO_KMH } from './js/config.js';
-  import { garage, save, wallet } from './js/store.js';
+  import { garage, save, wallet, carLook } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
+  import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
 
   const params    = new URLSearchParams(location.search);
@@ -66,16 +68,24 @@
 
   if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
 
-  // Wallet HUD
+  // Wallet HUD + tap-for-history
   document.getElementById('wallet-amount').textContent = wallet();
+  initWalletHistory(document.querySelector('.wallet-pill'));
 
-  // ── Restore the saved look (global, applied to every car preview) ─────────────
+  // ── Selected car (each car keeps its OWN look — see carLook) ──────────────────
   const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
   let sel = g.carIndex;
-  if (g.bodyColor) CARS.forEach(M => { M.body = g.bodyColor; });
-  const neonColor = g.neonColor || null;
-  const finish    = g.finish || null;
+
+  // Draw one car card with its per-car equipped look, without clobbering the factory
+  // default body colour on the shared CARS descriptor.
+  const drawCard = (M, i) => {
+    const look = carLook(i);
+    const orig = M.body;
+    M.body = look.bodyColor || orig;
+    drawCarPreview(cards[i].cvs, M, look.neonColor || null, look.finish || null);
+    M.body = orig;
+  };
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
   // Scale is intentionally above current values — headroom for future upgrades.
@@ -170,8 +180,8 @@
     else location.href = trackMeta ? `game.html?track=${trackMeta.id}` : 'sandbox.html';
   });
 
-  // ── Initial render — each car shows the saved look; selected one shows neon ────
-  CARS.forEach((M, i) => drawCarPreview(cards[i].cvs, M, i === sel ? neonColor : null, finish));
+  // ── Initial render — each car shows its own per-car look ──────────────────────
+  CARS.forEach((M, i) => drawCard(M, i));
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

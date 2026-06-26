@@ -16,6 +16,9 @@ export const FINISH_FLAT     = 2;
 export const FINISH_PER_STAR = 2;
 export const finishPayout = (pps) => FINISH_FLAT + FINISH_PER_STAR * starsForPps(pps);
 
+// One-time bonus for finishing a track instance for the first time (economy.md Phase D1).
+export const FIRST_CLEAR_BONUS = 20;
+
 // ── Shop purchase logic (see ROADMAP Phase 2.5 + docs/plans/shop.md) ───────────
 // Pure decision only — no state, no persistence. js/store.js applies the result to
 // the wallet + owned list. Cosmetics are sidegrades; never sell power (records-safe).

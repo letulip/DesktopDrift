@@ -20,24 +20,43 @@ import { buy } from './economy.js';
 // deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
-const VERSION = 1;
+const VERSION = 2;
 
 const defaults = () => ({
   version:      VERSION,
   settings:     { units: 'kmh', haptics: true },
-  // garage holds the equipped look: free body/neon colours + shop cosmetics (finish, trail).
-  garage:       { carIndex: 0, bodyColor: null, neonColor: null, finish: null, trailColor: null },
+  // garage: selected car + a PER-CAR equipped look (each car keeps its own body/neon/
+  // finish/trail). cars is keyed by car index. Purchases (owned) stay account-wide.
+  garage:       { carIndex: 0, cars: {} },
   records:      {},        // { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } }
   achievements: {},        // { [id]: { unlocked: bool, progress: number } }
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
+  ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
-  stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
+  stats:        { caps: {}, tires: {}, cleared: [] }, // collected ids per track + finished instance ids
 });
 
-// Breaking-change migrations, keyed by the target version. Empty while VERSION === 1.
+// Breaking-change migrations, keyed by the target version.
 // Each fn receives the saved object and returns it transformed to that version's shape.
 const MIGRATIONS = {
-  // 2: (s) => { /* example: rename s.records.*.bestScore → bestPPS, etc. */ return s; },
+  // v2: the equipped look went from a single global set on `garage` to a per-car map
+  // (garage.cars[carIndex]). Carry the old global look onto the car last customized.
+  2: (s) => {
+    if (!_isObj(s.garage)) return s;   // corrupt/missing garage → let the merge heal it
+    const g = s.garage;
+    if (!g.cars) g.cars = {};
+    const hadLook = g.bodyColor != null || g.neonColor != null || g.finish != null || g.trailColor != null;
+    if (hadLook) {
+      g.cars[String(g.carIndex ?? 0)] = {
+        bodyColor:  g.bodyColor  ?? null,
+        neonColor:  g.neonColor  ?? null,
+        finish:     g.finish     ?? null,
+        trailColor: g.trailColor ?? null,
+      };
+    }
+    delete g.bodyColor; delete g.neonColor; delete g.finish; delete g.trailColor;
+    return s;
+  },
 };
 
 const _isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -116,13 +135,39 @@ export const capCollect = (trackId, idx) => {
 // Current tire-coin balance.
 export const wallet = () => { _ensure(); return _s.wallet; };
 
+// Tire-coin ledger: keep the most recent LEDGER_MAX transactions for the history view.
+const LEDGER_MAX = 50;
+
+const _pushLedger = (amount, reason) => {
+  if (!Array.isArray(_s.ledger)) _s.ledger = [];
+  _s.ledger.push({ t: Date.now(), amount, reason, balance: _s.wallet });
+  if (_s.ledger.length > LEDGER_MAX) _s.ledger.splice(0, _s.ledger.length - LEDGER_MAX);
+};
+
 // Add (or remove, if n<0) tire coins; clamped at 0. Persists. Returns the new balance.
-export const addTires = (n) => {
+// A truthy `reason` logs a history entry; pass none for silent changes (e.g. per-tire
+// pickups, which are aggregated into one ledger entry per race via recordTxn).
+export const addTires = (n, reason = '') => {
   _ensure();
+  const before = _s.wallet;
   _s.wallet = Math.max(0, _s.wallet + n);
+  const delta = _s.wallet - before;
+  if (delta !== 0 && reason) _pushLedger(delta, reason);
   save();
   return _s.wallet;
 };
+
+// Log a history entry for coins already added to the wallet (e.g. an aggregated
+// per-race pickup sum) WITHOUT changing the balance again. No-op for amount 0.
+export const recordTxn = (amount, reason) => {
+  _ensure();
+  if (!amount) return;
+  _pushLedger(amount, reason);
+  save();
+};
+
+// The tire-coin transaction history (oldest first). Empty until the first earn/spend.
+export const ledger = () => { _ensure(); if (!Array.isArray(_s.ledger)) _s.ledger = []; return _s.ledger; };
 
 // Ids of tires already collected on a track (empty if none yet).
 export const tiresFor = (trackId) => {
@@ -139,6 +184,16 @@ export const tireCollect = (trackId, id) => {
   if (!arr.includes(id)) { arr.push(id); save(); }
 };
 
+// Record a track instance (trackId, or trackId:mode later) as finished. Returns true the
+// FIRST time it's recorded (→ award the first-clear bonus), false if already cleared.
+export const markCleared = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.cleared)) st.cleared = [];
+  if (st.cleared.includes(instanceId)) return false;
+  st.cleared.push(instanceId); save();
+  return true;
+};
+
 // ── Shop: owned cosmetics + equip (see docs/plans/shop.md) ────────────────────
 // Purchase decisions are pure (js/economy.js → buy); this module applies the result.
 
@@ -153,12 +208,15 @@ export const grant = (id) => {
   if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
 };
 
-// Set the equipped cosmetic for a garage slot ('finish' | 'trailColor'); pass null
-// to clear it. Persists. Free body/neon colours use their own garage fields.
-export const equip = (slot, value) => {
+// The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car
+// index. Returns a live object — mutate the fields and call save(). Lazily created
+// with null defaults; purchases (owned) are shared across all cars, looks are not.
+export const carLook = (carIndex) => {
   _ensure();
-  _s.garage[slot] = value;
-  save();
+  if (!_s.garage.cars) _s.garage.cars = {};
+  const key = String(carIndex);
+  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null };
+  return _s.garage.cars[key];
 };
 
 // Apply a purchase: pure buy() against the current wallet+owned snapshot, then
@@ -167,6 +225,6 @@ export const equip = (slot, value) => {
 export const purchase = (item) => {
   _ensure();
   const result = buy({ wallet: _s.wallet, owned: _s.owned }, item);
-  if (result.ok) { addTires(-item.price); grant(item.id); }
+  if (result.ok) { addTires(-item.price, 'Bought ' + (item.name || 'item')); grant(item.id); }
   return result;
 };

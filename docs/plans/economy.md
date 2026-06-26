@@ -6,6 +6,125 @@ Each step is tagged **[sonnet-high]** (mechanical, well-specified, behind tests)
 (branch from main → `npm test` + `node --check js/*.js` → ONE SW-clear browser smoke →
 bump SW cache → PR). English only. One commit per step; tick the box in the same commit.
 
+## Economy balance & numbers (the source of truth for tuning)
+
+Designed top-down from real content. **Capacity = 14 track instances** = 7 tracks × (forward +
+reversed). Decide how much currency exists → price the sinks → check the pacing.
+**Ratios matter more than absolutes** — tune the levers by feel, keep the roles intact.
+
+### Currency rule
+- **1 tire pickup = 1 coin** (Mario-coin feel: plentiful, the collect is juicy). The history
+  reads cleanly: "{Track} — N tires" == +N coins.
+
+### 1) Faucets — how many tires exist
+| Source | Amount | Total over 14 |
+|---|---|---|
+| Tires on track (one-time) | ~10 / instance | 140 |
+| First-clear bonus | +20 / instance | 280 |
+| Finish payout (repeatable) | `2 + 2×stars` → 2–12 / race | ∞ (thin stream) |
+
+→ **Guaranteed one-time bank ≈ 420 tires** (collect everything + clear all 14), then an endless
+trickle from finishes, tied to PPS/stars. Roles: **one-time = starting capital**, **finish
+payout = the long-progress engine**.
+
+### 2) Sinks — what we spend on
+| Cosmetics | Price |
+|---|---|
+| Tier 1 (trail colour, basic matte) | 40–80 |
+| Tier 2 (livery, metallic) | 150–250 |
+| Tier 3 (chrome/pearl, premium livery) | 400 |
+| **Full cosmetics catalog** | **~1,800** |
+
+| Cars | Price |
+|---|---|
+| First new (the hook) | 400 |
+| Second | 800 |
+| Third (aspirational) | 1,400 |
+| **All cars** | **~2,600** |
+
+→ **Everything ≈ 4,400 tires.**
+
+### 3) Pacing check
+- Starting capital **~420** → covers starter cosmetics + **almost the first car (400)**. The
+  first car is deliberately cheap = the early hook (reach it by collecting content OR ~40 races).
+- The rest is funded by **finish payouts (~10/race for a strong driver)**: full cosmetics + the
+  other cars are a completionist long tail, never mandatory.
+- **Reversed gate splits the bank in half:** 7 forward ≈ 210 one-time → unlock reversed → +210.
+  Progression breathes.
+- Verdict: good as a start. Want faster? raise the finish payout. Want the collect to feel more
+  valuable? more tires per track. Ratios over absolutes.
+
+### Implementation status vs this model
+| Lever | Target | Built |
+|---|---|---|
+| 1 tire = 1 coin | yes | ✅ (`TIRE.value` = 1) |
+| Finish payout `2 + 2×stars` | yes | ✅ (`js/economy.js`) |
+| First-clear bonus (+20/instance) | yes | ❌ **not yet** — biggest remaining faucet |
+| Tires/track ~10 | ~10 | live: green-study 12 / steel-kitchen 11 / workbench 13 (≈ target) |
+| Reversed mode (×2 instances + gate) | yes | ❌ not yet |
+| Cosmetics catalog ~1,800 | ~1,800 | today ~840 (finishes 40/80/150/250 + 8 trails ×40); liveries/wheels pending |
+| Cars (400/800/1,400) | yes | ❌ Phase C |
+
+### History (ledger) granularity
+- Aggregate **per race**, not per pickup: one entry **"{Track} — N tires"** (sum of the run's
+  pickups) + one **"{Track} — finish bonus"**. Pickups still credit the wallet live (HUD), but
+  the ledger logs the global events only.
+
+---
+
+## Current state vs the model — assessment
+
+- **Content live:** 3 tracks, **forward only** (green-study, steel-kitchen, workbench) = 3 of
+  the 14 target instances.
+- **Faucets live:** pickups **36** one-time (12+11+13 @ 1/coin) + finish payout (2–12/race).
+  **No first-clear bonus, no reversed.** → current one-time bank ≈ **36** vs the **~420** target.
+- **Sinks live:** cosmetics catalog **~840** (finishes 40/80/150/250 + 8 trails @ 40). No cars.
+- **Read on prices:** the catalog is priced for the *full* model (~420 bank). With only 3
+  forward tracks and no first-clear bonus, early supply is thin → cosmetics feel expensive
+  *right now*. **Fix by adding the missing faucets/content, not by cutting prices.** Cheapest,
+  highest-leverage add = the **first-clear bonus**. Tier mapping is sound (finishes = tier 1–3;
+  trails = tier 1); catalog reaches ~1,800 once liveries/wheels land; cars priced in Phase C.
+
+## Phase D — integrate the model into the game (faucets & gating)
+
+Close the gap between the model and what's built. Order = impact × cheapness. Each step ships
+behind tests + one browser smoke (per `desktopdrift-pr`).
+
+- [ ] **D1. First-clear bonus (+20 / instance).** **[opus]** Biggest missing faucet, smallest change.
+      - `js/economy.js`: `export const FIRST_CLEAR_BONUS = 20;`
+      - `js/store.js`: `stats.cleared` (array of instance ids) + `markCleared(id)` → returns
+        `true` the first time only, persists (additive — no VERSION bump).
+      - `game-engine.js` on finish: instance id = `T.id` (+ `:rev` later for reversed); if
+        `markCleared(id)` → `addTires(FIRST_CLEAR_BONUS, '{Track} — first clear')`.
+        Ledger order: pickups sum → first clear → finish bonus.
+      - Tests: granted once per instance, never re-awarded.
+
+- [ ] **D2. Reversed mode + per-track unlock gate.** **[opus]** Doubles content (×2 instances)
+      and is the bank's pacing gate. Larger — give it its own `docs/plans/reversed.md`.
+      - track-factory/registry: a reversed variant (reverse centreline direction; flip
+        start/finish + checkpoint order). Forward art unchanged; mode is a parameter.
+      - **Instance keying:** records, tire pickups, caps, and `cleared` keyed by `trackId:mode`
+        (forward = bare id for back-compat, reversed = `:rev`).
+      - `tracks.html`: enable the now-locked **Reversed** toggle; unlock a track's reversed once
+        its forward is in `cleared`; per-mode badges/records.
+
+- [ ] **D3. Pricing validation pass.** **[opus]** After D1+D2, re-run the pacing check on real
+      numbers; tune `FINISH_FLAT`/`FINISH_PER_STAR` (income speed) or per-track tire counts
+      (collect value) — ratios, not absolutes. Probably no catalog price change.
+
+- [ ] **D4. Catalog completion → ~1,800.** **[sonnet-high]** Liveries + wheel styles = shop
+      **B6/B7** (data + a render branch). Additive; do after faucets so there's money to spend.
+
+- [ ] **D5. Cars (the aspirational sink).** **[opus]** Phase C below (C1 per-car records
+      migration → C2 roster → C3 buy), priced 400 / 800 / 1,400. Gate behind a real faucet
+      (D1/D2) so they're reachable.
+
+**Sequencing:** D1 now (fast win) → D2 (reversed: the big content + pacing lever) → D3 validate
+→ then D4 (B6/B7) + D5 (Phase C) as content grows. More tracks toward the 7-track target is
+ongoing content work that feeds the same model.
+
+---
+
 ## Reuse the cola-cap pipeline (already in the codebase)
 Tires mirror cola caps but with **proximity pickup** (drive over it) instead of the
 drift-arc, and they feed the **wallet** instead of score. The template to copy:

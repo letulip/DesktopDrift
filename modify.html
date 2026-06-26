@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/select.css">
+  <link rel="stylesheet" href="css/wallet.css">
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
@@ -83,9 +84,10 @@
 <script type="module">
   import { CARS } from './js/config.js';
   import { PALETTE, NEON_PALETTE } from './js/palette.js';
-  import { garage, save, wallet, isOwned, purchase } from './js/store.js';
+  import { garage, save, wallet, isOwned, purchase, carLook } from './js/store.js';
   import { CATALOG, byKind } from './js/shop-catalog.js';
   import { drawCarPreview } from './js/car-preview.js';
+  import { initWalletHistory } from './js/wallet-history.js';
 
   const params = new URLSearchParams(location.search);
   const carIdx = Math.max(0, Math.min(parseInt(params.get('car'), 10) || 0, CARS.length - 1));
@@ -99,19 +101,21 @@
   document.getElementById('car-name').textContent = M.name;
 
   // ── Pending look (in-memory; committed only on Apply / Buy) ───────────────────
-  const g = garage();
+  // Loaded from THIS car's saved look (per-car). Purchases stay account-wide.
+  const look = carLook(carIdx);
   const pending = {
-    body:   g.bodyColor || M.body,
-    neonOn: !!g.neonColor,
-    neon:   g.neonColor || NEON_PALETTE[0].hex,
-    finish: g.finish ?? null,
-    trail:  g.trailColor ?? null,
+    body:   look.bodyColor || M.body,
+    neonOn: !!look.neonColor,
+    neon:   look.neonColor || NEON_PALETTE[0].hex,
+    finish: look.finish ?? null,
+    trail:  look.trailColor ?? null,
   };
 
   const itemFor = (kind, value) =>
     value ? CATALOG.find(c => c.kind === kind && c.value === value) : null;
 
   document.getElementById('wallet-amount').textContent = wallet();
+  initWalletHistory(document.querySelector('.wallet-pill'));
 
   // ── Preview (reflects the pending look) ───────────────────────────────────────
   const previewCvs = document.getElementById('preview');
@@ -285,12 +289,12 @@
     if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
     for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
 
-    const gg = garage();
-    gg.carIndex   = carIdx;
-    gg.bodyColor  = pending.body;
-    gg.neonColor  = pending.neonOn ? pending.neon : null;
-    gg.finish     = pending.finish;
-    gg.trailColor = pending.trail;
+    garage().carIndex = carIdx;
+    const lk = carLook(carIdx);     // write this car's own look
+    lk.bodyColor  = pending.body;
+    lk.neonColor  = pending.neonOn ? pending.neon : null;
+    lk.finish     = pending.finish;
+    lk.trailColor = pending.trail;
     save();
     location.href = backHref;
   });

@@ -11,7 +11,7 @@ export const ITEM_TIRE_COIN = { hl: 15, r: 12, kind: 'board', c: '#555555', imgS
 export const TIRE = {
   kind:    'tire',
   r:       20,
-  value:   5,          // tire coins per pickup — tune per feel
+  value:   1,          // 1 tire = 1 coin (ROADMAP Phase 2.5 "Mario-coin feel")
   imgSrc:  'objects/tire.svg',
 };
 
