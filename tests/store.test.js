@@ -16,7 +16,7 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, carLook, purchase, ledger, recordTxn } =
+        owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared } =
   await import('../js/store.js');
 
 test('defaults: garage (selected car + empty per-car looks)', () => {
@@ -39,8 +39,8 @@ test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
 });
 
-test('stats: defaults to { caps: {}, tires: {} }', () => {
-  assert.deepEqual(stats(), { caps: {}, tires: {} });
+test('stats: defaults to { caps: {}, tires: {}, cleared: [] }', () => {
+  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [] });
 });
 
 test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
@@ -61,6 +61,13 @@ test('tiresFor / tireCollect: one-time collection per track (mirrors caps)', () 
 
 test('collectedCaps: returns [] for unknown track', () => {
   assert.deepEqual(collectedCaps('green-study'), []);
+});
+
+test('markCleared: true on first finish of an instance, false thereafter', () => {
+  assert.equal(markCleared('green-study'), true);   // first clear → award bonus
+  assert.equal(markCleared('green-study'), false);  // already cleared → no bonus
+  assert.equal(markCleared('green-study:rev'), true); // reversed is a separate instance
+  assert.deepEqual(stats().cleared, ['green-study', 'green-study:rev']);
 });
 
 test('capCollect: records a cap index', () => {

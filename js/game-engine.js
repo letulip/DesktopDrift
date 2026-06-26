@@ -3,8 +3,8 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook } from './store.js';
-import { finishPayout } from './economy.js';
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook, markCleared } from './store.js';
+import { finishPayout, FIRST_CLEAR_BONUS } from './economy.js';
 import { TRACKS } from './track-registry.js';
 import { createRaceResults } from './race-results.js';
 import {
@@ -124,6 +124,7 @@ export const startGame = (T, opts = {}) => {
       const dist = Math.hypot(dx, dy);
 
       if (c.kind === 'tire') {
+        if (ZEN) continue;                 // no tire economy in Zen mode
         if (dist < c.r + TIRE_CR) {
           cap.collected = true;
           cap.pop = 0.4;
@@ -408,11 +409,20 @@ export const startGame = (T, opts = {}) => {
           // versus runs where the cap was already collected (or not present).
           const ppsScore   = Math.max(0, totalScore - capBonus);
           const pps        = pointsPerSecond(ppsScore, totalTime);
-          // Aggregate the run's tire history into global events: pickups sum + finish bonus.
+          // Tire economy (Time Attack only — Zen earns nothing). Ledger order:
+          // pickups sum → first-clear bonus → finish payout.
           const trackName = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
-          if (tiresEarned > 0)
-            recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
-          addTires(finishPayout(pps), `${trackName} — finish bonus`);
+          let firstClearBonus = 0, finishBonus = 0;
+          if (!ZEN) {
+            if (tiresEarned > 0)
+              recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
+            if (T.id && markCleared(T.id)) {        // first finish of this instance → bonus
+              firstClearBonus = FIRST_CLEAR_BONUS;
+              addTires(firstClearBonus, `${trackName} — first clear`);
+            }
+            finishBonus = finishPayout(pps);
+            addTires(finishBonus, `${trackName} — finish bonus`);
+          }
 
           let isNewRecord = false;
           if (T.id) {
@@ -431,7 +441,8 @@ export const startGame = (T, opts = {}) => {
           raceFinished = true;
           stop();
           document.getElementById('score').textContent = totalScore;
-          raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime });
+          raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
+            tires: { pickup: tiresEarned, firstClear: firstClearBonus, finish: finishBonus } });
           return;
         }
 

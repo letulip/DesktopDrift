@@ -48,7 +48,7 @@ test('loads persisted records / achievements (real PPS record shape)', () => {
 
 test('stats: missing slice is filled from defaults on an existing save', () => {
   // The seeded save has no stats field — merge fills it; existing data is untouched.
-  assert.deepEqual(stats(), { caps: {}, tires: {} });
+  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [] });
 });
 
 test('wallet: missing field on an old save is filled from defaults (0)', () => {

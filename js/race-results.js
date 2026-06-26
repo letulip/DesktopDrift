@@ -14,6 +14,7 @@ export const createRaceResults = () => {
     <div id="rr-box">
       <h2 id="rr-title">Race Complete</h2>
       <div id="rr-score"></div>
+      <div id="rr-tires"></div>
       <div id="rr-laps"></div>
       <div id="rr-best"></div>
       <div id="rr-actions">
@@ -32,10 +33,11 @@ export const createRaceResults = () => {
     location.href = 'tracks.html';
   });
 
-  // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime })
+  // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
   // pps: points per second (race efficiency)
-  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime }) => {
+  // tires: { pickup, firstClear, finish } — tire coins earned this race (optional)
+  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires }) => {
     const ppsRounded = Math.round(pps);
     // Star rating: 1 star per 100 PPS, max 5
     const filledStars = Math.min(5, Math.floor(ppsRounded / 100));
@@ -48,6 +50,18 @@ export const createRaceResults = () => {
       <div class="rr-stars">${starsHtml}</div>
       <span class="rr-sub">Total: ${score.toLocaleString()} · ${totalTime.toFixed(1)} s</span>
     `;
+
+    // Tire earnings breakdown (hidden when nothing was earned, e.g. Zen).
+    const t = tires || { pickup: 0, firstClear: 0, finish: 0 };
+    const tireTotal = t.pickup + t.firstClear + t.finish;
+    const tireParts = [];
+    if (t.pickup)     tireParts.push(`pickups +${t.pickup}`);
+    if (t.firstClear) tireParts.push(`first clear +${t.firstClear}`);
+    if (t.finish)     tireParts.push(`finish +${t.finish}`);
+    overlay.querySelector('#rr-tires').innerHTML = tireTotal > 0
+      ? `<span class="rr-tires-total">🛞 +${tireTotal} tires</span>` +
+        `<span class="rr-tires-parts">${tireParts.join(' · ')}</span>`
+      : '';
 
     overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {
       const isBest = l.t != null && bestLap != null && Math.abs(l.t - bestLap) < 0.001;

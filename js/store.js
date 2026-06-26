@@ -33,7 +33,7 @@ const defaults = () => ({
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
-  stats:        { caps: {}, tires: {} }, // collected ids per track: caps + tires
+  stats:        { caps: {}, tires: {}, cleared: [] }, // collected ids per track + finished instance ids
 });
 
 // Breaking-change migrations, keyed by the target version.
@@ -182,6 +182,16 @@ export const tireCollect = (trackId, id) => {
   if (!st.tires) st.tires = {};
   const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
   if (!arr.includes(id)) { arr.push(id); save(); }
+};
+
+// Record a track instance (trackId, or trackId:mode later) as finished. Returns true the
+// FIRST time it's recorded (→ award the first-clear bonus), false if already cleared.
+export const markCleared = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.cleared)) st.cleared = [];
+  if (st.cleared.includes(instanceId)) return false;
+  st.cleared.push(instanceId); save();
+  return true;
 };
 
 // ── Shop: owned cosmetics + equip (see docs/plans/shop.md) ────────────────────

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { starsForPps, finishPayout, MAX_STARS, FINISH_FLAT, FINISH_PER_STAR,
-         canAfford, buy } from '../js/economy.js';
+         canAfford, buy, FIRST_CLEAR_BONUS } from '../js/economy.js';
 
 test('starsForPps: 1 star per 100 PPS, capped at MAX_STARS', () => {
   assert.equal(starsForPps(0), 0);
@@ -24,6 +24,10 @@ test('finishPayout: flat + per-star, 2..12 across 0..5 stars', () => {
   assert.equal(finishPayout(0), FINISH_FLAT);                       // 0 stars → 2
   assert.equal(finishPayout(100), FINISH_FLAT + FINISH_PER_STAR);   // 1 star  → 4
   assert.equal(finishPayout(99999), FINISH_FLAT + FINISH_PER_STAR * MAX_STARS); // 5 → 12
+});
+
+test('FIRST_CLEAR_BONUS: the one-time per-instance reward is 20', () => {
+  assert.equal(FIRST_CLEAR_BONUS, 20);
 });
 
 test('canAfford: balance must cover the price (defensive on missing balance)', () => {

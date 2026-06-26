@@ -377,6 +377,7 @@ const TIRE_SPIN     = 0.7;          // rad/s — gentle continuous rotation
 const TAU           = Math.PI * 2;
 
 const drawTires = () => {
+  if (S.zen) return;                  // no tires on the track in Zen mode
   const collectibles = _T.collectibles ?? [];
   const now = Date.now() * 0.001;
 
