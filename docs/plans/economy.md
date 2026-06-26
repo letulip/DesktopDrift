@@ -72,6 +72,59 @@ payout = the long-progress engine**.
 
 ---
 
+## Current state vs the model — assessment
+
+- **Content live:** 3 tracks, **forward only** (green-study, steel-kitchen, workbench) = 3 of
+  the 14 target instances.
+- **Faucets live:** pickups **36** one-time (12+11+13 @ 1/coin) + finish payout (2–12/race).
+  **No first-clear bonus, no reversed.** → current one-time bank ≈ **36** vs the **~420** target.
+- **Sinks live:** cosmetics catalog **~840** (finishes 40/80/150/250 + 8 trails @ 40). No cars.
+- **Read on prices:** the catalog is priced for the *full* model (~420 bank). With only 3
+  forward tracks and no first-clear bonus, early supply is thin → cosmetics feel expensive
+  *right now*. **Fix by adding the missing faucets/content, not by cutting prices.** Cheapest,
+  highest-leverage add = the **first-clear bonus**. Tier mapping is sound (finishes = tier 1–3;
+  trails = tier 1); catalog reaches ~1,800 once liveries/wheels land; cars priced in Phase C.
+
+## Phase D — integrate the model into the game (faucets & gating)
+
+Close the gap between the model and what's built. Order = impact × cheapness. Each step ships
+behind tests + one browser smoke (per `desktopdrift-pr`).
+
+- [ ] **D1. First-clear bonus (+20 / instance).** **[opus]** Biggest missing faucet, smallest change.
+      - `js/economy.js`: `export const FIRST_CLEAR_BONUS = 20;`
+      - `js/store.js`: `stats.cleared` (array of instance ids) + `markCleared(id)` → returns
+        `true` the first time only, persists (additive — no VERSION bump).
+      - `game-engine.js` on finish: instance id = `T.id` (+ `:rev` later for reversed); if
+        `markCleared(id)` → `addTires(FIRST_CLEAR_BONUS, '{Track} — first clear')`.
+        Ledger order: pickups sum → first clear → finish bonus.
+      - Tests: granted once per instance, never re-awarded.
+
+- [ ] **D2. Reversed mode + per-track unlock gate.** **[opus]** Doubles content (×2 instances)
+      and is the bank's pacing gate. Larger — give it its own `docs/plans/reversed.md`.
+      - track-factory/registry: a reversed variant (reverse centreline direction; flip
+        start/finish + checkpoint order). Forward art unchanged; mode is a parameter.
+      - **Instance keying:** records, tire pickups, caps, and `cleared` keyed by `trackId:mode`
+        (forward = bare id for back-compat, reversed = `:rev`).
+      - `tracks.html`: enable the now-locked **Reversed** toggle; unlock a track's reversed once
+        its forward is in `cleared`; per-mode badges/records.
+
+- [ ] **D3. Pricing validation pass.** **[opus]** After D1+D2, re-run the pacing check on real
+      numbers; tune `FINISH_FLAT`/`FINISH_PER_STAR` (income speed) or per-track tire counts
+      (collect value) — ratios, not absolutes. Probably no catalog price change.
+
+- [ ] **D4. Catalog completion → ~1,800.** **[sonnet-high]** Liveries + wheel styles = shop
+      **B6/B7** (data + a render branch). Additive; do after faucets so there's money to spend.
+
+- [ ] **D5. Cars (the aspirational sink).** **[opus]** Phase C below (C1 per-car records
+      migration → C2 roster → C3 buy), priced 400 / 800 / 1,400. Gate behind a real faucet
+      (D1/D2) so they're reachable.
+
+**Sequencing:** D1 now (fast win) → D2 (reversed: the big content + pacing lever) → D3 validate
+→ then D4 (B6/B7) + D5 (Phase C) as content grows. More tracks toward the 7-track target is
+ongoing content work that feeds the same model.
+
+---
+
 ## Reuse the cola-cap pipeline (already in the codebase)
 Tires mirror cola caps but with **proximity pickup** (drive over it) instead of the
 drift-arc, and they feed the **wallet** instead of score. The template to copy:
