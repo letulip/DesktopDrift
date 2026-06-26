@@ -9,9 +9,9 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
 ## Why / economics
 - Capacity model = **14 instances** = 7 tracks × (forward + reversed). Each instance has its
   own one-time pickups, caps, records and **first-clear bonus (+20)**.
-- **Unlock gate:** a track's reversed is locked until its **forward** is completed (in
-  `stats.cleared`) — completion, not mastery. This halves the guaranteed bank: clear 7 forward
-  (≈210 one-time) → unlock reversed → ≈210 more. Progression breathes.
+- **Unlock gate (3★):** the Reversed section is always visible, but each track's reversed is
+  **locked until its forward earns 3+ stars** (bestPPS ≥ 300 — 1★/100 PPS). A mild mastery gate,
+  not just completion. Still roughly halves the guaranteed bank and adds a skill goal.
 
 ## Decisions (locked for D2 — flag in review to change)
 1. **Instance id** = `trackId` (forward) / `` `${trackId}:rev` `` (reversed). ONE key used
@@ -32,13 +32,13 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
 
 ## Steps
 
-- [ ] **R1. `reverseTrack(track)` pure transform.** **[opus]**
-      New pure helper (in `js/track-util.js` or `js/track-factory.js`): returns a reversed copy —
-      `center`/`inner`/`outer` reversed in lockstep; `checkpoints`, `startPos`, `startAngle`
-      recomputed from the reversed centreline; everything else shallow-copied. Unit tests
-      (`tests/reverse-track.test.js`): centreline order reversed, inner/outer stay aligned to
-      center, `startAngle` ≈ forward + π (mod 2π), checkpoints reversed, collectibles untouched,
-      input not mutated.
+- [x] **R1. `reverseTrack(track)` pure transform.** **[opus]** DONE.
+      `js/track-util.js` `reverseTrack(T)` — reverses `center`/`inner`/`outer` in lockstep,
+      recomputes `checkpoints` (`sampleCheckpointsByCorner`, K via `T.K`), `startPos`,
+      `startAngle`; spreads the rest (cones/props/collectibles/TABLE/theme/laps/id), sets
+      `reversed: true`. Pure (input untouched). Tests `tests/reverse-track.test.js` (6 cases:
+      order reversed, inner/outer lockstep, double-reverse identity, start flips 180°,
+      checkpoints recomputed, content carried). 162 tests green.
 
 - [ ] **R2. Instance-id keying across store + engine.** **[opus]** (schema/cross-cutting)
       Add `instanceId(trackId, reversed)` (pure; `js/track-util.js`). Thread it through the
@@ -57,14 +57,15 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
 
 - [ ] **R4. Track-select: Reversed toggle + unlock gate.** **[opus]** (UX integration)
       `tracks.html`: enable the now-locked **Reversed** toggle (`#btn-reversed`). In reversed
-      view, a track card is **locked** until its forward is in `stats.cleared`; unlocked cards
-      link to `game.html?track=X&dir=rev`. Show per-instance records/star-rating + the cap/tire
-      chips for the selected direction. Locked card = lock icon + "Clear the forward lap first".
+      view, a track card is **locked until its forward earns 3★** (forward `bestPPS ≥ 300`);
+      unlocked cards link to `game.html?track=X&dir=rev`. Show per-instance records/star-rating +
+      the cap/tire chips for the selected direction. Locked card = lock icon + "Earn 3★ on the
+      forward lap first".
 
-- [ ] **R5. Reversed thumbnail + per-mode badges.** **[sonnet-high]**
-      `drawThumb` gets a direction hint (e.g. a ↺ arrow or reversed draw order) so reversed
-      cards read as distinct. Cap/tire chip denominators read from the instance's stats. Mostly
-      data wiring behind R2/R4.
+- [ ] **R5. Mirrored reversed thumbnail + per-mode badges.** **[sonnet-high]**
+      Draw the reversed card's preview **mirrored** (horizontal flip of the thumbnail canvas) so
+      it reads as the other direction; optional small ↺ marker. Cap/tire chip denominators read
+      from the instance's stats. Mostly wiring behind R2/R4.
 
 - [ ] **R6. Docs + SW + PR.** **[sonnet-high]**
       Bump SW cache; AGENTS.md (reversed mode, `instanceId`, `reverseTrack`); tick economy.md
@@ -73,13 +74,14 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
 **Done when:** every track exposes a reversed variant gated behind its forward clear; reversed
 runs have independent pickups/caps/records/first-clear; `npm test` green; browser smoke clean.
 
-## Open questions (confirm before R1)
-1. **Unlock rule** — reversed unlocks after *completing* the forward (any finish), correct? Or
-   always available?
-2. **Tire positions in reverse** — reuse forward positions for v1 (simple), re-seed later? Or
-   re-seed now?
-3. **Reversed thumbnail** — a small ↺ badge is enough, or do you want the preview itself drawn
-   mirrored/reversed?
+## Resolved decisions (confirmed)
+1. **Unlock rule** — reversed unlocks per-track at **3★ on the forward** (`bestPPS ≥ 300`). The
+   section is visible; tracks are locked until the stars are earned.
+2. **Tire positions in reverse** — **reuse forward positions.** The seeder offsets pickups by
+   geometry (toward the concave/inner corner edge), which is *direction-agnostic* — re-seeding
+   the reversed centreline yields essentially the same points. So reuse is both simplest and
+   correct; per-instance persistence keeps forward/reversed collection independent.
+3. **Reversed thumbnail** — **mirrored preview** (horizontal flip), see R5.
 
 ## Tag rationale
 `reverseTrack` geometry, instance-key schema, start/finish wiring, unlock UX → **opus**;

@@ -250,3 +250,24 @@ export const circularAdvance = (idx, ref, N) => {
   const d = (idx - ref + N) % N;
   return d <= N / 2 ? d : 0;
 };
+
+// Reverse a parsed track — drive the same circuit the other way (economy Phase D2).
+// Pure: returns a new object, the input is not mutated. center/inner/outer are reversed
+// in lockstep, then checkpoints/startPos/startAngle are recomputed from the reversed
+// centreline so the existing finish + checkpoint logic works unchanged. Everything else
+// (cones, props, collectibles, TABLE, theme, laps, id) is carried over as-is.
+export const reverseTrack = (T) => {
+  const center = T.center.slice().reverse();
+  const inner  = T.inner.slice().reverse();
+  const outer  = T.outer.slice().reverse();
+  const K = T.K ?? 8;
+  const checkpoints = sampleCheckpointsByCorner(center, K);
+  const c0 = center[0], c1 = center[1] ?? center[0];
+  return {
+    ...T,
+    center, inner, outer, checkpoints,
+    startPos:   { x: c0.x, y: c0.y },
+    startAngle: Math.atan2(c1.y - c0.y, c1.x - c0.x),
+    reversed:   true,
+  };
+};
