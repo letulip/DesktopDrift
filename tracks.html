@@ -61,7 +61,7 @@
   // ── Track preview rendering on canvas ───────────────────────────────────────
   const TRACK_GU = 100;
 
-  async function drawThumb(canvas, svgSrc, theme, reversed = false) {
+  async function drawThumb(canvas, svgSrc, theme) {
     const th = {
       background: theme?.background ?? '#0b0907',
       table:      theme?.table      ?? '#2e241a',
@@ -93,9 +93,6 @@
 
       const cx = canvas.getContext('2d');
 
-      cx.save();
-      if (reversed) { cx.translate(canvas.width, 0); cx.scale(-1, 1); }
-
       cx.fillStyle = th.background;
       cx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -116,8 +113,6 @@
       });
       cx.closePath();
       cx.stroke();
-
-      cx.restore();
     } catch { /* render error — canvas keeps its fallback background */ }
   }
 
@@ -233,7 +228,7 @@
       card.appendChild(body);
       container.appendChild(card);
 
-      drawThumb(canvas, track.svgSrc, track.theme, reversed);
+      drawThumb(canvas, track.svgSrc, track.theme);   // same geometry both ways — no mirror
     }
 
     requestAnimationFrame(() => { container.scrollTop = 0; });

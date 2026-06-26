@@ -301,8 +301,9 @@ stays readable. No framework, no bundler.
       reads the param, calls `reverseTrack(T)`, and passes `reversed` to `startGame`.
       `tracks.html` shows a Normal/Reversed toggle; the reversed card is **locked until the
       forward run earns 3★ (bestPPS ≥ 300)**; the reversed card link includes `&dir=rev`,
-      shows per-instance records/chips, appends a ↺ to the name, and mirrors the thumbnail
-      via CSS `transform: scaleX(-1)`. Forward and reversed are fully independent persistence
+      shows per-instance records/chips, and appends a ↺ to the name. The thumbnail is **not**
+      mirrored — reversed is the same geometry the other way, so the preview matches forward and
+      the ↺ suffix is the only marker. Forward and reversed are fully independent persistence
       instances — no store VERSION bump was needed (additive).
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`

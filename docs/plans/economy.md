@@ -61,7 +61,7 @@ payout = the long-progress engine**.
 | Finish payout `2 + 2×stars` | yes | ✅ (`js/economy.js`) |
 | First-clear bonus (+20/instance) | yes | ❌ **not yet** — biggest remaining faucet |
 | Tires/track ~10 | ~10 | live: green-study 12 / steel-kitchen 11 / workbench 13 (≈ target) |
-| Reversed mode (×2 instances + gate) | yes | ✅ done (reverseTrack + instanceId `:rev` keying + dir=rev + tracks.html gate + mirror; see `docs/plans/reversed.md`) |
+| Reversed mode (×2 instances + gate) | yes | ✅ done (reverseTrack + instanceId `:rev` keying + dir=rev + tracks.html 3★ gate; see `docs/plans/reversed.md`) |
 | Cosmetics catalog ~1,800 | ~1,800 | today ~840 (finishes 40/80/150/250 + 8 trails ×40); liveries/wheels pending |
 | Cars (400/800/1,400) | yes | ❌ Phase C |
 
@@ -107,7 +107,8 @@ behind tests + one browser smoke (per `desktopdrift-pr`).
         all keyed by `instanceId` (forward = bare id for back-compat, reversed = `:rev`).
       - `game.html?dir=rev` reads param, applies `reverseTrack`, passes `reversed` to `startGame`.
       - `tracks.html`: Normal/Reversed toggle; reversed locked until forward earns 3★
-        (bestPPS ≥ 300); per-instance records/chips; ↺ name suffix; mirrored thumbnail.
+        (bestPPS ≥ 300); per-instance records/chips; ↺ name suffix (thumbnail not mirrored —
+        same geometry both ways).
 
 - [ ] **D3. Pricing validation pass.** **[opus]** After D1+D2, re-run the pacing check on real
       numbers; tune `FINISH_FLAT`/`FINISH_PER_STAR` (income speed) or per-track tire counts

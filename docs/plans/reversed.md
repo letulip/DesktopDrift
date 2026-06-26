@@ -66,11 +66,11 @@ numbers: `docs/plans/economy.md` (Phase D2). Workflow per `desktopdrift-pr` (thi
       instance via `instanceId`; names get a ↺ suffix. Verified in browser. *(Thumbnail is still
       forward art — mirrored in R5.)*
 
-- [x] **R5. Mirrored reversed thumbnail.** **[sonnet-high]** DONE (subagent).
-      `drawThumb(canvas, svgSrc, theme, reversed=false)` mirrors horizontally (`translate(w,0)
-      + scale(-1,1)` wrapped in save/restore) when reversed; `renderCards` passes `reversed`.
-      Forward output unchanged. Per-mode chips/badges already done in R4. Verified in browser
-      (reversed art flips vs forward). SW v113.
+- [x] **R5. Reversed thumbnail.** **[sonnet-high]** DONE — then **mirror reverted by choice.**
+      Reversed is the *same geometry* driven the other way, so a mirrored preview is misleading
+      (implies a different layout). The reversed card shows the **same thumbnail** as forward; the
+      **↺ name suffix** is the indicator. (`drawThumb` has no `reversed` param.) Per-mode
+      chips/badges done in R4.
 
 - [ ] **R6. Docs + SW + PR.** **[sonnet-high]**
       Bump SW cache; AGENTS.md (reversed mode, `instanceId`, `reverseTrack`); tick economy.md
