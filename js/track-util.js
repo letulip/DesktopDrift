@@ -260,6 +260,9 @@ export const instanceId = (trackId, reversed) => (reversed ? `${trackId}:rev` : 
 // in lockstep, then checkpoints/startPos/startAngle are recomputed from the reversed
 // centreline so the existing finish + checkpoint logic works unchanged. Everything else
 // (cones, props, collectibles, TABLE, theme, laps, id) is carried over as-is.
+// Note: inner/outer are reversed but intentionally NOT swapped — left/right flip when you
+// drive the other way, but render builds the road as an even-odd polygon (see render.js)
+// and collision treats it as a band, so the drivable surface is identical either direction.
 export const reverseTrack = (T) => {
   const center = T.center.slice().reverse();
   const inner  = T.inner.slice().reverse();
