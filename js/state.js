@@ -46,6 +46,7 @@ export const S = {
   skids:         [],
 
   zen:           false,
+  reversed:      false, // true when driving a track's reversed variant (Phase D2)
   caps:          {},   // runtime cap state keyed by index — set by game-engine, read by render
 };
 

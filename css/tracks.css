@@ -127,6 +127,21 @@
 .track-chip.cap.is-done  { background: rgba(180,28,0,.34);   color: #ff7755; border-color: rgba(200,50,20,.55); }
 .track-chip.tire.is-done { background: rgba(255,180,60,.30); color: #ffce6a; border-color: rgba(255,190,80,.55); }
 
+/* Locked reversed card (inert div, not a link) + lock overlay on the thumbnail */
+.track-card.is-locked { opacity: .6; cursor: not-allowed; }
+.track-card.is-locked:hover {
+  transform: none; border-color: var(--surface-line);
+  box-shadow: none; background: var(--surface);
+}
+.track-lock {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(0,0,0,.5);
+  color: rgba(255,255,255,.82);
+  font: 700 12px var(--font-body); letter-spacing: .3px; text-align: center; padding: 10px;
+}
+.track-lock-ico { font-size: 22px; }
+
 .track-card-score { display: none; }
 
 .track-thumb {

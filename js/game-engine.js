@@ -14,7 +14,7 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
-import { nearestCenter, circularAdvance } from './track-util.js';
+import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 
@@ -48,6 +48,11 @@ export const startGame = (T, opts = {}) => {
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
   const ZEN = !!opts.zen;
   S.zen = ZEN;
+  const REVERSED = !!opts.reversed;
+  S.reversed = REVERSED;
+  // Per-instance persistence key (forward = id, reversed = id:rev). Records, tire/cap
+  // pickups, cleared-flag and first-clear are all keyed by this so directions are independent.
+  const INSTANCE = instanceId(T.id ?? '', REVERSED);
 
   initRender(T);
   initCar(T);
@@ -70,8 +75,8 @@ export const startGame = (T, opts = {}) => {
   // S.caps: pure runtime state only — static data stays in collectibles[].
   // Restore previously collected caps from store so they stay permanently collected.
   const _prevCollected = new Set([
-    ...collectedCaps(T.id ?? ''),
-    ...tiresFor(T.id ?? ''),
+    ...collectedCaps(INSTANCE),
+    ...tiresFor(INSTANCE),
   ]);
   S.caps = {};
   collectibles.forEach((c, i) => {
@@ -79,7 +84,7 @@ export const startGame = (T, opts = {}) => {
     // the capId migration used a plain numeric index. Accept either so legacy saves
     // don't silently lose their collected state.
     const wasCollected = _prevCollected.has(c.capId ?? i) || _prevCollected.has(i);
-    S.caps[i] = { trackId: T.id ?? '', sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
+    S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
 
   // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.
@@ -128,7 +133,7 @@ export const startGame = (T, opts = {}) => {
         if (dist < c.r + TIRE_CR) {
           cap.collected = true;
           cap.pop = 0.4;
-          tireCollect(T.id ?? '', c.capId ?? i);
+          tireCollect(INSTANCE, c.capId ?? i);
           addTires(c.value);                 // credit live (HUD); ledger logs the per-race sum
           tiresEarned += c.value;
           flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
@@ -150,7 +155,7 @@ export const startGame = (T, opts = {}) => {
         cap.sweep     = 0;
         if (!ZEN) { S.score += CAP_BONUS; capBonus += CAP_BONUS; }
         flash('CAP! +' + CAP_BONUS, '#ff9999');
-        capCollect(T.id ?? '', c.capId ?? i);
+        capCollect(INSTANCE, c.capId ?? i);
       }
     }
   };
@@ -411,12 +416,13 @@ export const startGame = (T, opts = {}) => {
           const pps        = pointsPerSecond(ppsScore, totalTime);
           // Tire economy (Time Attack only — Zen earns nothing). Ledger order:
           // pickups sum → first-clear bonus → finish payout.
-          const trackName = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
+          const baseName  = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
+          const trackName = baseName + (REVERSED ? ' (reversed)' : '');
           let firstClearBonus = 0, finishBonus = 0;
           if (!ZEN) {
             if (tiresEarned > 0)
               recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
-            if (T.id && markCleared(T.id)) {        // first finish of this instance → bonus
+            if (T.id && markCleared(INSTANCE)) {    // first finish of this instance → bonus
               firstClearBonus = FIRST_CLEAR_BONUS;
               addTires(firstClearBonus, `${trackName} — first clear`);
             }
@@ -427,7 +433,7 @@ export const startGame = (T, opts = {}) => {
           let isNewRecord = false;
           if (T.id) {
             const rec  = records();
-            const slot = rec[T.id] ?? (rec[T.id] = {});
+            const slot = rec[INSTANCE] ?? (rec[INSTANCE] = {});
             const ta   = slot.timeattack ?? (slot.timeattack = {});
             if (ta.bestPPS == null || pps > ta.bestPPS) {
               ta.bestPPS      = pps;
