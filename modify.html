@@ -43,7 +43,7 @@
     <div id="custom">
       <div class="shop-tabs" role="tablist">
         <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
-        <button class="shop-tab" type="button" data-panel="neon">Neon</button>
+        <button class="shop-tab" type="button" data-panel="neon">Neon FX</button>
         <button class="shop-tab" type="button" data-panel="trail">Trail</button>
       </div>
 
@@ -57,11 +57,20 @@
         </div>
       </div>
 
-      <!-- Neon underglow (free) -->
+      <!-- Neon FX underglow — on/off + layout + per-zone colours + animation -->
       <div class="cust-panel" data-panel="neon" hidden>
-        <button id="neon-btn" type="button">✦ Neon</button>
-        <div id="neon-palette" class="swatch-grid"></div>
-        <div id="neon-name" class="swatch-name"></div>
+        <button id="neon-btn" type="button">✦ Underglow</button>
+        <div id="neon-controls" style="display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .2s;">
+          <div class="finish-sub">
+            <div class="cust-sublabel">Layout</div>
+            <div id="neon-layout" class="shop-grid"></div>
+          </div>
+          <div id="neon-colors" style="display:flex;flex-direction:column;align-items:center;gap:12px;"></div>
+          <div class="finish-sub">
+            <div class="cust-sublabel">Animation</div>
+            <div id="neon-anim" class="shop-grid"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Trail colour (paid) -->
@@ -88,6 +97,7 @@
   import { CATALOG, byKind } from './js/shop-catalog.js';
   import { syncStateAchievements } from './js/ach-sync.js';
   import { drawCarPreview } from './js/car-preview.js';
+  import { LAYOUTS, ANIMS, defaultNeon } from './js/neon.js';
   import { initWalletHistory } from './js/wallet-history.js';
 
   const params = new URLSearchParams(location.search);
@@ -105,11 +115,14 @@
   // Loaded from THIS car's saved look (per-car). Purchases stay account-wide.
   const look = carLook(carIdx);
   const pending = {
-    body:   look.bodyColor || M.body,
-    neonOn: !!look.neonColor,
-    neon:   look.neonColor || NEON_PALETTE[0].hex,
-    finish: look.finish ?? null,
-    trail:  look.trailColor ?? null,
+    body:    look.bodyColor || M.body,
+    neonOn:  !!look.neon,
+    // Neon FX config — a working copy so nothing is written to the store before Apply.
+    neonCfg: look.neon
+      ? { layout: look.neon.layout, anim: look.neon.anim, colors: (look.neon.colors || []).slice(), speed: look.neon.speed ?? 1 }
+      : defaultNeon(NEON_PALETTE[0].hex),
+    finish:  look.finish ?? null,
+    trail:   look.trailColor ?? null,
   };
 
   const itemFor = (kind, value) =>
@@ -128,13 +141,17 @@
   let activeTab = 'colour';
   let phase = 0, rafId = null;
   const trailNow = () => (activeTab === 'trail' ? pending.trail : null);
+  const neonNow  = () => (pending.neonOn ? pending.neonCfg : null);
+  // The preview loop must run whenever something animates: the drift trail (Trail tab)
+  // OR the neon underglow with a live animation (pulse / rainbow / flow). Otherwise draw once.
+  const neonAnimating = () => pending.neonOn && pending.neonCfg.anim !== 'none';
   const draw = () => {
     M.body = pending.body;
-    drawCarPreview(previewCvs, M, pending.neonOn ? pending.neon : null, pending.finish, trailNow(), phase);
+    drawCarPreview(previewCvs, M, neonNow(), pending.finish, trailNow(), phase);
   };
   const loop = (ts) => { phase = ts * 0.001; draw(); rafId = requestAnimationFrame(loop); };
   const redraw = () => {
-    if (trailNow()) { if (rafId == null) rafId = requestAnimationFrame(loop); }   // animate
+    if (trailNow() || neonAnimating()) { if (rafId == null) rafId = requestAnimationFrame(loop); }   // animate
     else { if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; } draw(); }
   };
 
@@ -158,35 +175,129 @@
   const bInit = PALETTE.findIndex(p => p.hex.toLowerCase() === (pending.body || '').toLowerCase());
   if (bInit >= 0) { bodyEls[bInit].classList.add('sel'); bodyName.textContent = PALETTE[bInit].name; }
 
-  // ── Neon underglow (free) ─────────────────────────────────────────────────────
-  const neonBtn   = document.getElementById('neon-btn');
-  const neonPalEl = document.getElementById('neon-palette');
-  const neonName  = document.getElementById('neon-name');
-  let selNeon = Math.max(0, NEON_PALETTE.findIndex(p => p.hex === pending.neon));
+  // ── Neon FX underglow (on/off + layout + per-zone colours + animation) ────────
+  // On/off toggle, a layout selector (locked layouts cart their catalog item), N
+  // per-zone colour pickers (N = the layout's colour count), and an animation
+  // selector (locked anims cart too). Every change feeds the live preview via redraw().
+  const neonBtn      = document.getElementById('neon-btn');
+  const neonControls = document.getElementById('neon-controls');
+  const colorsWrap   = document.getElementById('neon-colors');
 
-  const updateNeon = () => {
-    const nc = NEON_PALETTE[selNeon].hex;
-    neonBtn.style.setProperty('--nc', nc);
-    neonBtn.classList.toggle('active', pending.neonOn);
-    neonPalEl.style.setProperty('--ring', nc);
+  // Colour-slot labels per layout (clockwise zone roles for per-zone).
+  const ZONE_LABELS = {
+    solid:            ['Colour'],
+    longitudinal:     ['Left', 'Right'],
+    'front-mid-rear': ['Front', 'Sides', 'Rear'],
+    'per-zone':       ['Front L', 'Front R', 'Right', 'Rear R', 'Rear L', 'Left'],
   };
-  const neonEls = NEON_PALETTE.map((entry, idx) => {
-    const el = document.createElement('div');
-    el.className = 'swatch' + (idx === selNeon ? ' sel' : '');
-    el.style.background = entry.hex;
-    el.title = entry.name;
-    el.addEventListener('click', () => {
-      selNeon = idx; pending.neon = entry.hex; pending.neonOn = true;
-      neonEls.forEach((e, j) => e.classList.toggle('sel', j === idx));
-      neonName.textContent = entry.name;
-      updateNeon(); redraw();
-    });
-    neonPalEl.appendChild(el);
-    return el;
+  const layoutColourCount = (id) => (LAYOUTS.find(l => l.id === id) || LAYOUTS[0]).colours;
+
+  // Pad/truncate the pending colours to `n` slots (new slots default to the first palette hue),
+  // preserving already-chosen colours when the layout changes.
+  const fitColours = (n) => {
+    const cols = pending.neonCfg.colors.slice(0, n);
+    while (cols.length < n) cols.push(NEON_PALETTE[0].hex);
+    pending.neonCfg.colors = cols;
+  };
+  fitColours(layoutColourCount(pending.neonCfg.layout));
+
+  // Selected-but-unowned neon items (layout + anim) that go into the shop cart — only
+  // while the underglow is on. Free options (solid / none) aren't in the catalog → null.
+  const neonCartItems = () => {
+    if (!pending.neonOn) return [];
+    const out = [];
+    const li = itemFor('neon-layout', pending.neonCfg.layout);
+    const ai = itemFor('neon-anim',   pending.neonCfg.anim);
+    if (li && !isOwned(li.id)) out.push(li);
+    if (ai && !isOwned(ai.id)) out.push(ai);
+    return out;
+  };
+
+  // Per-zone colour pickers — one NEON_PALETTE swatch row per layout colour slot.
+  const renderColors = () => {
+    colorsWrap.innerHTML = '';
+    const n = layoutColourCount(pending.neonCfg.layout);
+    const labels = ZONE_LABELS[pending.neonCfg.layout] || [];
+    for (let i = 0; i < n; i++) {
+      const row = document.createElement('div');
+      row.className = 'finish-sub';
+      const lab = document.createElement('div');
+      lab.className = 'cust-sublabel';
+      lab.textContent = labels[i] || String(i + 1);
+      row.appendChild(lab);
+      const grid = document.createElement('div');
+      grid.className = 'swatch-grid';
+      NEON_PALETTE.forEach((entry, j) => {
+        const sw = document.createElement('div');
+        sw.className = 'swatch' + (entry.hex === pending.neonCfg.colors[i] ? ' sel' : '');
+        sw.style.background = entry.hex;
+        sw.title = entry.name;
+        sw.addEventListener('click', () => {
+          pending.neonCfg.colors[i] = entry.hex;
+          pending.neonOn = true;
+          [...grid.children].forEach((c, k) => c.classList.toggle('sel', k === j));
+          refresh(); redraw();
+        });
+        grid.appendChild(sw);
+      });
+      row.appendChild(grid);
+      colorsWrap.appendChild(row);
+    }
+  };
+
+  // Layout + animation selectors (radio-style shop cards; the free option = solid / none).
+  const neonCards = { 'neon-layout': [], 'neon-anim': [] };
+  const buildNeonSelector = (descriptors, kind, contId, onPick) => {
+    const cont = document.getElementById(contId);
+    for (const d of descriptors) {
+      const item = itemFor(kind, d.id);   // null for the free option (not in the catalog)
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'shop-card';
+      const nm = document.createElement('span');
+      nm.className = 'shop-card-name';
+      nm.textContent = d.label;
+      el.appendChild(nm);
+      const tag = document.createElement('span');
+      tag.className = 'shop-card-tag';
+      el.appendChild(tag);
+      el.addEventListener('click', () => { onPick(d.id); pending.neonOn = true; refresh(); redraw(); });
+      cont.appendChild(el);
+      neonCards[kind].push({ el, tag, item, id: d.id });
+    }
+  };
+  buildNeonSelector(LAYOUTS, 'neon-layout', 'neon-layout', (id) => {
+    pending.neonCfg.layout = id;
+    fitColours(layoutColourCount(id));
+    renderColors();
   });
-  neonBtn.addEventListener('click', () => { pending.neonOn = !pending.neonOn; updateNeon(); redraw(); });
-  neonName.textContent = NEON_PALETTE[selNeon].name;
-  updateNeon();
+  buildNeonSelector(ANIMS, 'neon-anim', 'neon-anim', (id) => { pending.neonCfg.anim = id; });
+
+  neonBtn.addEventListener('click', () => { pending.neonOn = !pending.neonOn; refresh(); redraw(); });
+
+  // Reflect the pending neon config onto the panel (toggle, card states, dim when off).
+  const refreshNeonGroup = (kind, current) => {
+    for (const { el, tag, item, id } of neonCards[kind]) {
+      const selected = id === current;
+      const own      = item ? isOwned(item.id) : true;      // free options are always available
+      const inCart   = selected && item && !own && pending.neonOn;
+      el.classList.toggle('sel', selected);
+      el.classList.toggle('owned', own);
+      el.classList.toggle('in-cart', inCart);
+      tag.textContent = !item || own
+        ? (selected ? '✓' : '')
+        : (selected && pending.neonOn ? `🛒🛞${item.price}` : `🛞${item.price}`);
+    }
+  };
+  const refreshNeon = () => {
+    neonBtn.classList.toggle('active', pending.neonOn);
+    neonBtn.style.setProperty('--nc', pending.neonCfg.colors[0] || NEON_PALETTE[0].hex);
+    neonBtn.textContent = pending.neonOn ? '✦ Underglow: On' : '✦ Underglow: Off';
+    neonControls.style.opacity = pending.neonOn ? '1' : '.45';
+    refreshNeonGroup('neon-layout', pending.neonCfg.layout);
+    refreshNeonGroup('neon-anim',   pending.neonCfg.anim);
+  };
+  renderColors();
 
   // ── Shop: finishes + trail colours (paid → cart) ──────────────────────────────
   // Tapping toggles the item into the pending look. Owned items apply for free;
@@ -233,10 +344,12 @@
     for (const { item } of shopCards) {
       if (pending[FIELD[item.kind]] === item.value && !isOwned(item.id)) { total += item.price; count++; }
     }
+    for (const it of neonCartItems()) { total += it.price; count++; }   // carted neon layout / anim
     return { total, count };
   };
 
   const refresh = () => {
+    refreshNeon();   // keep the Neon FX panel (toggle + layout/anim cards) in sync
     for (const { el, tag, item } of shopCards) {
       const selected = pending[FIELD[item.kind]] === item.value;
       const own      = isOwned(item.id);
@@ -286,6 +399,7 @@
     const tItem = itemFor('trail',  pending.trail);
     if (fItem && !isOwned(fItem.id)) cart.push(fItem);
     if (tItem && !isOwned(tItem.id)) cart.push(tItem);
+    for (const it of neonCartItems()) cart.push(it);           // carted neon layout / anim
     const total = cart.reduce((s, it) => s + it.price, 0);
     if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
     for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
@@ -294,9 +408,23 @@
     garage().carIndex = carIdx;
     const lk = carLook(carIdx);     // write this car's own look
     lk.bodyColor  = pending.body;
-    lk.neonColor  = pending.neonOn ? pending.neon : null;
     lk.finish     = pending.finish;
     lk.trailColor = pending.trail;
+    // Neon FX: only equip options we now own (free solid/none, or purchased above); a
+    // still-locked layout/anim (e.g. left carted but not bought) falls back to the free one.
+    if (pending.neonOn) {
+      const layoutOk = pending.neonCfg.layout === 'solid' || isOwned('neon-layout-' + pending.neonCfg.layout);
+      const animOk   = pending.neonCfg.anim   === 'none'  || isOwned('neon-anim-'   + pending.neonCfg.anim);
+      lk.neon = {
+        layout: layoutOk ? pending.neonCfg.layout : 'solid',
+        anim:   animOk   ? pending.neonCfg.anim   : 'none',
+        colors: pending.neonCfg.colors.slice(),
+        speed:  1,
+      };
+    } else {
+      lk.neon = null;
+    }
+    lk.neonColor = null;   // `neon` is now authoritative; clear the legacy field
     save();
     location.href = backHref;
   });

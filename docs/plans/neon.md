@@ -147,7 +147,7 @@ This keeps the "wow" where the player shops and protects race FPS.
       `buy`/`purchase` + `well-rounded` handle the new kinds. Update `docs/plans/economy.md`
       (new sink). Unit-test the catalog additions (ids unique, kinds present).
 
-- [ ] **N5 — garage Neon FX panel** `[opus]`
+- [x] **N5 — garage Neon FX panel** `[opus]`
       `modify.html`: a new "Neon FX" tab. Layout picker (locked until owned), per-zone colour
       pickers (as many as the layout uses, drawing from `NEON_PALETTE`), animation toggle
       (locked until owned) + speed. Writes `neon` into `carLook` on Apply; cart/buy for the
