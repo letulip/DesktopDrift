@@ -1,191 +1,276 @@
 # Plan — Achievements system
 
-ROADMAP Phase 2 item. This plan covers the full build: event seam → store schema →
-achievement definitions → engine wiring → display page → docs + PR.
+ROADMAP Phase 2 item. Full build: store schema → pure definitions/evaluator → engine
+wiring + new mechanics → results toast → track crowns → achievements page → docs + PR.
 
-Each step is tagged **[sonnet-high]** (mechanical, well-specified) or **[opus]**
-(design / wording / feel / UX). Workflow per `desktopdrift-pr` (branch →
-`npm test` + `node --check js/*.js` → SW-clear browser smoke → bump SW cache → PR).
-English only. One commit per step; tick the box in the same commit.
+Workflow per `desktopdrift-pr` (branch → `npm test` + `node --check js/*.js` → SW-clear
+browser smoke → bump SW cache → PR). English only. One commit per phase; tick the box in
+the same commit.
 
----
-
-## Context — what already exists
-
-The store schema already plans for achievements (`defaults()` note in ROADMAP says
-`achievements: { [id]: { unlocked, progress } }`) but the slice is not yet in
-`defaults()`. All data needed to check achievements is already tracked:
-
-| Signal                     | Source                                          |
-|----------------------------|-------------------------------------------------|
-| Race finish (pps, stars, trackId, isNewRecord) | `game-engine.js` finish branch |
-| Cap collected              | `store.capCollect` (in-engine)                  |
-| Tire collected             | `store.tireCollect` (in-engine)                 |
-| Per-track caps / tires     | `store.capsFor(trackId)`, `store.tiresFor(trackId)` |
-| All-track tire totals      | `store.stats().tires` keyed by trackId          |
-| Wallet balance             | `store.wallet()`                                |
-| Owned cosmetics            | `store.owned()`                                 |
-| Tracks cleared (first-run) | `store.stats().cleared`                         |
-| Best PPS per track         | `store.records()[trackId].timeattack.bestPPS`   |
-
-There is **no event bus yet** — the first step adds one (10 lines, not a framework).
-It is the seam achievements subscribe to without coupling modules directly.
+> **Supersedes the earlier A1–A6 draft.** That draft used a pub/sub **event bus**
+> (`js/events.js` + `ach-engine.js`) and an 18-achievement set. We deliberately drop the
+> bus (YAGNI — see "Approach") and expand the set (DDK crowns, ladders, cone/combo/time
+> achievements, cola→tires). The event seam stays deferred until in-run bonuses / sound
+> actually need it (ROADMAP spine #4).
 
 ---
 
-## Decisions (locked for v1 — flag in review to change)
+## Approach — pull-model, not an event bus
 
-1. **Event bus, not direct coupling.** `js/events.js` — tiny `emit(name, data)` /
-   `on(name, fn)` / `off(name, fn)`. Engine emits; achievements (and anything else)
-   subscribe. No global singletons beyond the bus itself.
+A single **pure** function is the heart:
 
-2. **Check-on-event, not polling.** The achievement engine subscribes to bus events.
-   On each event it checks all not-yet-unlocked achievements against a pure predicate
-   `check(ctx)` where `ctx = { event, store }`. No ticker, no game-loop hook.
+```
+evaluate(ctx, unlocked) -> [newlyUnlockedId, ...]
+```
 
-3. **Pure predicates.** Every `check` function is a pure read of the store snapshot
-   + the current event payload. No side-effects, easily unit-tested in Node.js.
+- `ctx` is a plain data snapshot (see contract below) — no store/DOM imports inside.
+- `unlocked` is the set of already-unlocked ids (so we never re-fire).
+- Returns the ids that just crossed their threshold. The **caller** persists them,
+  credits the tire reward, and shows the toast. `evaluate` has zero side-effects →
+  trivially unit-testable in Node.
 
-4. **Store slice: `{ [id]: { unlocked: bool, progress: number } }`.** Fits the
-   ROADMAP schema. `progress` is used for counter achievements (e.g. "finish 10 races");
-   for one-shot achievements it stays 0. Deep-merge fills it for old saves — no migration.
+**Two call sites** (a bus would be overkill for two):
+1. **Race finish** (`game-engine.js`) — the main path; covers skill/progression/economy/
+   time/DDK. Shows an in-game toast for anything newly unlocked.
+2. **After a purchase** (`store.purchase`) — covers `big-spender` / `fashionista` /
+   `well-rounded` so they don't wait for the next race. Toast on the shop page.
 
-5. **v1 display: a dedicated `achievements.html` page.** Linked from `index.html`
-   menu. Lists all achievements grouped by category with lock / unlock state + progress
-   bar for counter achievements. No in-game overlay for v1 — a toast on unlock is enough.
-
-6. **Toast on unlock.** A brief (~2.5 s) overlay in-game confirms the unlock.
-   Reuses the existing `flash()` helper (already in `game-engine.js`) — no new UI
-   component needed for v1.
-
-7. **Icons: single emoji per achievement.** Zero art budget; emoji renders everywhere.
-   Can be swapped for SVGs later as a data-only change.
-
-8. **v1 achievement set: 18 achievements across 5 categories.** See A3 below.
-   Enough for a meaningful system; small enough to stay balanced without playtesting.
+Everything else (caps, tires, wallet) changes only during a race, so the finish call
+catches it.
 
 ---
 
-## Event catalog (events `js/events.js` must support)
+## ctx contract (what the caller assembles, what `evaluate` reads)
 
-| Event name      | Payload fields                                              | Emitted from        |
-|-----------------|-------------------------------------------------------------|---------------------|
-| `race:finish`   | `{ trackId, mode, pps, stars, isNewRecord, totalTime, tiresPickedUp }` | `game-engine.js` |
-| `cap:collect`   | `{ trackId, capId }`                                        | `game-engine.js`    |
-| `tire:collect`  | `{ trackId, tireId }`                                       | `game-engine.js`    |
-| `shop:purchase` | `{ itemId, kind, price }`                                   | `store.purchase()`  |
+`evaluate` is pure over this shape. `run` is `null` for the purchase-triggered call.
 
-The bus is synchronous and fire-and-forget. Listeners are called in registration order.
+```
+ctx = {
+  run: {                    // the just-finished race (null on purchase eval)
+    finished:     true,
+    instanceId,             // 'green-study' | 'green-study:rev' | …
+    trackId, reversed,
+    pps, stars,             // stars = economy.starsForPps(pps), 0..5
+    ddk:          pps >= DDK_PPS,   // 600
+    nearMisses,             // S.nearMisses
+    crashes,                // S.crashes (new)
+    conesHit, conesTotal,   // S.conesHit (new) / cones.length
+    timeAt8,                // seconds held at MULT_MAX this run (new)
+    comboUnbroken,          // never dropped combo since start (new)
+    tiresThisRun,           // tire pickups collected this run
+    tireTotalOnTrack,       // tires that exist on this instance
+    capsThisRun,            // cola caps banked this run
+    hour,                   // new Date().getHours() at finish (caller-supplied → keeps evaluate pure)
+  } | null,
 
----
+  wallet,                   // store.wallet()
+  owned,                    // store.owned() — array of item ids
+  cleared,                  // store.stats().cleared — instance ids finished ≥ once
+  records,                  // { [instanceId]: bestPPS }  (flattened from store.records())
+  caps,                     // store.stats().caps  — { [trackId]: [idx…] }
+  lifetime: { runs, driftSecs },   // store.stats().runs / .driftSecs (new)
 
-## v1 achievement set
+  content: {                // injected from the TRACKS registry + shop catalog (pure inputs)
+    forwardIds, reversedIds, allInstanceIds,   // for progression / completionist / DDK
+    forwardTrackIds,                            // for cola-collector (per track)
+    shopCategories,                             // ['body','neon','finish','trail'] for well-rounded
+    catalogById,                                // { [itemId]: category } for well-rounded
+  },
+}
+```
 
-### Completion
-| id                 | Name             | Icon | Trigger / check                                        |
-|--------------------|------------------|------|--------------------------------------------------------|
-| `first-race`       | First Lap        | 🏁   | Finish any race (`race:finish`)                        |
-| `all-tracks`       | Grand Tour       | 🗺️   | `stats.cleared` covers at least one instance per forward track id |
-| `all-reversed`     | Wrong Way Driver | 🔄   | Same but for reversed track ids                        |
-| `full-sweep`       | Table Clear      | 🧹   | All 6 instances (3 forward + 3 reversed) in `cleared`  |
-
-### Skill
-| id                 | Name             | Icon | Trigger / check                                        |
-|--------------------|------------------|------|--------------------------------------------------------|
-| `one-star`         | One Star         | ⭐   | Any run with `stars ≥ 1` (pps ≥ 100)                  |
-| `three-stars`      | Three Stars      | 🌟   | Any run with `stars ≥ 3` (pps ≥ 300)                  |
-| `five-stars`       | Five Stars       | 💫   | Any run with `stars ≥ 5` (pps ≥ 500)                  |
-| `new-record`       | Personal Best    | 📈   | `isNewRecord === true` on any run                      |
-
-### Collector
-| id                 | Name             | Icon | Trigger / check                                        |
-|--------------------|------------------|------|--------------------------------------------------------|
-| `first-cap`        | Cork Pop         | 🫙   | `cap:collect` event (any track)                        |
-| `cap-sweep`        | Bottle Collector | 🥂   | `capsFor` returns ≥ 1 entry on every track in TRACKS   |
-| `first-tire`       | Pocket Change    | 🪙   | `tire:collect` event (any track)                       |
-| `tire-track`       | Track Hoarder    | 🛞   | All tires collected on any single track                |
-| `tire-sweep`       | Road Tax         | 🚧   | All tires collected on every track in TRACKS           |
-
-### Economy
-| id                 | Name             | Icon | Trigger / check                                        |
-|--------------------|------------------|------|--------------------------------------------------------|
-| `wallet-100`       | Spare Change     | 💰   | `wallet() ≥ 100` at any point after a race finish      |
-| `wallet-500`       | Rolling in Tires | 🤑   | `wallet() ≥ 500`                                       |
-| `first-purchase`   | First Buy        | 🛍️   | `shop:purchase` event (any item)                       |
-| `collector`        | Collector        | 🎨   | `owned().length ≥ 3`                                   |
-
-### Dedication
-| id                 | Name             | Icon | Trigger / check                                        |
-|--------------------|------------------|------|--------------------------------------------------------|
-| `ten-races`        | Ten Laps         | 🔟   | `progress ≥ 10` (counter; increments each `race:finish`) |
-| `fifty-races`      | Road Warrior     | 🏆   | `progress ≥ 50`                                        |
+Rationale: all *content* (which instances/tracks/categories exist) is injected, so tests
+construct any world without importing the registry. DDK/completionist scale automatically
+as tracks are added.
 
 ---
 
-## Steps
+## Achievement catalog
 
-- [ ] **A1. Event bus.** **[sonnet-high]**
-      New `js/events.js`: exports `emit(name, data)`, `on(name, fn)`, `off(name, fn)`.
-      Backed by a `Map<name, Set<fn>>`. Synchronous, fire-and-forget, no error swallowing
-      (re-throw after logging). Wire `emit('race:finish', {...})` in `game-engine.js` at the
-      finish branch; wire `emit('cap:collect', {...})` and `emit('tire:collect', {...})` in the
-      collectible update. Add `js/events.js` to SW `ASSETS`.
-      Unit-test: on/emit round-trip, off removes listener, unknown event is a no-op, error
-      in listener propagates.
+Each definition: `{ id, name, desc, icon, category, hidden, reward, check }`.
+`check(ctx)` returns `true` (unlock), a `{ progress, target }` object (ladder/counter — the
+page renders a bar; unlock when `progress ≥ target`), or `false`/`null`. `reward` = one-time
+tires credited on unlock (ledger reason `Achievement: <name>`).
 
-- [ ] **A2. Store schema.** **[sonnet-high]**
-      Add `achievements: {}` to `defaults()` (deep-merge fills it for old saves).
-      Add helpers: `achGet(id)` → `{ unlocked, progress }` (lazy-init the entry),
-      `achUnlock(id)` (idempotent, persists), `achProgress(id, n)` (sets progress, persists).
-      Unit-test: default shape, idempotent unlock, progress accumulates, old-save merge.
+Icons are single emoji (zero art budget, swappable later as data-only).
 
-- [ ] **A3. Achievement definitions.** **[opus]**
-      New `js/achievements.js`: `export const ACHIEVEMENTS = [...]` of
-      `{ id, name, desc, icon, category, check }` per the table above.
-      Each `check(ctx)` is a pure function: `ctx = { event, store }` (store = imported
-      store module, not a snapshot — call `store.wallet()` etc. inside). `check` returns
-      `true` to unlock, `{ progress: n }` for counter updates (used by ten-races / fifty-races
-      — the engine calls `achProgress` and checks against the target), or `false/null`.
-      Also export `byCategory(cat)` helper and `ACHIEVEMENT_MAP` (keyed by id for O(1) lookup).
-      Unit-test: id uniqueness, all checks callable without throwing (pass a mock ctx),
-      byCategory returns the right subset, ACHIEVEMENT_MAP covers all ids.
+### Progression (visible)
+| id | name | icon | reward | check |
+|---|---|---|---|---|
+| `first-drift` | First Drift | 🏁 | 10 | `run.finished` |
+| `road-tripper` | Road Tripper | 🗺️ | 30 | every `content.forwardIds` ∈ `cleared` |
+| `mirror-walker` | Through the Looking Glass | 🪞 | 15 | any reversed id ∈ `cleared` |
+| `backwards` | Reverse Psychology | ↩️ | 30 | every `content.reversedIds` ∈ `cleared` |
+| `completionist` | Completionist | 🏆 | 75 | every `content.allInstanceIds` ∈ `cleared` |
 
-- [ ] **A4. Achievement engine.** **[sonnet-high]**
-      New `js/ach-engine.js`: `initAchievements()` subscribes to all bus events.
-      On each event: iterate `ACHIEVEMENTS`; for each not-yet-unlocked, call `check(ctx)`.
-      If `true` → `achUnlock(id)` + `showAchievementToast(ach)`.
-      If `{ progress: n }` → `achProgress(id, n)`; if progress ≥ target → unlock + toast.
-      `showAchievementToast` uses the existing `flash()` mechanism (single-line: icon + name).
-      `initAchievements()` called once from `game.html` script block (alongside `startEngine`).
-      Unit-test: mock bus + store, verify unlock fires on the right events, verify idempotency.
+### Skill (visible)
+| id | name | icon | reward | check |
+|---|---|---|---|---|
+| `three-star` | Solid Run | ⭐ | 5 | `run.stars ≥ 3` |
+| `four-star` | Dialed In | 🌟 | 20 | `run.stars ≥ 4` |
+| `five-star` | Flawless | 💫 | 40 | `run.stars ≥ 5` |
+| `daredevil` | Daredevil | 😎 | 25 | `run.nearMisses ≥ 10` |
 
-- [ ] **A5. Achievements page.** **[opus]**
-      New `achievements.html` page linked from `index.html` menu (between Tracks and Settings).
-      Lists all 18 achievements grouped by category. Each card: icon + name + desc + lock/unlock
-      status. Counter achievements show a `N / target` progress bar. Locked achievements show
-      the desc (no spoilers hidden for v1 — these are all milestone-visible).
-      CSS: reuse tokens from `base.css` / `content.css`; no new design vocabulary.
-      Add `achievements.html` + any new CSS to SW `ASSETS`.
+### Combo (visible + one hidden)
+| id | name | icon | hidden | reward | check |
+|---|---|---|---|---|---|
+| `flow-1` | In the Zone | 🌀 | – | 20 | `run.timeAt8 ≥ 10` |
+| `flow-2` | Untouchable Flow | 🌪️ | – | 35 | `run.timeAt8 ≥ 30` |
+| `perpetual` | Perpetual Motion | ♾️ | ✓ | 75 | `run.finished && run.comboUnbroken` |
 
-- [ ] **A6. Docs + SW + PR.** **[sonnet-high]**
-      `sw.js`: bump cache; add `js/events.js`, `js/achievements.js`, `js/ach-engine.js`,
-      `achievements.html` to `ASSETS` (some may already be there from prior steps).
-      `AGENTS.md`: document the event bus (emit/on/off), achievement store slice
-      (achGet/achUnlock/achProgress), and ach-engine init point.
-      Tick A1–A6; PR.
+### Ladders (visible; each tier a distinct id, generated from a config)
+- **Drift time (lifetime minutes)** — icon ⏱️, `check → { progress: lifetime.driftSecs/60, target }`:
+  `drift-10`(20) · `drift-25`(30) · `drift-50`(40) · `drift-100`(60) · `drift-250`(100) · `drift-500`(150).
+- **Races finished (lifetime)** — icon 🔁, `{ progress: lifetime.runs, target }`:
+  `races-10`(15) · `races-50`(30) · `races-100`(50) · `races-250`(100) · `races-500`(150).
+- **Wallet reached (latches; never un-unlocks on spend)** — icon 🛞,
+  `{ progress: max(wallet, alreadyProgress), target }`:
+  `hoard-500` Tire Saver (25) · `hoard-1000` Tire Lover (40) · `hoard-2500` Tire Warehouse (80) ·
+  `hoard-5000` Tire Factory (150).
 
-**Phase done when:** all 18 achievements check correctly, unlocks persist, the page shows
-the full list with live state, the in-game toast fires on unlock, `npm test` green,
-browser smoke clean on ≥ 1 track.
+### Economy / collection (visible)
+| id | name | icon | reward | check |
+|---|---|---|---|---|
+| `clean-sweep` | Clean Sweep | 🧹 | 20 | `run.tireTotalOnTrack > 0 && run.tiresThisRun === run.tireTotalOnTrack` |
+| `soda-pop` | Soda Pop | 🥤 | 10 | any cap collected (`caps` non-empty) |
+| `big-spender` | Retail Therapy | 🛍️ | 15 | `owned.length ≥ 1` |
+| `fashionista` | Fashionista | 👗 | 30 | `owned.length ≥ 5` |
+| `well-rounded` | Well Rounded | 🧩 | 30 | `owned` covers every `content.shopCategories` |
+
+### Hidden
+| id | name | icon | reward | check |
+|---|---|---|---|---|
+| `glass-cannon` | Living Dangerously | 💥 | 40 | `run.stars ≥ 5 && run.nearMisses ≥ 15` |
+| `untouchable` | Untouchable | 🛡️ | 30 | `run.finished && run.crashes === 0` |
+| `slalom-saint` | Slalom Saint | 🚧 | 60 | `run.finished && run.conesTotal > 0 && run.conesHit === 0` |
+| `bulldozer` | Bulldozer | 🚜 | 30 | `run.conesTotal > 0 && run.conesHit === run.conesTotal` |
+| `cola-collector` | Sugar High | 🧃 | 40 | every `content.forwardTrackIds` has a collected cap |
+| `night-owl` | Night Owl | 🦉 | 15 | `run.hour ∈ {22,23,0,1}` |
+| `midnight-drift` | Midnight Drift | 🌙 | 15 | `run.hour ∈ {2,3,4}` |
+| `early-bird` | Early Bird | 🐦 | 15 | `run.hour ∈ {5,6,7}` |
+
+### DDK — 6-star mastery (generated, hidden)
+`DDK_PPS = 600`. A run at 600+ PPS = a **crown** above the 5 stars.
+- Per instance, generated from `content.allInstanceIds`:
+  `ddk-<instanceId>` — name `DDK <TrackName>` (`+ ' (reversed)'`), icon 👑, hidden,
+  reward **60**, `check → records[instanceId] ≥ DDK_PPS`.
+- `absolute-ddk` — name **Absolute DDK**, icon 👑✨, hidden, reward **1000**,
+  `check → every content.allInstanceIds has records[id] ≥ DDK_PPS`. Also lights a
+  permanent crown on the main menu.
+
+**Reward-total note (economy):** at full content (14 instances) achievements grant
+≈ **3.6k** one-time tires, ~1.8k of it the DDK tail. Nearly all is gated behind mastery
+(600 PPS, 500 min drift, unbroken drift) or grind (ladders). Intended as the completionist
+long-tail; the sink (cars/cosmetics, Phase C/D) must keep pace. Revisit tuning when Phase C
+cars land. Tracked in `docs/plans/economy.md`.
+
+---
+
+## New mechanics folded into this feature
+
+1. **DDK crown.** `DDK_PPS = 600` in `js/economy.js`; `isDDK(pps)`. Star badge (results
+   screen + track cards) renders a 👑 above the 5 stars when `pps ≥ 600` (else hidden).
+   Payout `starsForPps` stays capped at 5 — the crown is display + achievement only,
+   never changes finish payout.
+
+2. **Cola cap → tires (not score).** Today the donut-cap banks `CAP_BONUS` **score**
+   (`game-engine.js` ~L156) which is then stripped from PPS (dead points). Replace with a
+   fixed **`CAP_TIRE_VALUE = 15`** tire award, one-time per track via `capCollect`, logged
+   to the ledger. Remove `CAP_BONUS`, `capBonus`, and the PPS-strip (`ppsScore = totalScore`
+   afterwards). Verify caps are one-time before shipping (if per-run today, make them
+   one-time so it stays a controlled faucet).
+
+3. **Run instrumentation** (all reset in the per-run init, read at finish):
+   - `S.crashes` — ++ on wall/prop impact (untouchable).
+   - `S.conesHit` — ++ when a cone flips (`hitConeAt`); `conesTotal = cones.length`.
+   - `S.timeAt8` — `+= dt` while `S.mult >= MULT_MAX`.
+   - `S.comboUnbroken` — starts `true`; set `false` in `resetCombo`/`burnCombo`.
+   - `S.capsThisRun` — ++ on donut-cap bank.
+   - `tiresThisRun` already exists (`tiresEarned`); `tireTotalOnTrack` = count of tire
+     collectibles on the instance.
+
+---
+
+## Store additions
+
+- `defaults().stats` gains `runs: 0`, `driftSecs: 0` (deep-merge fills old saves; no
+  migration). Incremented once per race finish in the engine.
+- `defaults().achievements` already `{}`. New helpers:
+  - `achAll()` → the raw `{ [id]: { unlocked, progress } }` map.
+  - `achUnlocked()` → `Set` of unlocked ids (for `evaluate`).
+  - `achUnlock(id)` → idempotent, sets `unlocked:true`, persists.
+  - `achSetProgress(id, n)` → stores `progress = max(existing, n)`, persists (ladders latch).
+- No new localStorage outside `store.js` (rule).
+
+---
+
+## UI
+
+- **Toast** on unlock: reuse `flash()` in-engine (`🏆 <name>  +N 🛞`); on the shop page a
+  small equivalent toast in `modify.html`.
+- **Crown on star badge**: results screen (`race-results.js`) + track cards
+  (`tracks.html`) — 👑 above the 5 stars when `pps ≥ 600`.
+- **`achievements.html`**: grid grouped by category; each card = icon + name + desc +
+  state. Hidden+locked → `???` with the reward masked; visible+locked → greyed with desc;
+  unlocked → full colour + `+N 🛞`. Ladder/counter cards show a `progress / target` bar.
+  Header shows `unlocked / total`. Vendor prefixes by hand (no autoprefixer).
+- **Menu button**: 🏆 Achievements on `index.html`, a second column beside ⚙ Settings.
+- **Absolute-DDK crown**: a badge by the title on the main menu, shown only when
+  `absolute-ddk` is unlocked.
+
+---
+
+## Phases
+
+- [ ] **E1 — store** `[sonnet-high]`
+      `stats.runs` + `stats.driftSecs` in `defaults()`; `achAll/achUnlocked/achUnlock/
+      achSetProgress` helpers. Unit tests (default shape, idempotent unlock, progress
+      latches to max, old-save merge). No SW/UI yet.
+
+- [ ] **E2 — definitions + evaluator** `[opus]`
+      `js/achievements.js`: `ACHIEVEMENTS` (static) + generated families (ladders, `ddk-*`,
+      `absolute-ddk`) + pure `evaluate(ctx, unlocked)` + `DDK_PPS`. Heavy unit tests: every
+      check callable on a mock ctx without throwing; id uniqueness; each achievement fires on
+      the intended ctx and *not* otherwise; ladders return progress; `evaluate` never returns
+      an already-unlocked id.
+
+- [ ] **E3 — engine wiring + mechanics** `[opus]`
+      Add `S.crashes/conesHit/timeAt8/comboUnbroken/capsThisRun` + resets; cola→tires
+      (`CAP_TIRE_VALUE`, remove `CAP_BONUS`/strip); `isDDK`/`DDK_PPS` in economy. At finish:
+      bump `stats.runs`/`driftSecs`, assemble `ctx`, call `evaluate`, `achUnlock` + credit
+      reward per new id, pass `newlyUnlocked` to `raceResults.show`. Also call `evaluate`
+      from `store.purchase`. Unit-test the economy pieces (`isDDK`, cap value).
+
+- [ ] **E4 — results toast + crown** `[sonnet-high]`
+      `race-results.js`: render newly-unlocked toast list + the 👑 crown above stars when
+      `pps ≥ 600`. CSS in `sandbox.css`.
+
+- [ ] **E5 — track-card crowns** `[sonnet-high]`
+      `tracks.html`: 👑 above the star badge on any instance whose `bestPPS ≥ 600`.
+
+- [ ] **E6 — achievements page + menu button** `[opus]`
+      `achievements.html` (grid, hidden/locked/unlocked states, progress bars, `X/N`
+      header) + 🏆 button on `index.html` beside Settings + Absolute-DDK menu crown.
+      New CSS file (`css/achievements.css`) with hand-written vendor prefixes.
+
+- [ ] **E7 — docs + SW + PR** `[sonnet-high]`
+      `sw.js` bump + add `js/achievements.js`, `achievements.html`, `css/achievements.css`
+      to `ASSETS`; AGENTS.md (evaluator + store helpers + new `S.*` fields + cola→tires +
+      DDK), ROADMAP tick (Phase 2 Achievements), economy.md faucet note. Tick E1–E7; PR.
+
+**Phase done when:** every check fires correctly (unit-tested), unlocks persist + credit
+tires once, the page shows live state with progress bars, the in-game toast and the DDK
+crown render, `npm test` green, browser smoke clean on ≥ 1 track.
 
 ---
 
 ## Guardrails
 
-- **No stat gates.** Achievements are observational — they never block content.
-- **No server round-trips.** Everything is local store; achievements are client-side only.
-- **Pure check functions.** All `check()` must pass `node --check` and be testable
-  without a DOM or canvas.
-- **Records-safe.** No achievement increments a record or changes PPS — cosmetic only.
-- **Tag rationale:** event bus plumbing / store helpers / engine wiring → sonnet-high;
-  achievement wording / UX / category balance / page design → opus.
+- **Observational only** — achievements never gate content, never change a record or PPS.
+- **Records-safe** — rewards are soft currency (cosmetics/cars sink), never power.
+- **Pure evaluator** — `evaluate` + every `check` pass `node --check` and test without a
+  DOM/canvas; all time/content is injected via `ctx`, never read from globals.
+- **One tire credit per unlock** — idempotent; re-finishing an already-unlocked achievement
+  pays nothing.
+- **Agent tags** — store/engine/UI plumbing → `sonnet-high`; evaluator design + wording +
+  page UX → `opus`. Reviewer agent runs before the PR.
