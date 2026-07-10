@@ -7,6 +7,7 @@ import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, a
          stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
+import { defaultNeon } from './neon.js';
 import { TRACKS } from './track-registry.js';
 import { CATALOG } from './shop-catalog.js';
 import { createRaceResults } from './race-results.js';
@@ -332,7 +333,9 @@ export const startGame = (T, opts = {}) => {
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
   const look = carLook(S.carModel);   // per-car equipped look
-  setCarPaint(look.bodyColor ?? null, look.neonColor ?? null, look.finish ?? null, look.trailColor ?? null);
+  // neon is a config object now; fall back to a solid config from the legacy neonColor.
+  const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
+  setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).

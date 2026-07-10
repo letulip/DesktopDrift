@@ -135,7 +135,7 @@ This keeps the "wow" where the player shops and protects race FPS.
       `neon.colors[0]` (+ keep a read fallback). `owned` unchanged in shape. Tests: default
       shape, migration from a `neonColor` save, deep-merge fills `neon` on a save that lacks it.
 
-- [ ] **N3 — render engine (6 zones + animator)** `[opus]`
+- [x] **N3 — render engine (6 zones + animator)** `[opus]`
       Rework the `render.js` neon block: define the 6 perimeter zone geometries; each frame call
       `zoneColors(equippedNeon, now)` and draw the glows, **batching same-colour zones into one
       `shadowBlur` pass**. Feed a per-session time value (reuse `S.physT` or a render clock).
