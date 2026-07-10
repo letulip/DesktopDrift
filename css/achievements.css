@@ -1,0 +1,211 @@
+/* Achievements page (achievements.html) — self-contained; only depends on base.css tokens. */
+
+#ach-page {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--bg-screen);
+  font: 14px/1.4 var(--font-body); color: var(--ink);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+#ach-header {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px;
+  padding: 20px 20px 14px;
+}
+
+#ach-title {
+  margin: 0;
+  font: 800 clamp(22px, 6vw, 36px) var(--font-display);
+  letter-spacing: .5px; line-height: 1;
+  background: var(--accent-text);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+#ach-count {
+  display: inline-flex; align-items: center;
+  padding: 5px 14px; border-radius: 20px;
+  background: var(--accent-tint);
+  border: 1px solid var(--accent-line);
+  color: var(--accent); font: 700 13px var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scrollable content ──────────────────────────────────────────────────── */
+#ach-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  padding: 4px 20px 90px;
+}
+#ach-content::-webkit-scrollbar { display: none; }
+
+#ach-sections {
+  display: flex; flex-direction: column; gap: 22px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+.ach-section-title {
+  margin: 0 0 10px;
+  font: 700 11px var(--font-body);
+  letter-spacing: .8px; text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.ach-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  min-width: 0;
+  padding: 14px; border-radius: var(--r-card);
+  background: var(--surface);
+  border: 1.5px solid var(--surface-line);
+  transition: border-color var(--ease), background var(--ease);
+}
+
+.ach-card.is-unlocked {
+  background: var(--accent-tint);
+  border-color: var(--accent-line);
+}
+
+.ach-card.is-locked {
+  opacity: .62;
+}
+
+.ach-card.is-hidden {
+  opacity: .5;
+}
+
+.ach-icon {
+  flex-shrink: 0; width: 34px;
+  font-size: 26px; line-height: 1;
+  text-align: center;
+}
+
+.ach-card.is-hidden .ach-icon { opacity: .7; }
+
+.ach-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+
+.ach-name {
+  font: 700 14px var(--font-display);
+  letter-spacing: .2px;
+  overflow-wrap: anywhere;
+}
+
+.ach-card.is-hidden .ach-name {
+  color: rgba(255,255,255,.4);
+}
+
+.ach-desc {
+  font: 400 12px var(--font-body);
+  opacity: .55; line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ach-desc--muted {
+  opacity: .35;
+  font-style: italic;
+}
+
+.ach-reward {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 3px 10px; border-radius: 20px;
+  font: 700 12px var(--font-body); letter-spacing: .2px;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255,180,60,.20);
+  border: 1px solid rgba(255,180,60,.45);
+  color: #ffce6a;
+  white-space: nowrap;
+}
+
+.ach-reward--goal {
+  background: var(--surface);
+  border-color: var(--surface-line);
+  color: rgba(255,255,255,.45);
+}
+
+/* ── Progress bar (endurance/dedication/wealth ladder tiers) ────────────────── */
+.ach-bar-wrap {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 4px;
+}
+
+.ach-bar-track {
+  height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,.1);
+  overflow: hidden;
+}
+
+.ach-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--accent);
+  transition: width var(--ease);
+}
+
+.ach-card.is-unlocked .ach-bar-fill {
+  background: var(--accent-gold);
+}
+
+.ach-bar-label {
+  font: 600 10px var(--font-body);
+  opacity: .5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Footer / back link ──────────────────────────────────────────────────── */
+#ach-footer {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-deep) 44%);
+  pointer-events: none;
+  position: fixed;
+  bottom: 0;
+  width: 100vw;
+  box-sizing: border-box;
+}
+
+.ach-back {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0 28px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.4);
+  font: 500 13px var(--font-body);
+  text-decoration: none;
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+.ach-back:hover {
+  color: rgba(255,255,255,.7);
+  border-color: rgba(255,255,255,.28);
+  background: rgba(255,255,255,.10);
+}
+
+/* ── Mobile layout (≤ 480px) ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  #ach-header { padding: 16px 12px 10px; }
+
+  #ach-content { padding: 4px 12px 84px; }
+
+  .ach-grid { grid-template-columns: 1fr; }
+
+  .ach-card { padding: 12px; }
+}

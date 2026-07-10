@@ -3,7 +3,30 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DDK_PPS, buildCatalog, evaluate } from '../js/achievements.js';
+import { DDK_PPS, buildCatalog, buildContent, evaluate, flattenRecords } from '../js/achievements.js';
+
+test('flattenRecords: { inst: { timeattack: { bestPPS } } } → { inst: bestPPS }', () => {
+  const flat = flattenRecords({
+    'green-study':     { timeattack: { bestPPS: 640, bestPPSTotal: 1, bestPPSTime: 2 } },
+    'green-study:rev': { timeattack: { bestPPS: 300 } },
+    'empty':           {},                       // no timeattack → skipped
+  });
+  assert.deepEqual(flat, { 'green-study': 640, 'green-study:rev': 300 });
+  assert.deepEqual(flattenRecords(undefined), {});
+});
+
+test('buildContent: derives instances + shop sections from the registries', () => {
+  const tracks = [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Beta' }];
+  const catalog = [{ id: 'finish-x', kind: 'finish' }, { id: 'trail-y', kind: 'trail' },
+                   { id: 'trail-z', kind: 'trail' }];
+  const c = buildContent(tracks, catalog);
+  assert.deepEqual(c.forwardIds, ['a', 'b']);
+  assert.deepEqual(c.reversedIds, ['a:rev', 'b:rev']);
+  assert.deepEqual(c.allInstanceIds, ['a', 'b', 'a:rev', 'b:rev']);
+  assert.deepEqual(c.shopCategories, ['finish', 'trail']);   // distinct kinds, order preserved
+  assert.equal(c.catalogById['trail-y'], 'trail');
+  assert.equal(c.names['a:rev'], 'Alpha (reversed)');
+});
 
 // A representative world: 3 tracks × forward/reversed = 6 instances, shop with 2 sections.
 const CONTENT = {

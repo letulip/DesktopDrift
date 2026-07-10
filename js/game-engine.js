@@ -6,7 +6,7 @@ import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook, markCleared,
          stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
-import { evaluate } from './achievements.js';
+import { evaluate, buildContent, flattenRecords } from './achievements.js';
 import { TRACKS } from './track-registry.js';
 import { CATALOG } from './shop-catalog.js';
 import { createRaceResults } from './race-results.js';
@@ -241,17 +241,6 @@ export const startGame = (T, opts = {}) => {
   // defs ({ id, name, icon, reward }) for the results toast. Time Attack only (see call site).
   const awardAchievements = (pps) => {
     const st = stats();
-    // Flatten records → { instanceId: bestPPS } for the DDK / Absolute-DDK checks.
-    const recSnapshot = {};
-    const allRec = records();
-    for (const k of Object.keys(allRec)) {
-      const bp = allRec[k]?.timeattack?.bestPPS;
-      if (bp != null) recSnapshot[k] = bp;
-    }
-    const fwdIds = TRACKS.map(t => t.id);
-    const revIds = fwdIds.map(id => id + ':rev');
-    const names  = {};
-    TRACKS.forEach(t => { names[t.id] = t.name; names[t.id + ':rev'] = t.name + ' (reversed)'; });
     const ctx = {
       run: {
         finished: true, instanceId: INSTANCE, trackId: T.id, reversed: REVERSED,
@@ -259,19 +248,16 @@ export const startGame = (T, opts = {}) => {
         nearMisses: runNearMisses, crashes: runCrashes,
         conesHit: cones.filter(c => c.knocked).length, conesTotal: cones.length,
         timeAt8: runTimeAt8, comboUnbroken, tiresThisRun: runTirePickups,
+        // clean-sweep is per-track one-shot BY DESIGN: tire pickups persist permanently, so a
+        // partially-harvested track can never satisfy tiresThisRun === total again — the player
+        // earns it on a fresh track. Not a bug; the trap is intentional.
         tireTotalOnTrack: collectibles.filter(c => c.kind === 'tire').length,
         capsThisRun: runCaps, hour: new Date().getHours(),
       },
       wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
-      records: recSnapshot, caps: st.caps ?? {},
+      records: flattenRecords(records()), caps: st.caps ?? {},
       lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
-      content: {
-        forwardIds: fwdIds, reversedIds: revIds, allInstanceIds: [...fwdIds, ...revIds],
-        forwardTrackIds: fwdIds,
-        shopCategories: [...new Set(CATALOG.map(i => i.kind))],
-        catalogById: Object.fromEntries(CATALOG.map(i => [i.id, i.kind])),
-        names,
-      },
+      content: buildContent(TRACKS, CATALOG),
     };
     const res = evaluate(ctx, achUnlocked());
     for (const p of res.progress) achSetProgress(p.id, p.value);

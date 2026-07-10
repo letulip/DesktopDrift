@@ -252,7 +252,7 @@ cars land. Tracked in `docs/plans/economy.md`.
 - [x] **E5 — track-card crowns** `[sonnet-high]`
       `tracks.html`: 👑 above the star badge on any instance whose `bestPPS ≥ 600`.
 
-- [ ] **E6 — achievements page + menu button + shop eval** `[opus]`
+- [x] **E6 — achievements page + menu button + shop eval** `[opus]`
       `achievements.html` (grid, hidden/locked/unlocked states, progress bars, `X/N`
       header) + 🏆 button on `index.html` beside Settings + Absolute-DDK menu crown.
       New CSS file (`css/achievements.css`) with hand-written vendor prefixes.

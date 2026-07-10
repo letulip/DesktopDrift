@@ -130,13 +130,18 @@ const STATIC = [
 ];
 
 // ── Generated ladder families (fixed thresholds → counter achievements) ───────
-// Each returns { progress, target } so the page renders a bar; unlock when progress ≥ target.
-const _ladder = (prefix, icon, category, unit, tiers, valueOf, descOf) =>
-  tiers.map(([threshold, reward, name]) => ({
-    id: `${prefix}-${threshold}`, name, icon, category, hidden: false, reward,
-    desc: descOf(threshold),
-    check: (x) => ({ progress: valueOf(x), target: threshold * unit }),
-  }));
+// check() returns { progress, target } so evaluate() can unlock at target; the same
+// `target`, `bar:true`, and `fmt` display formatter are also exposed as static fields so the
+// achievements page can render a progress bar from the catalog + stored progress alone.
+const _ladder = (prefix, icon, category, unit, tiers, valueOf, descOf, fmt) =>
+  tiers.map(([threshold, reward, name]) => {
+    const target = threshold * unit;
+    return {
+      id: `${prefix}-${threshold}`, name, icon, category, hidden: false, reward,
+      desc: descOf(threshold), bar: true, target, fmt,
+      check: (x) => ({ progress: valueOf(x), target }),
+    };
+  });
 
 const DRIFT_TIERS = [[10, 20, 'Warm-Up'], [25, 30, 'Marathon'], [50, 40, 'Endurance'],
   [100, 60, 'Iron Wrists'], [250, 100, 'Tireless'], [500, 150, 'Eternal Drift']];
@@ -145,13 +150,30 @@ const RACES_TIERS = [[10, 15, 'Rookie'], [50, 30, 'Regular'], [100, 50, 'Veteran
 const HOARD_TIERS = [[500, 25, 'Tire Saver'], [1000, 40, 'Tire Lover'],
   [2500, 80, 'Tire Warehouse'], [5000, 150, 'Tire Factory']];
 
+const _fmtMin   = (secs) => `${Math.floor(secs / 60)}m`;
+const _fmtCount = (n) => `${n}`;
+
 const LADDERS = [
   ..._ladder('drift', '⏱️', 'endurance', 60, DRIFT_TIERS, (x) => x.lifetime.driftSecs,
-    (m) => `Drift for ${m} minutes total.`),
+    (m) => `Drift for ${m} minutes total.`, _fmtMin),
   ..._ladder('races', '🔁', 'dedication', 1, RACES_TIERS, (x) => x.lifetime.runs,
-    (n) => `Finish ${n} races.`),
+    (n) => `Finish ${n} races.`, _fmtCount),
   ..._ladder('hoard', '🛞', 'wealth', 1, HOARD_TIERS, (x) => x.wallet,
-    (n) => `Reach ${n} tires in the wallet.`),
+    (n) => `Reach ${n} tires in the wallet.`, _fmtCount),
+];
+
+// Display order + section labels for the achievements page (any category not listed falls
+// through to the end in insertion order).
+export const CATEGORY_ORDER = [
+  { key: 'progression', label: 'Progression' },
+  { key: 'skill',       label: 'Skill' },
+  { key: 'combo',       label: 'Combo' },
+  { key: 'endurance',   label: 'Endurance' },
+  { key: 'dedication',  label: 'Dedication' },
+  { key: 'wealth',      label: 'Wealth' },
+  { key: 'economy',     label: 'Economy' },
+  { key: 'hidden',      label: 'Secrets' },
+  { key: 'ddk',         label: 'DDK — Mastery' },
 ];
 
 // Per-instance DDK crowns — generated from the content instance list (scales with tracks).
@@ -161,6 +183,34 @@ const _ddkDefs = (content) => content.allInstanceIds.map(id => ({
   icon: '👑', category: 'ddk', hidden: true, reward: 60,
   check: (x) => (x.records[id] ?? 0) >= DDK_PPS,
 }));
+
+// Build the `content` descriptor from the live registries (tracks + shop catalog). Pure —
+// the registries are injected, not imported — so both the engine and the achievements page
+// derive the identical content (and therefore the identical ids) from one place.
+export const buildContent = (tracks, catalog) => {
+  const forwardIds  = tracks.map(t => t.id);
+  const reversedIds = forwardIds.map(id => `${id}:rev`);
+  const names = {};
+  tracks.forEach(t => { names[t.id] = t.name; names[`${t.id}:rev`] = `${t.name} (reversed)`; });
+  return {
+    forwardIds, reversedIds, allInstanceIds: [...forwardIds, ...reversedIds],
+    forwardTrackIds: forwardIds,
+    shopCategories: [...new Set(catalog.map(i => i.kind))],
+    catalogById: Object.fromEntries(catalog.map(i => [i.id, i.kind])),
+    names,
+  };
+};
+
+// Flatten store.records() ({ [inst]: { timeattack: { bestPPS } } }) → { [inst]: bestPPS }
+// for the DDK / Absolute-DDK checks. Shared by the engine + the shop ctx assembly.
+export const flattenRecords = (records) => {
+  const out = {};
+  for (const k of Object.keys(records ?? {})) {
+    const bp = records[k]?.timeattack?.bestPPS;
+    if (bp != null) out[k] = bp;
+  }
+  return out;
+};
 
 // The full catalog for a given world. Both the engine and the achievements page call this
 // with the same content so ids line up. Content-independent entries are shared singletons.
