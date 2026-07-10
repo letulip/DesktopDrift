@@ -15,8 +15,8 @@ export const {
   tires:   12,   // seeded along the centerline (see js/tire-seed.js); must match registry `tires`
   theme:   {
     background: '#1b2230',
-    table:      '#7e889b',   // cool blue-grey desk — darker than the old #d9dde2 (eye strain / items dissolved)
-    tableEdge:  '#525b6d',
+    table:      '#8f99ac',   // cool blue-grey desk — darker than the old #d9dde2, kept lighter than
+    tableEdge:  '#5c667c',   // steel-kitchen (#6b7178) so the two cool schemes read distinctly apart
     track:      '#c7bda4',
     skid:       'rgba(40,46,58,0.5)',
     checkpoint: 'rgba(0,207,255,0.55)',
