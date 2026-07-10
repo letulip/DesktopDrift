@@ -53,6 +53,7 @@
   import { TRACKS } from './js/track-registry.js';
   import { records, collectedCaps, tiresFor, wallet } from './js/store.js';
   import { svgToCentreline, instanceId } from './js/track-util.js';
+  import { isDDK } from './js/economy.js';
   import { initWalletHistory } from './js/wallet-history.js';
 
   document.getElementById('wallet-amount').textContent = wallet();
@@ -159,13 +160,24 @@
       } else {
         const stars = document.createElement('div');
         stars.className = 'track-stars';
+        // DDK crown above the row once this instance's best is 600+ PPS.
+        if (isDDK(record?.pps)) {
+          const crown = document.createElement('span');
+          crown.className = 'track-crown';
+          crown.textContent = '👑';
+          crown.title = 'DDK — 600+ PPS';
+          stars.appendChild(crown);
+        }
+        const starRow = document.createElement('div');
+        starRow.className = 'track-star-row';
         const filled = starsOf(record?.pps);
         for (let s = 0; s < 5; s++) {
           const sp = document.createElement('span');
           sp.textContent = '★';
           sp.className = s < filled ? 'star-lit' : 'star-dim';
-          stars.appendChild(sp);
+          starRow.appendChild(sp);
         }
+        stars.appendChild(starRow);
         top.appendChild(stars);
       }
 

@@ -96,7 +96,9 @@
   position: absolute;
   top: 9px; left: 9px;
   display: flex;
-  gap: 2px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   padding: 3px 7px;
   border-radius: 20px;
   background: rgba(0, 0, 0, 0.44);
@@ -106,6 +108,9 @@
   pointer-events: none;
   line-height: 1;
 }
+.track-star-row { display: flex; gap: 2px; }
+/* DDK crown above the stars once the instance best is 600+ PPS */
+.track-crown { font-size: 12px; line-height: 1; filter: drop-shadow(0 0 4px rgba(255,190,60,0.7)); }
 .track-stars .star-dim { font-size: 13px; color: rgba(255,255,255,0.28); }
 .track-stars .star-lit { font-size: 13px; color: #ffc840; text-shadow: 0 0 6px rgba(255,180,0,0.6); }
 

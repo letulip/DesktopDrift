@@ -249,7 +249,7 @@ cars land. Tracked in `docs/plans/economy.md`.
       `race-results.js`: render newly-unlocked toast list + the 👑 crown above stars when
       `pps ≥ 600`. CSS in `sandbox.css`.
 
-- [ ] **E5 — track-card crowns** `[sonnet-high]`
+- [x] **E5 — track-card crowns** `[sonnet-high]`
       `tracks.html`: 👑 above the star badge on any instance whose `bestPPS ≥ 600`.
 
 - [ ] **E6 — achievements page + menu button + shop eval** `[opus]`
