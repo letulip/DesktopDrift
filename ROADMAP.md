@@ -110,11 +110,16 @@ Turns the tech demo into a game and fixes what bugs us now.
 
 ## Phase 2 — Depth & replayability
 
-First add the **event seam** (spine #4). Then:
+The **event seam** (spine #4) is still deferred: Achievements shipped **without** it (a pure
+`evaluate(ctx)` called at two sites is simpler than pub/sub — YAGNI). Add the seam when
+in-run bonuses / sound actually need it. Then:
 
 - [ ] **Tracks** - more tracks. *(Reversed variants shipped — see Phase 2.5 D2; more tracks ongoing.)*
-- [ ] **Achievements** — data table of definitions + `store` flags/progress; subscribe to
-      engine events.
+- [x] **Achievements** — data table of definitions + `store` flags/progress. **DONE** —
+      47 achievements (visible + hidden) via a pure `evaluate(ctx)` called at race finish +
+      on purchase (pull-model, no event bus); results toast, dedicated `achievements.html`,
+      tire rewards, ladders (drift/races/wallet), and the **DDK** 6-star crown (600+ PPS)
+      per instance + **Absolute DDK**. Detail: `docs/plans/achievements.md`.
 - [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
 - [x] **Cosmetic mods** — paint finishes (matte / metallic / pearl / chrome) + drift-trail
       colours shipped via the tire-shop (Phase 2.5). Liveries / wheel styles still to come.

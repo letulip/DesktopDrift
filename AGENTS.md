@@ -88,9 +88,19 @@ stays readable. No framework, no bundler.
     (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
     angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
   - `js/economy.js` — **pure tire-coin formulas** (no imports, no state): `starsForPps(pps)`
-    (1 star / 100 PPS, cap 5) and `finishPayout(pps)` = `2 + 2*stars` tires. The soft-
-    currency maths for the Phase 2.5 economy; persistence lives in `store.js`. Unit-tested
-    in `tests/economy.test.js`.
+    (1 star / 100 PPS, cap 5), `finishPayout(pps)` = `2 + 2*stars` tires, and `isDDK(pps)` /
+    `DDK_PPS` (600 — the 6-star "crown" tier; **display + achievement only, never changes
+    payout**). The soft-currency maths for the Phase 2.5 economy; persistence lives in
+    `store.js`. Unit-tested in `tests/economy.test.js`.
+  - `js/achievements.js` — **pure achievement catalog + evaluator** (imports only `DDK_PPS`
+    from economy). `evaluate(ctx, unlocked)` → `{ unlocked:[{id,name,icon,reward}],
+    progress:[{id,value}] }` over an injected `ctx` snapshot (see
+    `docs/plans/achievements.md`); zero side-effects, so the whole system is unit-testable
+    (`tests/achievements.test.js`). Also: `buildContent(tracks, catalog)` (derives the
+    instance/shop-section descriptor), `buildCatalog(content)` (static defs + generated
+    ladder families + per-instance `ddk-*` + `absolute-ddk`), `flattenRecords(records)`,
+    `CATEGORY_ORDER`. The engine (at finish) and `modify.html` (on purchase) assemble `ctx`,
+    call `evaluate`, then persist via the `store.js` `ach*` helpers + credit the reward once.
   - `js/tire-seed.js` — **pure tire placement** (no imports, no state): `seedTires(center,
     inner, outer, n)` scatters `n` tire pickups by even arc-length — on the racing line on
     straights, pushed toward the inner (concave) edge on corners ∝ sharpness. Deterministic
@@ -194,7 +204,10 @@ stays readable. No framework, no bundler.
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
     `save()` / `collectedCaps()` / `capCollect()` and the economy:
     `wallet()` / `addTires(n)` / `tiresFor(id)` / `tireCollect(id, tireId)`
-    (`wallet` int + `stats.tires` mirror the caps model). Key `'desktop-drift'`, `VERSION = 1`.
+    (`wallet` int + `stats.tires` mirror the caps model). Achievements:
+    `achAll()` / `achUnlocked()` (Set) / `achUnlock(id)` (idempotent) /
+    `achSetProgress(id, n)` (latches to max) + lifetime `stats.runs` / `stats.driftSecs`.
+    Key `'desktop-drift'`, `VERSION = 2`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
     `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
     is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
@@ -305,6 +318,26 @@ stays readable. No framework, no bundler.
       mirrored — reversed is the same geometry the other way, so the preview matches forward and
       the ↺ suffix is the only marker. Forward and reversed are fully independent persistence
       instances — no store VERSION bump was needed (additive).
+    - **Achievements** (pull-model, no event bus): the pure `evaluate()` in
+      `js/achievements.js` is called at **two** sites — race finish (`game-engine.js`
+      `awardAchievements(pps)`, Time Attack only) and after a purchase (`modify.html`
+      `creditShopAchievements()`). Each assembles a `ctx` snapshot (run metrics + persistent
+      state + `buildContent(TRACKS, CATALOG)`), evaluates, then persists via `store.js`
+      (`achUnlock` gates the reward so it pays once; `achSetProgress` latches ladder progress
+      to max) and credits tires. The engine tracks **per-run accumulators** separate from the
+      per-combo `S.*` fields — `runNearMisses/runCrashes/runTimeAt8/runDriftSecs/
+      runTirePickups/runCaps/comboUnbroken` — since e.g. `S.nearMisses` is zeroed on every
+      combo reset. Lifetime `stats.runs`/`stats.driftSecs` feed the drift/race ladders.
+      Newly-unlocked defs + a `ddk` flag are passed to `raceResults.show` (toast + crown).
+      `achievements.html` renders the full catalog grouped by `CATEGORY_ORDER`; hidden-locked
+      cards are masked to `???` (name/desc/reward never rendered into the DOM). Entry: 🏆 on
+      the main menu; `absolute-ddk` lights a permanent crown there.
+    - **Cola caps pay tires, not score** (since the achievements work): banking a cola-cap
+      donut credits `CAP_TIRE_VALUE` (15) tires with its own ledger line, one-time per
+      instance via `capCollect`. `CAP_BONUS` and the old PPS-strip are gone — score maps
+      straight to PPS. (Tire *pickups* stay separate: `runTirePickups`/`tiresEarned` count
+      only `kind:'tire'` so the `clean-sweep` invariant `tiresThisRun === tireTotalOnTrack`
+      holds.)
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
@@ -431,8 +464,10 @@ axis maps to the capsule long axis.
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
   Banked on clean drift end; burned on crash/off-track. Cone hit = flat −100.
 - **Tire economy:** `updateCaps` dispatches by `kind`. `kind:'tire'` → proximity
-  pickup (`dist < r + TIRE_CR`): `tireCollect`, `addTires(value)`, flash. On race
-  finish: `addTires(finishPayout(pps))` adds 2–12 coins scaled by star rating.
+  pickup (`dist < r + TIRE_CR`): `tireCollect`, `addTires(value)`, flash. `kind:'cola'`
+  (the drift-donut cap) → banks `CAP_TIRE_VALUE` (15) tires one-time via `capCollect`
+  (**not** score any more). On race finish: `addTires(finishPayout(pps))` adds 2–12 coins
+  scaled by star rating, plus any achievement rewards (`awardAchievements`).
 - **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
   score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
   Car/colour controls are **not** in the game HUD — selection lives entirely on
@@ -466,8 +501,8 @@ never crash). The cap fills with red along the exact arc the car sweeps (radial 
 - **Mechanic (`js/game-engine.js` `updateCaps`):** per frame, when the car is in the ring
   `[CAP_INNER_R, CAP_OUTER_R]` around a cap **and** `isDrifting`, accumulate the signed
   swept angle via `stepSweep` (`js/cola.js`); idle → slow decay toward 0 (`CAP_DECAY`,
-  ~2.5× slower than fill). `CAP_LOOPS` full circles (currently 2) → collected: `+CAP_BONUS`
-  score, flash, and `capCollect(id, i)` persists it. Swept-angle is geometric → frame-rate
+  ~2.5× slower than fill). `CAP_LOOPS` full circles (currently 2) → collected: `+CAP_TIRE_VALUE`
+  (15) tires, flash, and `capCollect(id, i)` persists it one-time. Swept-angle is geometric → frame-rate
   independent (only decay is `dt`-scaled). Runtime per-cap state lives in `S.caps[i]`
   (sweep/prevAng/collected/pop), **not** on the descriptor.
 - **Persistence (`js/store.js`):** `stats().caps[trackId]` = **array of collected cap

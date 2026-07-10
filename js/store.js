@@ -33,7 +33,7 @@ const defaults = () => ({
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
-  stats:        { caps: {}, tires: {}, cleared: [] }, // collected ids per track + finished instance ids
+  stats:        { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances + lifetime counters (races finished, seconds drifted)
 });
 
 // Breaking-change migrations, keyed by the target version.
@@ -109,6 +109,37 @@ export const settings     = () => { _ensure(); return _s.settings; };
 export const garage       = () => { _ensure(); return _s.garage; };
 export const records      = () => { _ensure(); return _s.records; };
 export const achievements = () => { _ensure(); return _s.achievements; };
+
+// ── Achievements (see docs/plans/achievements.md) ─────────────────────────────
+// Slice shape: { [id]: { unlocked: bool, progress: number } }. Unlock logic is the
+// pure evaluate() in js/achievements.js; this module just persists the result.
+
+// The raw achievements map (live object — read-only from callers' perspective).
+export const achAll = () => achievements();
+
+// Set of ids already unlocked — the second arg evaluate() needs to avoid re-firing.
+export const achUnlocked = () => {
+  const a = achievements();
+  return new Set(Object.keys(a).filter(id => a[id]?.unlocked));
+};
+
+// Mark an achievement unlocked. Idempotent; persists. Returns true the first time.
+export const achUnlock = (id) => {
+  const a = achievements();
+  const e = a[id] ?? (a[id] = { unlocked: false, progress: 0 });
+  if (e.unlocked) return false;
+  e.unlocked = true; save();
+  return true;
+};
+
+// Record ladder/counter progress, latching to the max seen (progress never regresses,
+// so a wallet ladder stays unlocked after the balance is spent). Persists.
+export const achSetProgress = (id, n) => {
+  const a = achievements();
+  const e = a[id] ?? (a[id] = { unlocked: false, progress: 0 });
+  const next = Math.max(e.progress ?? 0, n);
+  if (next !== e.progress) { e.progress = next; save(); }
+};
 
 // stats — a normal slice now (defaults + merge guarantee `{ caps: {} }`).
 export const stats = () => { _ensure(); return _s.stats; };

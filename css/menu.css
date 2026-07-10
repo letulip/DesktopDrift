@@ -73,6 +73,14 @@
   text-decoration: none; transition: color var(--ease), border-color var(--ease);
 }
 .settings-link:hover { color: rgba(255,255,255,.65); border-color: rgba(255,255,255,.25); }
+/* Two-column row of menu links (Achievements + Settings) */
+.menu-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+.menu-links .settings-link { margin-top: 0; }
+/* Absolute-DDK crown — revealed on the menu only once earned */
+.menu-crown {
+  margin: 4px 0 2px; font: 800 13px var(--font-display); letter-spacing: .06em;
+  color: #ffce6a; text-shadow: 0 0 12px rgba(255,190,60,.55); text-transform: uppercase;
+}
 
 /* Logo icon (used on index.html and donate.html) */
 .menu-logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; display: block; margin-inline: auto; }

@@ -15,6 +15,7 @@ export const createRaceResults = () => {
       <h2 id="rr-title">Race Complete</h2>
       <div id="rr-score"></div>
       <div id="rr-tires"></div>
+      <div id="rr-achievements"></div>
       <div id="rr-laps"></div>
       <div id="rr-best"></div>
       <div id="rr-actions">
@@ -33,21 +34,24 @@ export const createRaceResults = () => {
     location.href = 'tracks.html';
   });
 
-  // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires })
+  // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
   // pps: points per second (race efficiency)
   // tires: { pickup, firstClear, finish } — tire coins earned this race (optional)
-  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires }) => {
+  // ddk: true when pps ≥ 600 → the crown above the 5 stars
+  // unlocked: [{ id, name, icon, reward }] — achievements unlocked this race (optional)
+  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked }) => {
     const ppsRounded = Math.round(pps);
-    // Star rating: 1 star per 100 PPS, max 5
+    // Star rating: 1 star per 100 PPS, max 5. At 600+ PPS a crown sits above the row (DDK).
     const filledStars = Math.min(5, Math.floor(ppsRounded / 100));
     const starsHtml = Array.from({ length: 5 }, (_, i) =>
       `<span class="${i < filledStars ? 'star-lit' : 'star-dim'}">★</span>`).join('');
+    const crownHtml = ddk ? '<span class="rr-crown" title="DDK — 600+ PPS">👑</span>' : '';
     overlay.querySelector('#rr-score').innerHTML = `
       <span class="rr-label">Score</span>
       <span class="rr-val${isNewRecord ? ' rr-new' : ''}">${ppsRounded.toLocaleString()} PPS</span>
       ${isNewRecord ? '<span class="rr-badge">NEW RECORD</span>' : ''}
-      <div class="rr-stars">${starsHtml}</div>
+      <div class="rr-stars">${crownHtml}<span class="rr-star-row">${starsHtml}</span></div>
       <span class="rr-sub">Total: ${score.toLocaleString()} · ${totalTime.toFixed(1)} s</span>
     `;
 
@@ -61,6 +65,16 @@ export const createRaceResults = () => {
     overlay.querySelector('#rr-tires').innerHTML = tireTotal > 0
       ? `<span class="rr-tires-total">🛞 +${tireTotal} tires</span>` +
         `<span class="rr-tires-parts">${tireParts.join(' · ')}</span>`
+      : '';
+
+    // Achievements unlocked this race (hidden when none).
+    const unlockedList = unlocked || [];
+    overlay.querySelector('#rr-achievements').innerHTML = unlockedList.length
+      ? `<div class="rr-ach-head">🏆 Achievement${unlockedList.length > 1 ? 's' : ''} unlocked</div>` +
+        unlockedList.map(u =>
+          `<div class="rr-ach"><span class="rr-ach-ico">${u.icon}</span>` +
+          `<span class="rr-ach-name">${u.name}</span>` +
+          `${u.reward ? `<span class="rr-ach-rew">+${u.reward} 🛞</span>` : ''}</div>`).join('')
       : '';
 
     overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {

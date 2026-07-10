@@ -3,7 +3,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { starsForPps, finishPayout, MAX_STARS, FINISH_FLAT, FINISH_PER_STAR,
-         canAfford, buy, FIRST_CLEAR_BONUS } from '../js/economy.js';
+         canAfford, buy, FIRST_CLEAR_BONUS, DDK_PPS, isDDK } from '../js/economy.js';
+
+test('DDK: crown threshold is 600 PPS; isDDK is inclusive', () => {
+  assert.equal(DDK_PPS, 600);
+  assert.equal(isDDK(599), false);
+  assert.equal(isDDK(600), true);
+  assert.equal(isDDK(1200), true);
+  assert.equal(isDDK(0), false);
+  assert.equal(isDDK(undefined), false);
+});
+
+test('DDK does not change finish payout (stays capped at MAX_STARS)', () => {
+  assert.equal(finishPayout(600), FINISH_FLAT + FINISH_PER_STAR * MAX_STARS); // crown ≠ extra income
+  assert.equal(finishPayout(9999), FINISH_FLAT + FINISH_PER_STAR * MAX_STARS);
+});
 
 test('starsForPps: 1 star per 100 PPS, capped at MAX_STARS', () => {
   assert.equal(starsForPps(0), 0);
