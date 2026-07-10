@@ -83,10 +83,15 @@ export const startGame = (T, opts = {}) => {
   ]);
   S.caps = {};
   collectibles.forEach((c, i) => {
-    // Two-format lookup: new saves use a coordinate string capId; saves made before
-    // the capId migration used a plain numeric index. Accept either so legacy saves
-    // don't silently lose their collected state.
-    const wasCollected = _prevCollected.has(c.capId ?? i) || _prevCollected.has(i);
+    // Multi-format lookup so no save format silently loses collected state. Accept any of:
+    //   • c.capId          — current keys (seed-index `t<k>` for tires, coordinate for caps)
+    //   • `${c.x},${c.y}`  — the OLD coordinate key for tires (pre seed-index); on a stable
+    //                        track the current seed lands on the same coords, so a legacy
+    //                        save stays collected with no reset / migration
+    //   • i                — the oldest numeric-index format
+    const wasCollected = _prevCollected.has(c.capId ?? i)
+      || _prevCollected.has(`${c.x},${c.y}`)
+      || _prevCollected.has(i);
     S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
 
