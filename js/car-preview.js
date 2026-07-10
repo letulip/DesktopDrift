@@ -60,6 +60,7 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   if (neonCfg) {
     ctx.save();
     ctx.translate(cx, cy);
+    if (M.flip) ctx.scale(-1, 1);   // mirror front/rear zones to match a flipped body
     drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, 1.5);
     ctx.restore();
   }

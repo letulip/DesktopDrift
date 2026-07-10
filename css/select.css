@@ -211,14 +211,25 @@
 
 /* Customization selector (modify.html): tabs show one panel at a time */
 #custom {
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
   width: min(360px, calc(100vw - 32px));
+  flex: 1; min-height: 0;      /* fill the space under the preview; #panels scrolls inside */
 }
 .shop-tabs {
+  flex-shrink: 0;              /* pinned above the scrolling panels */
   display: inline-flex; gap: 4px;
   padding: 4px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--surface-line);
 }
+/* Only the customization panels scroll — header, preview and the shop tabs stay pinned. */
+#panels {
+  flex: 1; min-height: 0; width: 100%;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: 6px 0 148px;        /* clears the fixed apply / buy bar + its gradient */
+}
+#panels::-webkit-scrollbar { display: none; }
 .shop-tab {
   padding: 7px 14px; border-radius: 9px; cursor: pointer; border: none; background: none;
   color: rgba(255,255,255,.5);
@@ -254,12 +265,11 @@
   gap: 12px;
 }
 #modify #content {
-  /* overflow-y: auto; */
   align-items: center;
-  justify-content: flex-start;  /* flow from the top so tall content scrolls (mobile: the
-                                   centered default clipped the bottom paid section) */
-  gap: 22px;                 /* equal vertical rhythm between every group */
-  padding: 8px 0 120px;      /* room for the fixed apply bar (warning row can grow) */
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 8px 0 0;
+  min-height: 0;             /* let #custom shrink so #panels (not the page) scrolls */
 }
 #car-name {
   margin: 0; font: 800 clamp(20px, 6vw, 34px) var(--font-display);
@@ -269,6 +279,7 @@
 }
 /* Car preview sits on a soft lit "stage" with air around it, so the neon glow reads. */
 .preview-stage {
+  flex-shrink: 0;             /* the car stays visible above the scrolling panels */
   display: flex; align-items: center; justify-content: center;
   padding: 18px 26px;
   border-radius: var(--r-card);
@@ -288,8 +299,8 @@
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   width: 100%; box-sizing: border-box;
-  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg-screen) 72%, transparent);
+  padding: 24px 18px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg-screen) 58%, transparent);
 }
 .modify-bar-row {
   display: flex; align-items: center; justify-content: center; gap: 14px;
