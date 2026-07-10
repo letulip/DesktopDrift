@@ -69,6 +69,10 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires 
       const y2 = parseFloat(el.getAttribute('y2'));
       const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
       const cx = Math.round(x), cy = Math.round(y);
+      if (!Number.isFinite(cx) || !Number.isFinite(cy)) {
+        console.warn(`[track: ${id}] ITEM_COLA_CAP has non-finite coords (malformed proxy line) — skipped`);
+        return;
+      }
       collectibles.push({ ...COLA_CAP, x: cx, y: cy, capId: `${cx},${cy}` });
       return;
     }
@@ -81,6 +85,10 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires 
       const y2 = parseFloat(el.getAttribute('y2'));
       const { x, y } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
       const cx = Math.round(x), cy = Math.round(y);
+      if (!Number.isFinite(cx) || !Number.isFinite(cy)) {
+        console.warn(`[track: ${id}] ITEM_TIRE has non-finite coords (malformed proxy line) — skipped`);
+        return;
+      }
       collectibles.push({ ...TIRE, x: cx, y: cy, capId: `${cx},${cy}` });
       return;
     }
@@ -106,6 +114,13 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires 
     }
 
     const { x: gx, y: gy } = toGame((x1 + x2) / 2, (y1 + y2) / 2);
+    // Skip malformed proxy lines whose coords aren't finite — e.g. an un-baked Figma
+    // transform="matrix(...)" leaves no x1, so the midpoint is NaN. Drop it (don't push a
+    // broken prop) and warn, rather than render nothing at a NaN position.
+    if (!Number.isFinite(gx) || !Number.isFinite(gy)) {
+      console.warn(`[track: ${id}] item "${rawId}" has non-finite coords (malformed proxy line, e.g. an un-baked transform) — skipped`);
+      return;
+    }
     const ang = Math.atan2(-(y2 - y1), x2 - x1);
     props.push(prepProp({ ...item, x: Math.round(gx), y: Math.round(gy), ang: parseFloat(ang.toFixed(3)) }));
   });
