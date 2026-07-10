@@ -141,10 +141,24 @@ test('prepProp: hl defaults to 0, caches cos/sin', () => {
   near(b._sin, 1);
 });
 
-test('sampleCheckpointsByCorner: returns K points', () => {
+test('sampleCheckpointsByCorner: returns ≥K points, all on the centreline, anchored at finish', () => {
+  const center = Array.from({ length: 48 }, (_, i) => ({
+    x: Math.cos((i / 48) * 2 * Math.PI) * 200,
+    y: Math.sin((i / 48) * 2 * Math.PI) * 200,
+  }));
+  const cps = sampleCheckpointsByCorner(center, 8);
+  assert.ok(cps.length >= 8, 'at least K checkpoints');
+  assert.equal(cps[0], center[0], 'checkpoint[0] anchored at the finish');
+  for (const cp of cps) assert.ok(center.includes(cp), 'each cp is a centerline point');
+});
+
+test('sampleCheckpointsByCorner: an oversized gap gets extra checkpoints inserted', () => {
+  // 32 points along one line then a long closing edge — the arc back to the finish is far
+  // longer than a sector, so the post-process inserts intermediate checkpoints (>K total).
   const center = Array.from({ length: 32 }, (_, i) => ({ x: i * 10, y: 0 }));
   const cps = sampleCheckpointsByCorner(center, 8);
-  assert.equal(cps.length, 8);
+  assert.ok(cps.length > 8, `oversized gaps split → more than K checkpoints, got ${cps.length}`);
+  assert.equal(cps[0], center[0], 'checkpoint[0] still anchored at the finish');
   for (const cp of cps) assert.ok(center.includes(cp), 'each cp is a centerline point');
 });
 

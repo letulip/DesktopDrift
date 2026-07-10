@@ -529,7 +529,9 @@ export const startGame = (T, opts = {}) => {
       // ── Intermediate checkpoints: circle CP_R ─────────────────────────────────
       const cp = checkpoints[S.nextCp];
       if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
-        S.nextCp = (S.nextCp + 1) % K;
+        // Cycle on the actual checkpoint count, not K — long tracks get extra checkpoints
+        // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
+        S.nextCp = (S.nextCp + 1) % checkpoints.length;
         if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
     }
