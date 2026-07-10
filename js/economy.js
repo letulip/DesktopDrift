@@ -19,6 +19,11 @@ export const finishPayout = (pps) => FINISH_FLAT + FINISH_PER_STAR * starsForPps
 // One-time bonus for finishing a track instance for the first time (economy.md Phase D1).
 export const FIRST_CLEAR_BONUS = 20;
 
+// DDK — a run at 600+ PPS earns a 6th "crown" star. Display + achievement only; payout
+// (starsForPps) stays capped at MAX_STARS so the crown never inflates finish income.
+export const DDK_PPS = 600;
+export const isDDK   = (pps) => (pps || 0) >= DDK_PPS;
+
 // ── Shop purchase logic (see ROADMAP Phase 2.5 + docs/plans/shop.md) ───────────
 // Pure decision only — no state, no persistence. js/store.js applies the result to
 // the wallet + owned list. Cosmetics are sidegrades; never sell power (records-safe).

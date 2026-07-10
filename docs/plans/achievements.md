@@ -234,12 +234,16 @@ cars land. Tracked in `docs/plans/economy.md`.
       the intended ctx and *not* otherwise; ladders return progress; `evaluate` never returns
       an already-unlocked id.
 
-- [ ] **E3 — engine wiring + mechanics** `[opus]`
-      Add `S.crashes/conesHit/timeAt8/comboUnbroken/capsThisRun` + resets; cola→tires
-      (`CAP_TIRE_VALUE`, remove `CAP_BONUS`/strip); `isDDK`/`DDK_PPS` in economy. At finish:
-      bump `stats.runs`/`driftSecs`, assemble `ctx`, call `evaluate`, `achUnlock` + credit
-      reward per new id, pass `newlyUnlocked` to `raceResults.show`. Also call `evaluate`
-      from `store.purchase`. Unit-test the economy pieces (`isDDK`, cap value).
+- [x] **E3 — engine wiring + mechanics** `[opus]`
+      Per-run accumulators `runNearMisses/runCrashes/runTimeAt8/runDriftSecs/runTirePickups/
+      runCaps/comboUnbroken` (separate from the per-combo `S.*`); cola→tires
+      (`CAP_TIRE_VALUE=15`, removed `CAP_BONUS`/PPS-strip); `isDDK`/`DDK_PPS` in economy
+      (`achievements.js` re-exports). At finish (Time Attack only): bump `stats.runs`/
+      `driftSecs`, `awardAchievements(pps)` assembles `ctx` → `evaluate` → `achSetProgress`
+      per ladder + `achUnlock` + credit reward per new id, passes `unlocked`/`ddk` to
+      `raceResults.show`. Economy pieces unit-tested (`isDDK`, payout unchanged).
+      *(Purchase-side eval + toast moved to E6 — shop achievements are still caught at the
+      next finish; E6 makes them immediate on `modify.html`.)*
 
 - [ ] **E4 — results toast + crown** `[sonnet-high]`
       `race-results.js`: render newly-unlocked toast list + the 👑 crown above stars when
@@ -248,10 +252,13 @@ cars land. Tracked in `docs/plans/economy.md`.
 - [ ] **E5 — track-card crowns** `[sonnet-high]`
       `tracks.html`: 👑 above the star badge on any instance whose `bestPPS ≥ 600`.
 
-- [ ] **E6 — achievements page + menu button** `[opus]`
+- [ ] **E6 — achievements page + menu button + shop eval** `[opus]`
       `achievements.html` (grid, hidden/locked/unlocked states, progress bars, `X/N`
       header) + 🏆 button on `index.html` beside Settings + Absolute-DDK menu crown.
       New CSS file (`css/achievements.css`) with hand-written vendor prefixes.
+      Immediate purchase-side eval + toast on `modify.html` (assemble a run-less `ctx`,
+      call `evaluate`, unlock + credit, toast) so shop achievements fire without waiting
+      for a race.
 
 - [ ] **E7 — docs + SW + PR** `[sonnet-high]`
       `sw.js` bump + add `js/achievements.js`, `achievements.html`, `css/achievements.css`

@@ -1,11 +1,10 @@
-// Achievements — pure definitions + evaluator. No store/DOM imports; everything the
-// checks need is injected via `ctx` (see docs/plans/achievements.md → ctx contract), so
-// this whole module is unit-testable in Node. Persistence lives in js/store.js; the
-// engine + shop assemble `ctx`, call evaluate(), then unlock + credit the tire reward.
-
-// A run at DDK_PPS or above earns the 6th "crown" star. Display + achievement only —
-// finish payout (economy.starsForPps) stays capped at 5, so the crown never inflates income.
-export const DDK_PPS = 600;
+// Achievements — pure definitions + evaluator. The only import is the pure DDK threshold
+// from economy.js (no store/DOM); everything else the checks need is injected via `ctx`
+// (see docs/plans/achievements.md → ctx contract), so this whole module is unit-testable in
+// Node. Persistence lives in js/store.js; the engine + shop assemble `ctx`, call evaluate(),
+// then unlock + credit the tire reward.
+import { DDK_PPS } from './economy.js';
+export { DDK_PPS };   // re-export so consumers can take it from either module
 
 // ── ctx / content normalisation ──────────────────────────────────────────────
 // Checks read a normalised ctx so a partial input (e.g. the purchase-triggered eval with

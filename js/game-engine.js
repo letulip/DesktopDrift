@@ -3,13 +3,16 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook, markCleared } from './store.js';
-import { finishPayout, FIRST_CLEAR_BONUS } from './economy.js';
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook, markCleared,
+         stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
+import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
+import { evaluate } from './achievements.js';
 import { TRACKS } from './track-registry.js';
+import { CATALOG } from './shop-catalog.js';
 import { createRaceResults } from './race-results.js';
 import {
   driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
-  MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
+  MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS, MULT_MAX,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
@@ -62,7 +65,7 @@ export const startGame = (T, opts = {}) => {
   const CAP_INNER_R = 40;               // min distance from cap centre to count as "around" it
   const CAP_OUTER_R = 160;              // max distance
   const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
-  const CAP_BONUS   = 500;
+  const CAP_TIRE_VALUE = 15;           // tires awarded for banking a cola-cap donut (was dead score)
   const CAP_LOOPS   = 2;               // full circles required to collect
   const TIRE_CR     = 35;              // car half-length proxy for proximity pickup radius
 
@@ -87,8 +90,6 @@ export const startGame = (T, opts = {}) => {
     S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
 
-  // Cap bonuses are excluded from PPS so one-time pickups don't inflate the record.
-  let capBonus = 0;
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,7 @@ export const startGame = (T, opts = {}) => {
 
   const burnCombo = (reason) => {
     if (S.comboPoints >= 1) flash(reason + '  combo ' + Math.round(S.comboPoints) + ' lost', '#ff6a6a');
+    comboUnbroken = false;   // any crash / off-track ends the "one unbroken drift" run
     resetCombo();
     S.crashCd = 0.5; S.driftGrace = 1;
   }
@@ -136,6 +138,7 @@ export const startGame = (T, opts = {}) => {
           tireCollect(INSTANCE, c.capId ?? i);
           addTires(c.value);                 // credit live (HUD); ledger logs the per-race sum
           tiresEarned += c.value;
+          runTirePickups++;
           flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
         }
         continue;
@@ -153,8 +156,11 @@ export const startGame = (T, opts = {}) => {
         cap.collected = true;
         cap.pop       = 0.6;
         cap.sweep     = 0;
-        if (!ZEN) { S.score += CAP_BONUS; capBonus += CAP_BONUS; }
-        flash('CAP! +' + CAP_BONUS, '#ff9999');
+        if (!ZEN) {
+          addTires(CAP_TIRE_VALUE, 'Cola cap — ' + CAP_TIRE_VALUE + ' tires'); // its own ledger line
+          runCaps++;
+        }
+        flash('CAP! +' + CAP_TIRE_VALUE + ' tires', '#ff9999');
         capCollect(INSTANCE, c.capId ?? i);
       }
     }
@@ -219,7 +225,65 @@ export const startGame = (T, opts = {}) => {
 
   const raceResults  = createRaceResults();
   let raceFinished   = false; // flag: stop() must not destroy raceResults after a finish
-  let tiresEarned    = 0;     // tire coins picked up this run — logged as one ledger entry at finish
+  let tiresEarned    = 0;     // tire-PICKUP coins this run — logged as one ledger entry at finish
+  // Per-run achievement accumulators (reset here, read once at finish). Separate from the
+  // per-combo S.* fields (e.g. S.nearMisses is zeroed on every combo reset).
+  let runTirePickups = 0;     // count of tire pickups (for clean-sweep vs the track total)
+  let runNearMisses  = 0;     // near misses this race (S.nearMisses resets per combo)
+  let runCrashes     = 0;     // wall/prop impacts this race (for untouchable)
+  let runTimeAt8     = 0;     // seconds held at the max multiplier (for flow-1/2)
+  let runDriftSecs   = 0;     // seconds drifted this race (added to lifetime stats.driftSecs)
+  let runCaps        = 0;     // cola caps banked this race
+  let comboUnbroken  = true;  // set false the first time an active combo is lost mid-race
+
+  // Assemble the pure achievement ctx from this run + persistent state, evaluate, and persist
+  // the result (ladder progress + one-time unlock + tire reward). Returns the newly-unlocked
+  // defs ({ id, name, icon, reward }) for the results toast. Time Attack only (see call site).
+  const awardAchievements = (pps) => {
+    const st = stats();
+    // Flatten records → { instanceId: bestPPS } for the DDK / Absolute-DDK checks.
+    const recSnapshot = {};
+    const allRec = records();
+    for (const k of Object.keys(allRec)) {
+      const bp = allRec[k]?.timeattack?.bestPPS;
+      if (bp != null) recSnapshot[k] = bp;
+    }
+    const fwdIds = TRACKS.map(t => t.id);
+    const revIds = fwdIds.map(id => id + ':rev');
+    const names  = {};
+    TRACKS.forEach(t => { names[t.id] = t.name; names[t.id + ':rev'] = t.name + ' (reversed)'; });
+    const ctx = {
+      run: {
+        finished: true, instanceId: INSTANCE, trackId: T.id, reversed: REVERSED,
+        pps, stars: starsForPps(pps), ddk: isDDK(pps),
+        nearMisses: runNearMisses, crashes: runCrashes,
+        conesHit: cones.filter(c => c.knocked).length, conesTotal: cones.length,
+        timeAt8: runTimeAt8, comboUnbroken, tiresThisRun: runTirePickups,
+        tireTotalOnTrack: collectibles.filter(c => c.kind === 'tire').length,
+        capsThisRun: runCaps, hour: new Date().getHours(),
+      },
+      wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
+      records: recSnapshot, caps: st.caps ?? {},
+      lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
+      content: {
+        forwardIds: fwdIds, reversedIds: revIds, allInstanceIds: [...fwdIds, ...revIds],
+        forwardTrackIds: fwdIds,
+        shopCategories: [...new Set(CATALOG.map(i => i.kind))],
+        catalogById: Object.fromEntries(CATALOG.map(i => [i.id, i.kind])),
+        names,
+      },
+    };
+    const res = evaluate(ctx, achUnlocked());
+    for (const p of res.progress) achSetProgress(p.id, p.value);
+    const out = [];
+    for (const u of res.unlocked) {
+      if (achUnlock(u.id)) {                 // idempotent — the reward is paid once
+        if (u.reward) addTires(u.reward, 'Achievement: ' + u.name);
+        out.push(u);
+      }
+    }
+    return out;
+  };
 
   // Menu button — ask for confirmation first so a stray tap doesn't eject the player.
   // Game is paused for the duration of the dialog.
@@ -327,8 +391,8 @@ export const startGame = (T, opts = {}) => {
     // Wall + prop collision response — pure mutators in js/collision.js. They mutate
     // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
     // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
-    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); }
-    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); }
+    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); runCrashes++; }
+    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); runCrashes++; }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
@@ -341,6 +405,7 @@ export const startGame = (T, opts = {}) => {
 
     if (drifting && onTrack && S.crashCd <= 0) {
       S.driftTime += dt;
+      runDriftSecs += dt;
       const quality = driftQuality(slip, speed);
       if (circularAdvance(nearIdx, driftZoneRef, N_CTR) >= ZONE_ADV) {
         driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
@@ -361,9 +426,10 @@ export const startGame = (T, opts = {}) => {
           S.lastSlipSign = sgn;
         }
         if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
-          S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
         }
         S.mult = comboMult(S.multBuild);
+        if (S.mult >= MULT_MAX) runTimeAt8 += dt;   // time held at the ceiling (flow-1/2)
         S.comboPoints += comboGain(slip, speed, dt, S.mult);
       } else {
         flash('NO PROGRESS!', '#ffa040');
@@ -372,9 +438,10 @@ export const startGame = (T, opts = {}) => {
     } else {
       S.driftGrace += dt;
       if (S.driftGrace > 0.5 && S.comboPoints >= 1) {
+        comboUnbroken = false;   // an active combo ended mid-race (banked on track / burned off it)
         if (onTrack) bankCombo(); else burnCombo('OFF TRACK!');
       } else if (S.driftGrace > 0.5) {
-        resetCombo();
+        resetCombo();            // idle reset with no active combo — not counted as a break
       }
     }
 
@@ -410,10 +477,8 @@ export const startGame = (T, opts = {}) => {
 
           const totalScore = Math.round(S.score);
           const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
-          // Strip one-time cap bonuses from PPS so they don't inflate the record
-          // versus runs where the cap was already collected (or not present).
-          const ppsScore   = Math.max(0, totalScore - capBonus);
-          const pps        = pointsPerSecond(ppsScore, totalTime);
+          // Cola caps now pay tires (not score), so score maps straight to PPS — nothing to strip.
+          const pps        = pointsPerSecond(totalScore, totalTime);
           // Tire economy (Time Attack only — Zen earns nothing). Ledger order:
           // pickups sum → first-clear bonus → finish payout.
           const baseName  = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
@@ -444,10 +509,23 @@ export const startGame = (T, opts = {}) => {
             }
           }
 
+          // ── Achievements (Time Attack only) ─────────────────────────────────────
+          // Evaluate AFTER records + markCleared + wallet payouts above, so DDK/progression/
+          // hoard checks see this run's results. evaluate() is pure; we persist here.
+          let unlockedNow = [];
+          if (!ZEN) {
+            const st = stats();
+            st.runs = (st.runs ?? 0) + 1;
+            st.driftSecs = (st.driftSecs ?? 0) + runDriftSecs;
+            save();
+            unlockedNow = awardAchievements(pps);
+          }
+
           raceFinished = true;
           stop();
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
+            ddk: isDDK(pps), unlocked: unlockedNow,
             tires: { pickup: tiresEarned, firstClear: firstClearBonus, finish: finishBonus } });
           return;
         }
