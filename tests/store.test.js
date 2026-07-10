@@ -16,7 +16,8 @@ const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
-        owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared } =
+        owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared,
+        achAll, achUnlocked, achUnlock, achSetProgress } =
   await import('../js/store.js');
 
 test('defaults: garage (selected car + empty per-car looks)', () => {
@@ -39,8 +40,8 @@ test('getters return the same live object across calls', () => {
   assert.equal(garage(), garage());
 });
 
-test('stats: defaults to { caps: {}, tires: {}, cleared: [] }', () => {
-  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [] });
+test('stats: defaults to caps/tires/cleared + lifetime counters', () => {
+  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 });
 });
 
 test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
@@ -199,4 +200,33 @@ test('ledger: purchase logs a "Bought …" entry with the negative amount', () =
 test('ledger: capped at 50 entries (oldest dropped)', () => {
   for (let i = 0; i < 60; i++) addTires(1, 'spam ' + i);
   assert.ok(ledger().length <= 50);
+});
+
+// ── Achievements slice (see docs/plans/achievements.md) ───────────────────────
+test('achievements: default empty; achUnlocked() is an empty set', () => {
+  assert.deepEqual(achAll(), {});
+  assert.equal(achUnlocked().size, 0);
+});
+
+test('achUnlock: idempotent, persists, returns true only the first time', () => {
+  assert.equal(achUnlock('first-drift'), true);
+  assert.equal(achUnlock('first-drift'), false);      // already unlocked → no re-fire
+  assert.ok(achUnlocked().has('first-drift'));
+  assert.equal(achAll()['first-drift'].unlocked, true);
+});
+
+test('achSetProgress: latches to the max seen (never regresses)', () => {
+  achSetProgress('races-10', 4);
+  assert.equal(achAll()['races-10'].progress, 4);
+  achSetProgress('races-10', 7);
+  assert.equal(achAll()['races-10'].progress, 7);
+  achSetProgress('races-10', 3);                       // lower value ignored
+  assert.equal(achAll()['races-10'].progress, 7);
+});
+
+test('achUnlocked: reflects only unlocked ids, not mere progress', () => {
+  achSetProgress('drift-50', 12);                      // progress but not unlocked
+  assert.ok(!achUnlocked().has('drift-50'));
+  achUnlock('drift-50');
+  assert.ok(achUnlocked().has('drift-50'));
 });

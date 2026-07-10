@@ -222,7 +222,7 @@ cars land. Tracked in `docs/plans/economy.md`.
 
 ## Phases
 
-- [ ] **E1 — store** `[sonnet-high]`
+- [x] **E1 — store** `[sonnet-high]`
       `stats.runs` + `stats.driftSecs` in `defaults()`; `achAll/achUnlocked/achUnlock/
       achSetProgress` helpers. Unit tests (default shape, idempotent unlock, progress
       latches to max, old-save merge). No SW/UI yet.
