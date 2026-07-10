@@ -21,11 +21,13 @@ const BASE_BLUR = 20, BASE_ALPHA = 0.62;
 // Draw the underglow for a neon config at time `t` (seconds). The caller must already be in
 // car-local space (translated to the car centre, rotated so +x = nose). Batches zones that
 // share a colour into ONE shadowBlur pass — solid = 1 pass; per-zone / animated = up to 6.
-export const drawNeon = (ctx, hl, hw, neon, t = 0) => {
+// `blurScale` compensates callers whose car is drawn larger (shadowBlur is device-px, not
+// affected by ctx.scale) — the garage preview passes >1 so the glow stays proportional.
+export const drawNeon = (ctx, hl, hw, neon, t = 0, blurScale = 1) => {
   if (!neon) return;
   const zc = zoneColors(neon, t);
   const intensity = zc[0].intensity;                 // uniform across zones for every animation
-  const blur  = BASE_BLUR  * (0.55 + 0.45 * intensity);
+  const blur  = BASE_BLUR  * (0.55 + 0.45 * intensity) * blurScale;
   const alpha = BASE_ALPHA * (0.55 + 0.45 * intensity);
   const geom = zoneGeom(hl, hw);
 

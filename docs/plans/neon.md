@@ -154,7 +154,7 @@ This keeps the "wow" where the player shops and protects race FPS.
       layout/anim items (reuse the existing purchase + `syncStateAchievements` flow). Live
       preview updates as you pick.
 
-- [ ] **N6 — animated garage preview** `[sonnet-high]`
+- [x] **N6 — animated garage preview** `[sonnet-high]`
       `car-preview.js` (`drawCarPreview`) shares `zoneColors(neon, t)` and runs an rAF loop so
       the garage shows the live glow (pulse/rainbow/flow) exactly as in-race. Reuse N3's draw
       helper so there's one glow renderer.

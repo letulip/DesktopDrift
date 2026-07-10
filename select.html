@@ -84,7 +84,7 @@
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
-    drawCarPreview(cards[i].cvs, M, look.neonColor || null, look.finish || null);
+    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null);
     M.body = orig;
   };
 
