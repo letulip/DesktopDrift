@@ -227,7 +227,7 @@ cars land. Tracked in `docs/plans/economy.md`.
       achSetProgress` helpers. Unit tests (default shape, idempotent unlock, progress
       latches to max, old-save merge). No SW/UI yet.
 
-- [ ] **E2 — definitions + evaluator** `[opus]`
+- [x] **E2 — definitions + evaluator** `[opus]`
       `js/achievements.js`: `ACHIEVEMENTS` (static) + generated families (ladders, `ddk-*`,
       `absolute-ddk`) + pure `evaluate(ctx, unlocked)` + `DDK_PPS`. Heavy unit tests: every
       check callable on a mock ctx without throwing; id uniqueness; each achievement fires on
