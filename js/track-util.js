@@ -102,17 +102,37 @@ export const placeCones = (outer, inner, minSpacing = 160) => {
   for (let i = 0; i < N; i++) {
     const next = (i + 1) % N;
     if (i === 0 || outerAcc >= minSpacing) {
-      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       outerAcc = 0;
     }
     if (i === 0 || innerAcc >= minSpacing) {
-      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       innerAcc = 0;
     }
     outerAcc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
     innerAcc += Math.hypot(inner[next].x - inner[i].x, inner[next].y - inner[i].y);
   }
   return cones;
+};
+
+// Drop cones that a self-intersection pushed into the middle of the track. An edge cone
+// belongs to centreline index `ci`; it legitimately hugs the centreline points NEAR ci
+// (within `indexWindow`). If a cone also lands within ~half of a FAR-AWAY centreline point,
+// it is sitting inside another lane at a crossing → remove it. Non-self-crossing tracks lose
+// nothing (their edges are never near a non-adjacent part of the loop). Pure.
+export const filterConesOnTrack = (cones, center, half, indexWindow = 24) => {
+  const N = center.length;
+  const g2 = half * half;   // within a full track-half of a foreign centreline = on that lane
+  return cones.filter(cone => {
+    for (let j = 0; j < N; j++) {
+      let d = Math.abs(j - cone.ci);
+      if (d > N / 2) d = N - d;                 // circular index distance
+      if (d <= indexWindow) continue;           // the cone's own neighbourhood — expected to be near
+      const dx = center[j].x - cone.x, dy = center[j].y - cone.y;
+      if (dx * dx + dy * dy < g2) return false; // inside a non-adjacent lane → on the track
+    }
+    return true;
+  });
 };
 
 // K checkpoints, evenly distributed by index along the centerline.
@@ -197,7 +217,27 @@ export const sampleCheckpointsByCorner = (center, K) => {
   // Also check the wrap-around gap from cps[K-1] back to cps[0].
   if ((totalLen - arc[cpIdxs[K - 1]]) % totalLen < minGap) cpIdxs[K - 1] = midIdxs[K - 1];
 
-  return cpIdxs.map(idx => center[idx]);
+  // Post-process 3: split oversized gaps so no long straight is left un-checkpointed (e.g. a
+  // big finish→first-corner run). Any gap above 1.5× the average sector length gets evenly
+  // spaced intermediate checkpoints at its arc-midpoints. Returns >K points for such tracks —
+  // the engine cycles on checkpoints.length, not K.
+  const maxGap = (totalLen / K) * 1.5;
+  const idxAtArc = (len) => {                         // nearest centre index at arc-length len
+    const t = ((len % totalLen) + totalLen) % totalLen;
+    let lo = 0;
+    while (lo < N - 1 && arc[lo + 1] < t) lo++;
+    return lo;
+  };
+  const finalIdxs = [];
+  for (let i = 0; i < K; i++) {
+    finalIdxs.push(cpIdxs[i]);
+    const a = arc[cpIdxs[i]];
+    const gap = (arc[cpIdxs[(i + 1) % K]] - a + totalLen) % totalLen;
+    const nInsert = Math.floor(gap / maxGap);
+    for (let k = 1; k <= nInsert; k++) finalIdxs.push(idxAtArc(a + gap * k / (nInsert + 1)));
+  }
+
+  return finalIdxs.map(idx => center[idx]);
 };
 
 // SVG track file text → smoothed game-world centreline points (Array of {x,y}).

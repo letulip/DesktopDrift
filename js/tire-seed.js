@@ -3,8 +3,8 @@
 // Scatters `n` tire pickups along a closed centerline, evenly spaced by arc length.
 // On straights a tire sits on the racing line (easy "flow" income); on corners it is
 // pushed toward the INNER (concave) edge — proportional to how sharp the corner is — so
-// the greedy line is harder to hold. Deterministic: same track + n → same positions
-// (positions double as the persistent `capId`, so they must be stable).
+// the greedy line is harder to hold. Deterministic: same track + n → same positions in the
+// same order (the factory keys each tire by its stable seed INDEX for persistence).
 //
 // `center` / `inner` / `outer` are the parallel arrays from track-util `offsetEdges`,
 // where `outer = center + leftNormal·HALF` and `inner = center − leftNormal·HALF`

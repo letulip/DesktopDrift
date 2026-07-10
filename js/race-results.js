@@ -67,14 +67,12 @@ export const createRaceResults = () => {
         `<span class="rr-tires-parts">${tireParts.join(' · ')}</span>`
       : '';
 
-    // Achievements unlocked this race (hidden when none).
+    // Achievements unlocked this race (hidden when none) — compact wrapping chips.
     const unlockedList = unlocked || [];
     overlay.querySelector('#rr-achievements').innerHTML = unlockedList.length
-      ? `<div class="rr-ach-head">🏆 Achievement${unlockedList.length > 1 ? 's' : ''} unlocked</div>` +
+      ? `<span class="rr-ach-head">🏆 Unlocked</span>` +
         unlockedList.map(u =>
-          `<div class="rr-ach"><span class="rr-ach-ico">${u.icon}</span>` +
-          `<span class="rr-ach-name">${u.name}</span>` +
-          `${u.reward ? `<span class="rr-ach-rew">+${u.reward} 🛞</span>` : ''}</div>`).join('')
+          `<span class="rr-ach">${u.icon} ${u.name}${u.reward ? ` <b>+${u.reward}</b>` : ''}</span>`).join('')
       : '';
 
     overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {

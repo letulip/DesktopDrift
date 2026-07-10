@@ -188,21 +188,23 @@ canvas { display: block; }
 .rr-stars .star-dim { font-size: 22px; color: rgba(255,255,255,.22); }
 .rr-stars .star-lit { font-size: 22px; color: #ffc840; text-shadow: 0 0 8px rgba(255,180,0,.6); }
 
-/* Achievements unlocked this race */
+/* Achievements unlocked this race — compact wrapping chips (was full-width rows) */
 #rr-achievements:empty { display: none; }
 #rr-achievements {
-  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
-  margin-top: 8px; width: 100%;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 5px; margin-top: 6px;
 }
-.rr-ach-head { text-align: center; font: 800 12px var(--font-display); letter-spacing: .04em; color: #ffce6a; text-transform: uppercase; }
+.rr-ach-head {
+  width: 100%; text-align: center; margin-bottom: 1px;
+  font: 800 11px var(--font-display); letter-spacing: .05em; color: #ffce6a; text-transform: uppercase;
+}
 .rr-ach {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 10px; border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
   background: rgba(255,200,90,.08); border: 1px solid rgba(255,200,90,.22);
+  font: 600 12px var(--font-body); color: rgba(255,255,255,.9); white-space: nowrap;
 }
-.rr-ach-ico  { font-size: 18px; line-height: 1; }
-.rr-ach-name { flex: 1; font: 700 13px var(--font-body); color: rgba(255,255,255,.9); }
-.rr-ach-rew  { font: 800 12px var(--font-display); color: #ffce6a; font-variant-numeric: tabular-nums; }
+.rr-ach b { color: #ffce6a; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* Tire earnings breakdown */
 #rr-tires:empty { display: none; }
