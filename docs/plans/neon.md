@@ -142,7 +142,7 @@ This keeps the "wow" where the player shops and protects race FPS.
       Keep the drop-shadow suppression. No behavioural change for a `solid/none` config (1 pass,
       looks like today). Browser smoke on ≥1 track.
 
-- [ ] **N4 — shop catalog + economy** `[sonnet-high]`
+- [x] **N4 — shop catalog + economy** `[sonnet-high]`
       `js/shop-catalog.js`: `neon-layout` + `neon-anim` items with the prices above. Confirm
       `buy`/`purchase` + `well-rounded` handle the new kinds. Update `docs/plans/economy.md`
       (new sink). Unit-test the catalog additions (ids unique, kinds present).

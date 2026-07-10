@@ -42,7 +42,12 @@ payout = the long-progress engine**.
 | Tier 1 (trail colour, basic matte) | 40–80 |
 | Tier 2 (livery, metallic) | 150–250 |
 | Tier 3 (chrome/pearl, premium livery) | 400 |
-| **Full cosmetics catalog** | **~1,800** |
+| **Neon FX** (3 layouts 80/110/150 + 3 anims 120/150/250) | **~860** |
+| **Full cosmetics catalog** | **~2,660** |
+
+> **Neon FX** (docs/plans/neon.md) adds ~860 tires of records-safe sink — layouts + animations
+> for the 6-zone underglow. Deliberately soaks up the achievement tire surplus; combinable, so
+> a completionist buys all 6 items.
 
 | Cars | Price |
 |---|---|
