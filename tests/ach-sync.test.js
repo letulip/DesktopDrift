@@ -6,22 +6,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installLocalStorage } from './helpers.js';
+import { TRACKS } from '../js/track-registry.js';
 
-// A pre-feature save: all 3 tracks cleared both ways, a 600+ record, 5 cosmetics across both
-// shop sections, 600 tires, a cola cap on every track. No achievements slice populated yet.
+// A pre-feature save: EVERY track cleared both ways, a 600+ record, 5 cosmetics across both
+// shop sections, 600 tires, a cola cap on every track. Derived from the live registry so
+// adding a track can't silently break the "unlocks everything" assertions.
+const forwardIds = TRACKS.map(t => t.id);
+const cleared    = [...forwardIds, ...forwardIds.map(id => `${id}:rev`)];
+const caps       = Object.fromEntries(forwardIds.map(id => [id, [0]]));
+const FIRST      = forwardIds[0];   // put the 640-PPS record on the first track (DDK + stars)
+
 installLocalStorage({
   'desktop-drift': JSON.stringify({
     version: 2,
     wallet: 600,
     owned: ['finish-matte', 'trail-mint', 'trail-oro', 'trail-rosa', 'trail-acqua'],
-    stats: {
-      caps:   { 'green-study': [0], 'steel-kitchen': [0], 'workbench': [0] },
-      tires:  {},
-      cleared: ['green-study', 'steel-kitchen', 'workbench',
-                'green-study:rev', 'steel-kitchen:rev', 'workbench:rev'],
-      runs: 0, driftSecs: 0,
-    },
-    records: { 'green-study': { timeattack: { bestPPS: 640, bestPPSTotal: 20000, bestPPSTime: 31 } } },
+    stats: { caps, tires: {}, cleared, runs: 0, driftSecs: 0 },
+    records: { [FIRST]: { timeattack: { bestPPS: 640, bestPPSTotal: 20000, bestPPSTime: 31 } } },
     achievements: {},
   }),
 });
@@ -42,9 +43,9 @@ test('retroactive sweep unlocks everything already earned by state', () => {
   // Collection (from `caps`)
   assert.ok(unlocked.has('soda-pop'));
   assert.ok(unlocked.has('cola-collector'));
-  // Wallet ladder (600 ≥ 500) + DDK crown (record 640 ≥ 600)
+  // Wallet ladder (600 ≥ 500) + DDK crown (record 640 ≥ 600 on the first track)
   assert.ok(unlocked.has('hoard-500'));
-  assert.ok(unlocked.has('ddk-green-study'));
+  assert.ok(unlocked.has(`ddk-${FIRST}`));
   // Reconstructable from records: finished-ever + star tiers (640 PPS → 5★)
   assert.ok(unlocked.has('first-drift'));
   assert.ok(unlocked.has('three-star'));

@@ -36,13 +36,15 @@ export const TRACKS = [
     theme:  { background: `#181d1d`, table: `#574b39`, tableEdge: `#837a68`, track: `#9a8c6f` },
   },
   // {
-  //   id:     `cafe-marble`,
-  //   name:   `Macchiato Madness`,
-  //   desc:   `An elegant bistro table. Slide around giant coffee cups and delicsious doughnuts. Don't spill the espresso!`,
-  //   svgSrc: `tracks/cafe-marble.svg`,
-  //
-  //   theme:  { background: `#d7d0c4`, table: `#4a3726`, tableEdge: `#2e2114`, track: `#d3b483` },
-  // },
+  {
+    id:     `cafe-marble`,
+    name:   `Macchiato Madness`,
+    desc:   `An elegant bistro table. Slide around giant coffee cups and delicious doughnuts. Don't spill the espresso!`,
+    svgSrc: `tracks/cafe-marble.svg`,
+    caps:   1,
+    tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
+    theme:  { background: `#d7d0c4`, table: `#4a3726`, tableEdge: `#2e2114`, track: `#d3b483` },
+  },
   // {
   //   id:     `dev-desk`,
   //   name:   `Office Overdrive`,
