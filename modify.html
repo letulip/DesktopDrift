@@ -84,11 +84,9 @@
 <script type="module">
   import { CARS } from './js/config.js';
   import { PALETTE, NEON_PALETTE } from './js/palette.js';
-  import { garage, save, wallet, isOwned, purchase, carLook,
-           stats, records, owned, achUnlocked, achUnlock, achSetProgress, addTires } from './js/store.js';
+  import { garage, save, wallet, isOwned, purchase, carLook } from './js/store.js';
   import { CATALOG, byKind } from './js/shop-catalog.js';
-  import { TRACKS } from './js/track-registry.js';
-  import { evaluate, buildContent, flattenRecords } from './js/achievements.js';
+  import { syncStateAchievements } from './js/ach-sync.js';
   import { drawCarPreview } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
 
@@ -291,7 +289,7 @@
     const total = cart.reduce((s, it) => s + it.price, 0);
     if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
     for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
-    if (cart.length) creditShopAchievements();                 // shop achievements fire on buy
+    if (cart.length) syncStateAchievements();                  // shop achievements fire on buy
 
     garage().carIndex = carIdx;
     const lk = carLook(carIdx);     // write this car's own look
@@ -303,24 +301,9 @@
     location.href = backHref;
   });
 
-  // Evaluate the shop-driven achievements (big-spender / fashionista / well-rounded / hoard)
-  // right after a purchase so they don't wait for the next race. The page navigates back
-  // immediately, so unlocks are silent here — the reward is credited and shown on the
-  // achievements page (and the results toast catches them again if they race first).
-  function creditShopAchievements() {
-    const st = stats();
-    const ctx = {
-      run: null, wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
-      records: flattenRecords(records()), caps: st.caps ?? {},
-      lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
-      content: buildContent(TRACKS, CATALOG),
-    };
-    const res = evaluate(ctx, achUnlocked());
-    for (const p of res.progress) achSetProgress(p.id, p.value);
-    for (const u of res.unlocked) {
-      if (achUnlock(u.id) && u.reward) addTires(u.reward, 'Achievement: ' + u.name);
-    }
-  }
+  // (Shop-driven achievements are reconciled by syncStateAchievements() on buy — see
+  //  js/ach-sync.js. The page navigates back immediately, so unlocks are silent here;
+  //  the reward is credited and shown on the achievements page.)
 
   // ── Initial render ────────────────────────────────────────────────────────────
   refresh();

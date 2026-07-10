@@ -41,6 +41,12 @@
   import { CATALOG } from './js/shop-catalog.js';
   import { buildContent, buildCatalog, CATEGORY_ORDER } from './js/achievements.js';
   import { achAll } from './js/store.js';
+  import { syncStateAchievements } from './js/ach-sync.js';
+
+  // Retroactive sweep: unlock + credit anything already earned by the current save (cleared
+  // tracks, records/DDK, owned cosmetics, wallet, caps) before rendering — so returning
+  // players who met the conditions before this feature shipped see them light up here.
+  syncStateAchievements();
 
   const catalog = buildCatalog(buildContent(TRACKS, CATALOG));
   const state   = achAll();

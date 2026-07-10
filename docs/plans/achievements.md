@@ -269,6 +269,21 @@ cars land. Tracked in `docs/plans/economy.md`.
 tires once, the page shows live state with progress bars, the in-game toast and the DDK
 crown render, `npm test` green, browser smoke clean on ≥ 1 track.
 
+- [x] **E8 — backwards compatibility (retroactive sweep)** `[opus]`
+      New `js/ach-sync.js` `syncStateAchievements()`: assembles a run-less `ctx` from the
+      CURRENT save and unlocks + credits anything already earned by persistent state
+      (cleared tracks, records/DDK, owned cosmetics, wallet, cola caps). Called on
+      `achievements.html` load (so returning players who met the conditions before this
+      feature shipped see them light up + get the reward) and reused by `modify.html` on
+      purchase (replaces the inline duplicate). Run-only achievements never fire from a sweep
+      (`ctx.run = null`). Idempotent. `tests/ach-sync.test.js` (+2); SW v118→v119. Browser-
+      verified: a seeded pre-feature save sweeps 0/47 → 11/47 with the state-based unlocks.
+
+**Backwards-compat summary:** no VERSION bump / migration / reset (the `achievements` slice was
+always in `defaults()`; deep-merge fills `stats.runs`/`driftSecs`). State-based achievements
+retroactively unlock (sweep on the page + at finish/purchase). Run-based ones need a fresh
+qualifying race. Lifetime ladders (drift/races) start at 0 — that history was never recorded.
+
 ---
 
 ## Guardrails
