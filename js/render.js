@@ -141,14 +141,13 @@ export const initRender = (T) => {
     Y: y => miniEl.height / 2 + y * _ms,
   };
 
-  // Track polygon (outer + reversed inner, evenodd fill) — one Path2D per game session.
+  // Track surface path — the CENTRELINE, stroked at 2·TRACK_HALF in draw(). A round stroke
+  // (not an even-odd outer/inner annulus) fills self-intersections SOLID, so figure-8 tracks
+  // no longer hole out where the loop crosses itself. Same technique the minimap + card
+  // thumbnails already use. One Path2D per game session.
   trackPath = new Path2D();
-  trackPath.moveTo(T.outer[0].x, T.outer[0].y);
-  for (let i = 1; i < T.outer.length; i++) trackPath.lineTo(T.outer[i].x, T.outer[i].y);
-  trackPath.closePath();
-  const innerRev = T.inner.slice().reverse();
-  trackPath.moveTo(innerRev[0].x, innerRev[0].y);
-  for (let i = 1; i < innerRev.length; i++) trackPath.lineTo(innerRev[i].x, innerRev[i].y);
+  trackPath.moveTo(T.center[0].x, T.center[0].y);
+  for (let i = 1; i < T.center.length; i++) trackPath.lineTo(T.center[i].x, T.center[i].y);
   trackPath.closePath();
 
   // Track centreline for minimap (pixel coords) — also static.
@@ -466,9 +465,13 @@ export const draw = (speed) => {
     ctx.strokeRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
   }
 
-  // track surface (cached Path2D — no path rebuild every frame)
-  ctx.fillStyle = TH.track;
-  ctx.fill(trackPath, 'evenodd');
+  // track surface — stroke the centreline at full track width (cached Path2D, no rebuild).
+  // A round stroke fills self-crossings solid (no even-odd hole on figure-8 layouts).
+  ctx.strokeStyle = TH.track;
+  ctx.lineWidth   = TRACK_HALF * 2;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+  ctx.stroke(trackPath);
 
   // skid marks — batched by alpha level (a few fill() calls instead of ≤1500 fillRect/frame)
   drawSkids();

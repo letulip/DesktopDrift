@@ -4,9 +4,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpoints, prepProp,
+  parseSvgPath, chaikin, offsetEdges, placeCones, filterConesOnTrack, sampleCheckpoints, prepProp,
   nearestCenter, sampleCheckpointsByCorner, circularAdvance,
 } from '../js/track-util.js';
+
+test('filterConesOnTrack: keeps edge cones, culls cones inside a far-away lane', () => {
+  // Long centreline along x (indices are circular, so make the intruder far in BOTH directions).
+  const center = Array.from({ length: 200 }, (_, i) => ({ x: i * 20, y: 0 }));
+  const edge     = { x: center[10].x,  y: 100, ci: 10 };  // legit: 100gu off its own segment
+  const intruder = { x: center[100].x, y: 0,   ci: 10 };  // sits ON the centreline far from ci=10
+  const out = filterConesOnTrack([edge, intruder], center, 100);
+  assert.ok(out.includes(edge), 'legit edge cone kept');
+  assert.ok(!out.includes(intruder), 'intruding cone culled');
+});
+
+test('filterConesOnTrack: a simple loop with no self-crossing loses no cones', () => {
+  const N = 60, R = 300, half = 100;
+  const center = Array.from({ length: N }, (_, i) => {
+    const a = 2 * Math.PI * i / N; return { x: R * Math.cos(a), y: R * Math.sin(a) };
+  });
+  const cones = center.map((c, i) => {
+    const a = 2 * Math.PI * i / N;
+    return { x: (R + half) * Math.cos(a), y: (R + half) * Math.sin(a), ci: i };  // outer-edge ring
+  });
+  assert.equal(filterConesOnTrack(cones, center, half).length, cones.length);
+});
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 

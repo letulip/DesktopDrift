@@ -5,7 +5,7 @@
 import * as ITEMS from './items.js';
 import { COLA_CAP, TIRE } from './collectibles.js';
 import { seedTires } from './tire-seed.js';
-import { parseSvgPath, chaikin, offsetEdges, placeCones, sampleCheckpointsByCorner, prepProp } from './track-util.js';
+import { parseSvgPath, chaikin, offsetEdges, placeCones, filterConesOnTrack, sampleCheckpointsByCorner, prepProp } from './track-util.js';
 
 // ── Shared constants (same for every track) ───────────────────────────────────
 export const TRACK_HALF = 100;
@@ -46,7 +46,8 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires 
   for (let i = 0; i < 4; i++) smoothPoly = chaikin(smoothPoly);
 
   const { center, outer, inner } = offsetEdges(smoothPoly, TRACK_HALF);
-  const cones = placeCones(outer, inner);
+  // Cull edge cones that a self-intersection pushed into the middle of another lane.
+  const cones = filterConesOnTrack(placeCones(outer, inner), center, TRACK_HALF);
 
   // ── TABLE ───────────────────────────────────────────────────────────────────
   let _maxX = 0, _maxY = 0;

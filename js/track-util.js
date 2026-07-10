@@ -102,11 +102,11 @@ export const placeCones = (outer, inner, minSpacing = 160) => {
   for (let i = 0; i < N; i++) {
     const next = (i + 1) % N;
     if (i === 0 || outerAcc >= minSpacing) {
-      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       outerAcc = 0;
     }
     if (i === 0 || innerAcc >= minSpacing) {
-      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false });
+      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       innerAcc = 0;
     }
     outerAcc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
@@ -114,6 +114,28 @@ export const placeCones = (outer, inner, minSpacing = 160) => {
   }
   return cones;
 };
+
+// Drop cones that a self-intersection pushed into the middle of the track. An edge cone
+// belongs to centreline index `ci`; it legitimately hugs the centreline points NEAR ci
+// (within `indexWindow`). If a cone also lands within ~half of a FAR-AWAY centreline point,
+// it is sitting inside another lane at a crossing → remove it. Non-self-crossing tracks lose
+// nothing (their edges are never near a non-adjacent part of the loop). Pure.
+export const filterConesOnTrack = (cones, center, half, indexWindow = 24) => {
+  const N = center.length;
+  const guard = half - CONE_ON_TRACK_MARGIN;   // clearly inside a foreign lane, not just its edge
+  const g2 = guard * guard;
+  return cones.filter(cone => {
+    for (let j = 0; j < N; j++) {
+      let d = Math.abs(j - cone.ci);
+      if (d > N / 2) d = N - d;                 // circular index distance
+      if (d <= indexWindow) continue;           // the cone's own neighbourhood — expected to be near
+      const dx = center[j].x - cone.x, dy = center[j].y - cone.y;
+      if (dx * dx + dy * dy < g2) return false; // deep inside a non-adjacent lane → on the track
+    }
+    return true;
+  });
+};
+const CONE_ON_TRACK_MARGIN = 15;   // cone must be ≥15gu inside a foreign lane to be culled
 
 // K checkpoints, evenly distributed by index along the centerline.
 export const sampleCheckpoints = (center, K) => {
