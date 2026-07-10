@@ -121,7 +121,7 @@ This keeps the "wow" where the player shops and protects race FPS.
 
 ## Phases
 
-- [ ] **N1 — pure neon resolver** `[opus]`
+- [x] **N1 — pure neon resolver** `[opus]`
       `js/neon.js`: `zoneColors(neon, t)` + layout mapping + animation math (`pulse`/`rainbow`/
       `flow`) + the `LAYOUTS` / `ANIMS` descriptors (id, label, colour-count). Pure, no DOM.
       Heavy unit tests: each layout maps the right colours to the 6 zone indices; `none` is
