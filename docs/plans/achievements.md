@@ -245,7 +245,7 @@ cars land. Tracked in `docs/plans/economy.md`.
       *(Purchase-side eval + toast moved to E6 — shop achievements are still caught at the
       next finish; E6 makes them immediate on `modify.html`.)*
 
-- [ ] **E4 — results toast + crown** `[sonnet-high]`
+- [x] **E4 — results toast + crown** `[sonnet-high]`
       `race-results.js`: render newly-unlocked toast list + the 👑 crown above stars when
       `pps ≥ 600`. CSS in `sandbox.css`.
 
