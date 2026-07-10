@@ -3,6 +3,7 @@
 //
 // Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
 import { buy } from './economy.js';
+import { defaultNeon } from './neon.js';
 //
 // ── Schema evolution (never wipes player data) ────────────────────────────────
 // On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
@@ -20,7 +21,7 @@ import { buy } from './economy.js';
 // deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
-const VERSION = 2;
+const VERSION = 3;
 
 const defaults = () => ({
   version:      VERSION,
@@ -55,6 +56,18 @@ const MIGRATIONS = {
       };
     }
     delete g.bodyColor; delete g.neonColor; delete g.finish; delete g.trailColor;
+    return s;
+  },
+  // v3: neon went from a single `neonColor` hex to a `neon` config object (6-zone Neon FX —
+  // see docs/plans/neon.md). Fold each car's existing colour into `neon` (solid/static);
+  // `neonColor` is left in place as a harmless legacy field.
+  3: (s) => {
+    if (!_isObj(s.garage) || !_isObj(s.garage.cars)) return s;
+    for (const look of Object.values(s.garage.cars)) {
+      if (_isObj(look) && look.neon === undefined) {
+        look.neon = look.neonColor ? defaultNeon(look.neonColor) : null;
+      }
+    }
     return s;
   },
 };
@@ -258,7 +271,7 @@ export const carLook = (carIndex) => {
   _ensure();
   if (!_s.garage.cars) _s.garage.cars = {};
   const key = String(carIndex);
-  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null };
+  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null, neon: null };
   return _s.garage.cars[key];
 };
 

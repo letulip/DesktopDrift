@@ -129,7 +129,7 @@ This keeps the "wow" where the player shops and protects race FPS.
       returns after a full cycle); `pulse` modulates blur/alpha in `[min,max]`; `rainbow`
       spreads hue around the ring; out-of-range/short `colors` arrays are handled safely.
 
-- [ ] **N2 — store schema** `[sonnet-high]`
+- [x] **N2 — store schema** `[sonnet-high]`
       `carLook` default gains `neon: { layout:'solid', anim:'none', colors:[<current default>],
       speed:1 }`. VERSION bump + `MIGRATIONS[n]`: fold an existing `neonColor` into
       `neon.colors[0]` (+ keep a read fallback). `owned` unchanged in shape. Tests: default
