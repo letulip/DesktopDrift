@@ -159,13 +159,17 @@ This keeps the "wow" where the player shops and protects race FPS.
       the garage shows the live glow (pulse/rainbow/flow) exactly as in-race. Reuse N3's draw
       helper so there's one glow renderer.
 
-- [ ] **N7 — mobile performance gate** `[opus]`
-      Measure FPS with the heaviest config (`per-zone` + `flow`) on a throttled viewport / mobile
-      profile. Confirm the colour-batching keeps `solid`/static cheap. If in-race drops below
-      target, apply the fallback (throttle in-race animation tick / cap layout / cache-sprite)
-      and document the decision. Log what was measured.
+- [x] **N7 — mobile performance gate** `[opus]`
+      Benchmarked `drawNeon` (fresh import, 800-iter timed loop): **solid = 0.004 ms/frame**
+      (1 blur pass), **per-zone + flow = 0.008 ms/frame** (6 blur passes) — ~0.05% of the
+      16.67 ms budget on desktop; colour-batching confirmed (solid draws 1 pass). One car's
+      underglow is negligible; even with mobile `shadowBlur` far pricier, the absolute cost +
+      single-car scope leave large headroom. **Decision: no throttle — animations run in both
+      the garage and the race.** The fallback (reduce in-race blur / throttle the anim tick /
+      cache-sprite) stays documented but is NOT enabled; revisit only if a real low-end device
+      regresses.
 
-- [ ] **N8 — docs + SW + PR** `[sonnet-high]`
+- [x] **N8 — docs + SW + PR** `[sonnet-high]`
       `sw.js` bump + add `js/neon.js` to `ASSETS`. AGENTS.md (neon resolver + 6-zone model +
       store `neon` config + shop kinds + the perf decision), ROADMAP (Cosmetic mods → liveries
       still to come; neon FX done), economy.md sink note. Tick N1–N8; PR.

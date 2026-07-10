@@ -122,7 +122,9 @@ in-run bonuses / sound actually need it. Then:
       per instance + **Absolute DDK**. Detail: `docs/plans/achievements.md`.
 - [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
 - [x] **Cosmetic mods** — paint finishes (matte / metallic / pearl / chrome) + drift-trail
-      colours shipped via the tire-shop (Phase 2.5). Liveries / wheel styles still to come.
+      colours + **Neon FX** (6-zone customisable underglow: layouts + animations, sold in the
+      shop — see docs/plans/neon.md) shipped via the tire-shop (Phase 2.5). Liveries / wheel
+      styles still to come.
 - [ ] **Performance tuning** — grip / thrust / steer, etc. *Depends on the progression
       system:* tuning options **unlock progressively after completing tracks**. Tune with
       care — it shifts game balance and would affect leaderboard fairness in the online era.
