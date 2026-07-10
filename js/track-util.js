@@ -295,6 +295,21 @@ export const circularAdvance = (idx, ref, N) => {
 // reversed. One key for records, tire/cap pickups, cleared-flag and first-clear (Phase D2).
 export const instanceId = (trackId, reversed) => (reversed ? `${trackId}:rev` : trackId);
 
+// Prune a stored tire-collection list down to the tiles that actually exist on the current
+// track, re-keyed to each tile's stable capId. Drops orphans — stale coordinate keys or the
+// duplicate ids that accumulate when a track's geometry / key scheme changes and a tire is
+// re-collected at a new position — so the collected count can never exceed the tile count.
+// `tiles` = the tire collectibles ([{ capId, x, y }]); a tile counts as collected if the store
+// holds its current capId OR its legacy `x,y` coordinate key. Deduped (one entry per tile).
+export const reconcileTires = (storedIds, tiles) => {
+  const have = new Set(storedIds);
+  const out = [];
+  for (const t of tiles) {
+    if (have.has(t.capId) || have.has(`${t.x},${t.y}`)) out.push(t.capId);
+  }
+  return out;
+};
+
 // Reverse a parsed track — drive the same circuit the other way (economy Phase D2).
 // Pure: returns a new object, the input is not mutated. center/inner/outer are reversed
 // in lockstep, then checkpoints/startPos/startAngle are recomputed from the reversed

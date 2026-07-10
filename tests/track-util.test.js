@@ -5,8 +5,22 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseSvgPath, chaikin, offsetEdges, placeCones, filterConesOnTrack, sampleCheckpoints, prepProp,
-  nearestCenter, sampleCheckpointsByCorner, circularAdvance,
+  nearestCenter, sampleCheckpointsByCorner, circularAdvance, reconcileTires,
 } from '../js/track-util.js';
+
+test('reconcileTires: prunes orphans + dupes to the current tiles (never exceeds tile count)', () => {
+  const tiles = Array.from({ length: 12 }, (_, k) => ({ capId: `t${k}`, x: k * 10, y: 0 }));
+  // A bloated store: index-keyed collects, legacy coordinate keys, orphans from an old
+  // geometry that match no current tile, and a duplicate — exactly the "16/12" situation.
+  const stored = ['t0', 't1', '20,0', '30,0', '999,999', '888,111', 't0'];
+  const out = reconcileTires(stored, tiles);
+  assert.deepEqual([...out].sort(), ['t0', 't1', 't2', 't3']); // coord keys re-mapped to capId, orphans/dupes gone
+  assert.ok(out.length <= tiles.length, 'count can never exceed the tile total');
+});
+
+test('reconcileTires: empty store collects nothing', () => {
+  assert.deepEqual(reconcileTires([], [{ capId: 't0', x: 0, y: 0 }]), []);
+});
 
 test('filterConesOnTrack: keeps edge cones, culls cones inside a far-away lane', () => {
   // Long centreline along x (indices are circular, so make the intruder far in BOTH directions).

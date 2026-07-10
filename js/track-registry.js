@@ -45,14 +45,15 @@ export const TRACKS = [
     tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
     theme:  { background: `#d7d0c4`, table: `#4a3726`, tableEdge: `#2e2114`, track: `#d3b483` },
   },
-  // {
-  //   id:     `dev-desk`,
-  //   name:   `Office Overdrive`,
-  //   desc:   `Late-night coding chaos. Drift through a maze of sticky notes, flash drives, and empty energy drinks!`,
-  //   svgSrc: `tracks/dev-desk.svg`,
-  //
-  //   theme:  { background: `#181d1d`, table: `#574b39`, tableEdge: `#837a68`, track: `#9a8c6f` },
-  // }
+  {
+    id:     `dev-desk`,
+    name:   `Office Overdrive`,
+    desc:   `Late-night coding chaos. Drift through a maze of sticky notes, flash drives, and empty energy drinks!`,
+    svgSrc: `tracks/dev-desk.svg`,
+    caps:   1,
+    tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
+    theme:  { background: `#1b2230`, table: `#8f99ac`, tableEdge: `#5c667c`, track: `#c7bda4` },
+  },
   // {
   //   id:     `dining-oak`,
   //   name:   `Breakfast Boulevard`,
