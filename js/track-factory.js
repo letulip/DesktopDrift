@@ -127,10 +127,14 @@ export const makeTrack = async ({ svgPath, scale = 0.25, id, laps, theme, tires 
 
   // ── Tire coins — algorithmically seeded (no hand-placed proxy lines) ──────────
   // `tires` count scatters pickups along the centerline (on-line on straights, pushed
-  // toward the inner edge on corners). Positions double as the persistent capId.
-  for (const { x, y } of seedTires(center, inner, outer, tires)) {
-    collectibles.push({ ...TIRE, x, y, capId: `${x},${y}` });
-  }
+  // toward the inner edge on corners). Persistence key is the STABLE seed INDEX (`t0`…),
+  // not the coordinate: seeded positions shift whenever the centerline changes (an SVG
+  // refinement / re-smooth), and a coordinate key would orphan every collected tire on such
+  // a change. The seed order is deterministic, so `t<k>` survives track polish (given the
+  // same tire count). (Cola caps keep coordinate keys — they only move if you move them.)
+  seedTires(center, inner, outer, tires).forEach(({ x, y }, k) => {
+    collectibles.push({ ...TIRE, x, y, capId: `t${k}` });
+  });
 
   // ── Checkpoints + start position ────────────────────────────────────────────
   const checkpoints = sampleCheckpointsByCorner(center, K);
