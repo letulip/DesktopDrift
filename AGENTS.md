@@ -223,6 +223,18 @@ stays readable. No framework, no bundler.
     `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
     Imported only by `select.html`. Designed to grow: Phase 2 liveries will add
     a `LIVERIES` array with `{ name, body, stroke, details }` entries here.
+  - **Neon FX** (`js/neon.js` + `js/neon-draw.js`, docs/plans/neon.md) — the underglow is a
+    **6-zone** cosmetic (clockwise: front-L, front-R, right-side, rear-R, rear-L, left-side)
+    driven by a per-car config `neon: { layout, anim, colors[], speed }` (in `carLook`;
+    VERSION-3 migration folds the legacy `neonColor` hex into it). `js/neon.js` is the **pure**
+    resolver — `zoneColors(neon, t)` → 6 `{color,intensity}` — with `LAYOUTS`
+    (solid/longitudinal/front-mid-rear/per-zone) and `ANIMS` (none/pulse/rainbow/flow);
+    unit-tested (`tests/neon.test.js`). `js/neon-draw.js` `drawNeon(ctx, hl, hw, neon, t,
+    blurScale)` is the one canvas renderer (6 ellipse zones, **same-colour zones batched into
+    one `shadowBlur` pass** — solid = 1 pass, per-zone/animated up to 6), shared by
+    `render.js` (in-race) and `car-preview.js` (garage). Shop sells `neon-layout` / `neon-anim`
+    items (`shop-catalog.js`); solid+static stay free. Perf: measured negligible (per-zone+flow
+    ~0.008 ms/frame desktop), animations run everywhere, no throttle (N7).
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
@@ -231,11 +243,11 @@ stays readable. No framework, no bundler.
     penalties, and the entire lap-detection block (no lap times, no race finish).
     Flash notifications (combo banked, crashes, TRANSITION!, NEAR MISS!) still fire.
     On init reads `garage()` from `store.js` to apply the chosen car model,
-    body colour, and neon colour (`CARS[S.carModel].neonColor`).
+    body colour, and the neon config (`carLook().neon` → `setCarPaint` → `drawNeon`).
     Also reads `settings().units` once to compute `speedFactor` (1 for km/h,
     0.621371 for mph) and sets `#spdUnit` label. Speed passed to `draw()` is
     already converted — `render.js` just rounds and displays it.
-    When `neonColor` is set, the black drop-shadow under the car is suppressed.
+    When a neon config is equipped, the black drop-shadow under the car is suppressed.
     **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
     used by sandbox). With a finite count the HUD shows `1/3`. The finish line
     (checkpoint[0] = center[0]) is detected by **sign-change of the forward projection**

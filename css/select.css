@@ -211,14 +211,34 @@
 
 /* Customization selector (modify.html): tabs show one panel at a time */
 #custom {
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  position: relative;  /* for the ::before gradient */
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
   width: min(360px, calc(100vw - 32px));
+  flex: 1; min-height: 0;      /* fill the space under the preview; #panels scrolls inside */
+}
+#custom::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 100%;
+  top: 49px;
+  background: linear-gradient(to bottom, #1a1614 10%, transparent);
 }
 .shop-tabs {
+  flex-shrink: 0;              /* pinned above the scrolling panels */
   display: inline-flex; gap: 4px;
   padding: 4px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--surface-line);
 }
+/* Only the customization panels scroll — header, preview and the shop tabs stay pinned. */
+#panels {
+  flex: 1; min-height: 0; width: 100%;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: 6px 0 148px;        /* clears the fixed apply / buy bar + its gradient */
+}
+#panels::-webkit-scrollbar { display: none; }
 .shop-tab {
   padding: 7px 14px; border-radius: 9px; cursor: pointer; border: none; background: none;
   color: rgba(255,255,255,.5);
@@ -231,6 +251,7 @@
 /* One customization panel (Colour / Neon / Trail) */
 .cust-panel {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding-block-start: 16px;
 }
 .cust-panel[hidden] { display: none; }
 
@@ -251,15 +272,14 @@
   display: flex; flex-direction: column; align-items: center;
   background: var(--bg-screen);
   font: 14px/1.4 var(--font-body); color: var(--ink);
-  gap: 12px;
+  /* gap: 12px; */
 }
 #modify #content {
-  /* overflow-y: auto; */
   align-items: center;
-  justify-content: flex-start;  /* flow from the top so tall content scrolls (mobile: the
-                                   centered default clipped the bottom paid section) */
-  gap: 22px;                 /* equal vertical rhythm between every group */
-  padding: 8px 0 120px;      /* room for the fixed apply bar (warning row can grow) */
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 8px 0 0;
+  min-height: 0;             /* let #custom shrink so #panels (not the page) scrolls */
 }
 #car-name {
   margin: 0; font: 800 clamp(20px, 6vw, 34px) var(--font-display);
@@ -269,6 +289,7 @@
 }
 /* Car preview sits on a soft lit "stage" with air around it, so the neon glow reads. */
 .preview-stage {
+  flex-shrink: 0;             /* the car stays visible above the scrolling panels */
   display: flex; align-items: center; justify-content: center;
   padding: 18px 26px;
   border-radius: var(--r-card);
@@ -285,11 +306,21 @@
 
 /* bottom apply / buy bar — a warning line stacked above the action row */
 #modify-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+  position: relative;  /* for the ::before gradient */
+  /* position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; */
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   width: 100%; box-sizing: border-box;
-  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg-screen) 72%, transparent);
+  /* padding: 24px 18px calc(12px + env(safe-area-inset-bottom)); */
+  padding-block-end: calc(12px + env(safe-area-inset-bottom));
+  padding-inline: 18px;
+}
+#modify-bar::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 100%;
+  top: -20px;
+  background: linear-gradient(to top, #14110f 20%, transparent);
 }
 .modify-bar-row {
   display: flex; align-items: center; justify-content: center; gap: 14px;
@@ -331,4 +362,8 @@
 
 @media (min-width: 480px) {
   .car-card { max-width: none; box-sizing: content-box; }
+
+  #custom::before {
+    background: linear-gradient(to bottom, #1f1d1b 10%, transparent);
+  }
 }
