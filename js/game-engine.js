@@ -108,9 +108,33 @@ export const startGame = (T, opts = {}) => {
     S.flashT = 0.9;
   };
 
+  // Seconds the car may be non-drifting before the MULTIPLIER resets. Deliberately longer than
+  // the 0.5s points-bank window: a fast transition flick can straighten the car for up to ~1s,
+  // and that brief interruption must NOT nuke a hard-earned multiplier (it froze, not lost).
+  const MULT_RESET_GRACE = 1.2;
+
   const resetCombo = () => {
     S.comboPoints = 0; S.mult = 1; S.driftTime = 0;
     S.transitions = 0; S.lastSlipSign = 0; S.multBuild = 0; S.nearMisses = 0;
+    driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
+  };
+
+  // Bank the accumulated combo POINTS into the score but KEEP the multiplier (multBuild/mult):
+  // banking is the score payout; the multiplier is the separate "flow" reward that only resets
+  // on a sustained stop (resetMult) or a crash (burnCombo → resetCombo). Preserving it here is
+  // what lets a quick flick that briefly ends the drift continue the multiplier on recovery.
+  const bankPoints = () => {
+    if (S.comboPoints >= 1) {
+      if (!ZEN) S.score += Math.round(S.comboPoints);
+      flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
+    }
+    S.comboPoints = 0; S.driftTime = 0;
+  };
+
+  // Reset ONLY the multiplier side (points are already banked). Fires after MULT_RESET_GRACE of
+  // continuous non-drift — a genuine stop, not a flick.
+  const resetMult = () => {
+    S.mult = 1; S.multBuild = 0; S.transitions = 0; S.lastSlipSign = 0; S.nearMisses = 0;
     driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
   };
 
@@ -433,11 +457,12 @@ export const startGame = (T, opts = {}) => {
     } else {
       S.driftGrace += dt;
       if (S.driftGrace > 0.5 && S.comboPoints >= 1) {
-        comboUnbroken = false;   // an active combo ended mid-race (banked on track / burned off it)
-        if (onTrack) bankCombo(); else burnCombo('OFF TRACK!');
-      } else if (S.driftGrace > 0.5) {
-        resetCombo();            // idle reset with no active combo — not counted as a break
+        comboUnbroken = false;   // an active combo streak ended mid-race
+        if (onTrack) bankPoints(); else burnCombo('OFF TRACK!');  // bank the points (keep the multiplier)
       }
+      // The multiplier survives a brief interruption (a fast flick can straighten the car for
+      // up to ~1s); it only resets after a sustained non-drift stretch — never on a quick flick.
+      if (onTrack && S.driftGrace > MULT_RESET_GRACE && S.multBuild > 0) resetMult();
     }
 
     if (slip > 40 && speed > 60) {
