@@ -260,7 +260,7 @@ cars land. Tracked in `docs/plans/economy.md`.
       call `evaluate`, unlock + credit, toast) so shop achievements fire without waiting
       for a race.
 
-- [ ] **E7 — docs + SW + PR** `[sonnet-high]`
+- [x] **E7 — docs + SW + PR** `[sonnet-high]`
       `sw.js` bump + add `js/achievements.js`, `achievements.html`, `css/achievements.css`
       to `ASSETS`; AGENTS.md (evaluator + store helpers + new `S.*` fields + cola→tires +
       DDK), ROADMAP tick (Phase 2 Achievements), economy.md faucet note. Tick E1–E7; PR.

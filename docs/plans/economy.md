@@ -21,11 +21,20 @@ reversed). Decide how much currency exists → price the sinks → check the pac
 |---|---|---|
 | Tires on track (one-time) | ~10 / instance | 140 |
 | First-clear bonus | +20 / instance | 280 |
+| Cola cap (one-time, drift donut) | 15 / instance | ~210 |
 | Finish payout (repeatable) | `2 + 2×stars` → 2–12 / race | ∞ (thin stream) |
+| **Achievements (one-time)** | see `achievements.md` | **≈ 3,600** (~1.8k is the DDK tail) |
 
 → **Guaranteed one-time bank ≈ 420 tires** (collect everything + clear all 14), then an endless
 trickle from finishes, tied to PPS/stars. Roles: **one-time = starting capital**, **finish
 payout = the long-progress engine**.
+
+> **Achievements are now the dominant one-time faucet (~3,600 tires).** Deliberate: nearly all
+> of it is gated behind mastery (600-PPS DDK crowns, 500 min drift, an unbroken-drift finish) or
+> grind (the drift/race/wallet ladders), so it pays out slowly over the completionist tail — not
+> up front. **The sink must keep pace** (Phase C cars + more cosmetics); revisit these numbers
+> when Phase C lands so the player doesn't drown in tires. Also note **cola caps pay 15 tires
+> now** (they were dead score) — a small skill-gated one-time faucet.
 
 ### 2) Sinks — what we spend on
 | Cosmetics | Price |
