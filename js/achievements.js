@@ -3,7 +3,7 @@
 // (see docs/plans/achievements.md → ctx contract), so this whole module is unit-testable in
 // Node. Persistence lives in js/store.js; the engine + shop assemble `ctx`, call evaluate(),
 // then unlock + credit the tire reward.
-import { DDK_PPS } from './economy.js';
+import { DDK_PPS, starsForPps } from './economy.js';
 export { DDK_PPS };   // re-export so consumers can take it from either module
 
 // ── ctx / content normalisation ──────────────────────────────────────────────
@@ -33,12 +33,26 @@ const _norm = (ctx = {}) => ({
 // Every forward/reversed/all instance is finished (and there is at least one to finish).
 const _allCleared = (ids, cleared) => ids.length > 0 && ids.every(id => cleared.includes(id));
 
+// The best star rating the player has ever recorded (from persisted bestPPS). Lets the
+// star-milestone achievements fire from history — a returning player with a 5-star record
+// already earned five-star and shouldn't have to re-race for it.
+const _bestRecordStars = (x) => {
+  let m = 0;
+  for (const pps of Object.values(x.records)) m = Math.max(m, starsForPps(pps));
+  return m;
+};
+
+// True if the player has ever finished a race — this run, or any evidence in the save
+// (a cleared instance or a recorded best). Used by first-drift so it's not lost on old saves.
+const _hasFinishedEver = (x) =>
+  x.run?.finished === true || x.cleared.length > 0 || Object.keys(x.records).length > 0;
+
 // ── Static catalog (content-independent: fixed thresholds + injected-content checks) ──
 const STATIC = [
   // Progression ---------------------------------------------------------------
   { id: 'first-drift', name: 'First Drift', desc: 'Finish your first race.',
     icon: '🏁', category: 'progression', hidden: false, reward: 10,
-    check: (x) => x.run?.finished === true },
+    check: (x) => _hasFinishedEver(x) },
   { id: 'road-tripper', name: 'Road Tripper', desc: 'Clear every track (forward).',
     icon: '🗺️', category: 'progression', hidden: false, reward: 30,
     check: (x) => _allCleared(x.content.forwardIds, x.cleared) },
@@ -53,15 +67,16 @@ const STATIC = [
     check: (x) => _allCleared(x.content.allInstanceIds, x.cleared) },
 
   // Skill ---------------------------------------------------------------------
+  // Star milestones fire from this run OR the best rating ever recorded (reconstructable).
   { id: 'three-star', name: 'Solid Run', desc: 'Earn 3 stars in a race.',
     icon: '⭐', category: 'skill', hidden: false, reward: 5,
-    check: (x) => (x.run?.stars ?? 0) >= 3 },
+    check: (x) => Math.max(x.run?.stars ?? 0, _bestRecordStars(x)) >= 3 },
   { id: 'four-star', name: 'Dialed In', desc: 'Earn 4 stars in a race.',
     icon: '🌟', category: 'skill', hidden: false, reward: 20,
-    check: (x) => (x.run?.stars ?? 0) >= 4 },
+    check: (x) => Math.max(x.run?.stars ?? 0, _bestRecordStars(x)) >= 4 },
   { id: 'five-star', name: 'Flawless', desc: 'Earn 5 stars in a race.',
     icon: '💫', category: 'skill', hidden: false, reward: 40,
-    check: (x) => (x.run?.stars ?? 0) >= 5 },
+    check: (x) => Math.max(x.run?.stars ?? 0, _bestRecordStars(x)) >= 5 },
   { id: 'daredevil', name: 'Daredevil', desc: 'Land 10 near misses in one race.',
     icon: '😎', category: 'skill', hidden: false, reward: 25,
     check: (x) => (x.run?.nearMisses ?? 0) >= 10 },

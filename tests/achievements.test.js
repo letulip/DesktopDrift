@@ -76,9 +76,11 @@ test('catalog: DDK name uses the display name from content', () => {
 });
 
 // ── Progression ────────────────────────────────────────────────────────────────
-test('first-drift fires only on a finished run', () => {
+test('first-drift fires on a finished run OR any recorded history', () => {
   assert.ok(firing({ run: { ...RUN } }).has('first-drift'));
-  assert.ok(!firing({ run: null }).has('first-drift'));
+  assert.ok(!firing({ run: null }).has('first-drift'));                            // truly fresh save
+  assert.ok(firing({ run: null, cleared: ['green-study'] }).has('first-drift'));   // finished before
+  assert.ok(firing({ run: null, records: { 'green-study': 120 } }).has('first-drift'));
 });
 
 test('road-tripper needs every forward instance cleared (not just some)', () => {
@@ -98,12 +100,20 @@ test('completionist needs every instance, both directions', () => {
 });
 
 // ── Skill ───────────────────────────────────────────────────────────────────────
-test('star tiers fire at their thresholds and not below', () => {
+test('star tiers fire at their thresholds and not below (this run)', () => {
   assert.ok(!firing({ run: { ...RUN, stars: 2 } }).has('three-star'));
   assert.ok(firing({ run: { ...RUN, stars: 3 } }).has('three-star'));
   const f4 = firing({ run: { ...RUN, stars: 4 } });
   assert.ok(f4.has('three-star') && f4.has('four-star') && !f4.has('five-star'));
   assert.ok(firing({ run: { ...RUN, stars: 5 } }).has('five-star'));
+});
+
+test('star tiers also fire from a recorded best (returning player, run:null)', () => {
+  // starsForPps: 100/star. 250→2★, 300→3★, 520→5★.
+  assert.ok(!firing({ run: null, records: { x: 250 } }).has('three-star')); // 2★ < 3
+  assert.ok(firing({ run: null, records: { x: 300 } }).has('three-star'));  // 3★
+  const f = firing({ run: null, records: { a: 120, b: 520 } });             // best = 520 → 5★
+  assert.ok(f.has('three-star') && f.has('four-star') && f.has('five-star'));
 });
 
 test('daredevil at 10 near misses', () => {

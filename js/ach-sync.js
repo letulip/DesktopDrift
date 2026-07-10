@@ -17,23 +17,33 @@ import { CATALOG } from './shop-catalog.js';
 
 // Evaluate state-based achievements against the live save; persist unlocks + ladder progress
 // and credit each new reward once. Returns the newly-unlocked defs ({ id, name, icon, reward }).
+//
+// Loops to a fixed point: crediting rewards raises the wallet, which can cross the next
+// wallet-ladder tier (e.g. a big returning-player batch pushes 600 → 1000+ and earns
+// hoard-1000 too). Re-evaluating with the fresh wallet each round catches that in one call,
+// so a returning player unlocks everything reachable on a single page open — and a subsequent
+// call is a true no-op. Bounded: each round unlocks ≥1 new id or breaks (finite catalog).
 export const syncStateAchievements = () => {
   const st = stats();
-  const ctx = {
+  const base = {
     run: null,
-    wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
+    owned: owned(), cleared: st.cleared ?? [],
     records: flattenRecords(records()), caps: st.caps ?? {},
     lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
     content: buildContent(TRACKS, CATALOG),
   };
-  const res = evaluate(ctx, achUnlocked());
-  for (const p of res.progress) achSetProgress(p.id, p.value);
   const out = [];
-  for (const u of res.unlocked) {
-    if (achUnlock(u.id)) {                 // idempotent — pays once
-      if (u.reward) addTires(u.reward, 'Achievement: ' + u.name);
-      out.push(u);
+  for (;;) {
+    const res = evaluate({ ...base, wallet: wallet() }, achUnlocked());
+    for (const p of res.progress) achSetProgress(p.id, p.value);
+    let credited = 0;
+    for (const u of res.unlocked) {
+      if (achUnlock(u.id)) {               // idempotent — pays once
+        if (u.reward) addTires(u.reward, 'Achievement: ' + u.name);
+        out.push(u); credited++;
+      }
     }
+    if (credited === 0) break;             // fixed point — nothing new this round
   }
   return out;
 };

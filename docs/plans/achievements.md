@@ -280,9 +280,13 @@ crown render, `npm test` green, browser smoke clean on ≥ 1 track.
       verified: a seeded pre-feature save sweeps 0/47 → 11/47 with the state-based unlocks.
 
 **Backwards-compat summary:** no VERSION bump / migration / reset (the `achievements` slice was
-always in `defaults()`; deep-merge fills `stats.runs`/`driftSecs`). State-based achievements
-retroactively unlock (sweep on the page + at finish/purchase). Run-based ones need a fresh
+always in `defaults()`; deep-merge fills `stats.runs`/`driftSecs`). Retroactively unlocked from
+the save: progression (`cleared`), DDK (`records`), economy (`owned`/`wallet`), caps, **plus the
+star milestones + `first-drift` — reconstructed from `records` (max `starsForPps(bestPPS)`), since
+the save proves the player already earned them.** Genuinely non-reconstructable (never stored):
+near misses, cones, combo-8×, unbroken drift, time-of-day, clean-sweep — these need a fresh
 qualifying race. Lifetime ladders (drift/races) start at 0 — that history was never recorded.
+The page sweep loops to a fixed point so reward income crossing a wallet tier is caught in one open.
 
 ---
 

@@ -45,11 +45,16 @@ test('retroactive sweep unlocks everything already earned by state', () => {
   // Wallet ladder (600 ≥ 500) + DDK crown (record 640 ≥ 600)
   assert.ok(unlocked.has('hoard-500'));
   assert.ok(unlocked.has('ddk-green-study'));
+  // Reconstructable from records: finished-ever + star tiers (640 PPS → 5★)
+  assert.ok(unlocked.has('first-drift'));
+  assert.ok(unlocked.has('three-star'));
+  assert.ok(unlocked.has('four-star'));
+  assert.ok(unlocked.has('five-star'));
 
-  // Run-ONLY achievements must NOT fire from a state sweep (no race happened)
-  assert.ok(!unlocked.has('five-star'));
-  assert.ok(!unlocked.has('first-drift'));
+  // Genuinely run-only (never stored: near misses, cones, combo, time) → still locked
   assert.ok(!unlocked.has('daredevil'));
+  assert.ok(!unlocked.has('glass-cannon'));
+  assert.ok(!unlocked.has('slalom-saint'));
 
   // Rewards were credited (wallet grew) and the store now records them as unlocked
   assert.ok(wallet() > before, 'rewards should be credited to the wallet');
