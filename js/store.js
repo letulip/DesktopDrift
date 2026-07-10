@@ -215,6 +215,18 @@ export const tireCollect = (trackId, id) => {
   if (!arr.includes(id)) { arr.push(id); save(); }
 };
 
+// Replace a track's collected-tire list wholesale (used by the engine's self-heal to prune
+// orphaned/duplicate ids so the count can't exceed the tile total). Persists only on change.
+export const setTires = (trackId, ids) => {
+  const st = stats();
+  if (!st.tires) st.tires = {};
+  const next = [...ids];
+  const prev = st.tires[trackId] ?? [];
+  if (prev.length !== next.length || prev.some((v, i) => v !== next[i])) {
+    st.tires[trackId] = next; save();
+  }
+};
+
 // Record a track instance (trackId, or trackId:mode later) as finished. Returns true the
 // FIRST time it's recorded (→ award the first-clear bonus), false if already cleared.
 export const markCleared = (instanceId) => {

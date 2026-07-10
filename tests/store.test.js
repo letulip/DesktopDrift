@@ -17,7 +17,7 @@ const store = installLocalStorage();
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
         wallet, addTires, tiresFor, tireCollect,
         owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared,
-        achAll, achUnlocked, achUnlock, achSetProgress } =
+        achAll, achUnlocked, achUnlock, achSetProgress, setTires } =
   await import('../js/store.js');
 
 test('defaults: garage (selected car + empty per-car looks)', () => {
@@ -229,4 +229,11 @@ test('achUnlocked: reflects only unlocked ids, not mere progress', () => {
   assert.ok(!achUnlocked().has('drift-50'));
   achUnlock('drift-50');
   assert.ok(achUnlocked().has('drift-50'));
+});
+
+test('setTires: replaces the collected-tire list wholesale (self-heal prune)', () => {
+  setTires('reconcile-track', ['t0', 't1', 't2']);
+  assert.deepEqual(tiresFor('reconcile-track'), ['t0', 't1', 't2']);
+  setTires('reconcile-track', ['t0']);                 // prune down
+  assert.deepEqual(tiresFor('reconcile-track'), ['t0']);
 });

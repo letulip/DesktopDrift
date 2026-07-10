@@ -228,7 +228,9 @@
           meta.appendChild(chip);
         }
         if (track.tires > 0) {
-          const got = tiresFor(inst).length;
+          // Clamp: the stored list can briefly hold orphaned ids (before the engine self-heal
+          // runs on next entry); never show more than the track actually has.
+          const got = Math.min(tiresFor(inst).length, track.tires);
           const chip = document.createElement('span');
           chip.className = 'track-chip tire' + (got >= track.tires ? ' is-done' : '');
           chip.textContent = '🛞 ' + got + '/' + track.tires;

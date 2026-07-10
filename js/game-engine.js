@@ -3,7 +3,7 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, recordTxn, carLook, markCleared,
+import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, setTires, recordTxn, carLook, markCleared,
          stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
@@ -17,7 +17,7 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
-import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
+import { nearestCenter, circularAdvance, instanceId, reconcileTires } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 
@@ -94,6 +94,10 @@ export const startGame = (T, opts = {}) => {
       || _prevCollected.has(i);
     S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
+  // Self-heal the stored tire list: prune it to the tiles that exist now (drops orphaned /
+  // duplicate ids from geometry or key-scheme churn, re-keys to the stable capId). Guarantees
+  // the collected count can never exceed the tile total — no more "16/12" badges.
+  setTires(INSTANCE, reconcileTires(tiresFor(INSTANCE), collectibles.filter(c => c.kind === 'tire')));
 
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
