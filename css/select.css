@@ -239,11 +239,16 @@
   transition: border-color var(--ease), background var(--ease), opacity var(--ease);
 }
 .shop-card:hover { border-color: var(--accent); }
+/* Not-yet-purchased items recede (greyer + faded) so owned + active ones clearly stand out. */
+.shop-card:not(.owned):not(.sel) { opacity: .5; filter: saturate(.7); }
+.shop-card:not(.owned):not(.sel):hover { opacity: 1; filter: none; }
 /* selected = part of the previewed look; in-cart = selected but not yet owned (will buy) */
 .shop-card.sel {
   border-color: var(--accent); background: var(--accent-tint); color: var(--accent);
 }
 .shop-card.in-cart { border-color: var(--accent-glow); box-shadow: 0 0 10px rgba(255,177,77,.2); }
+/* owned = clearly marked: a faint green edge (when not the active pick) + a green check tag */
+.shop-card.owned:not(.sel) { border-color: rgba(155,227,122,.4); }
 .shop-dot {
   width: 12px; height: 12px; border-radius: 50%;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
@@ -253,7 +258,7 @@
   color: rgba(255,206,106,.85);
   font-variant-numeric: tabular-nums;
 }
-.shop-card.owned .shop-card-tag { color: var(--accent); }
+.shop-card.owned .shop-card-tag { color: var(--stat-acc); font-size: 12px; }  /* green ✓ */
 
 /* Customization selector (modify.html): tabs show one panel at a time */
 #custom {

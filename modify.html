@@ -289,7 +289,7 @@
       el.classList.toggle('owned', own);
       el.classList.toggle('in-cart', inCart);
       tag.textContent = !item || own
-        ? (selected ? '✓' : '')
+        ? '✓'                                            // owned / free → always show the check
         : (selected && pending.neonOn ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
   };
@@ -362,7 +362,7 @@
       el.classList.toggle('owned', own);
       el.classList.toggle('in-cart', inCart);
       tag.textContent = own
-        ? (selected ? '✓' : '')
+        ? '✓'                                            // owned → always show the check
         : (selected ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
     const { total, count } = cartTotal();

@@ -147,7 +147,8 @@
       gear.href      = modifyHref(i);
       gear.title     = 'Modify';
       gear.setAttribute('aria-label', 'Modify');
-      gear.addEventListener('click', (e) => e.stopPropagation());  // don't trigger card select
+      gear.addEventListener('click', (e) => e.stopPropagation());      // don't trigger card select
+      gear.addEventListener('pointerdown', (e) => e.stopPropagation()); // don't start a carousel drag (which captures the pointer + eats the link click)
       card.appendChild(gear);
     }
 
