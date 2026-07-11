@@ -25,11 +25,10 @@ export const DDK_PPS = 600;
 export const isDDK   = (pps) => (pps || 0) >= DDK_PPS;
 
 // ── Car ownership gate (see docs/plans/cars.md) ───────────────────────────────
-// Future model: Sandbox is a free test-drive of every car; Time Attack (races) requires
-// OWNING the car. The wiring exists now (store.carOwned + a gate in select.html) but the
-// gate is OFF during development — every car is drivable everywhere. Flip this to true when
-// car pricing ships (and populate ownedCars on purchase).
-export const CAR_GATING_ENABLED = false;
+// Sandbox is a free test-drive of every car; Time Attack / Zen (races) require OWNING the
+// car — bought in the garage carousel. The two starter cars are always owned (free).
+export const CAR_GATING_ENABLED = true;
+export const FREE_CARS = ['bismark', 'panda'];   // starter cars — never gated
 
 // ── Shop purchase logic (see ROADMAP Phase 2.5 + docs/plans/shop.md) ───────────
 // Pure decision only — no state, no persistence. js/store.js applies the result to

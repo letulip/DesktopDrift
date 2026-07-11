@@ -97,6 +97,26 @@
 }
 .car-card:hover { border-color: var(--accent); }
 .car-card.sel { border-color: var(--accent); background: #302416; }   /* opaque warm tint for the active card */
+
+/* Locked car (paid + not owned, in a gated mode): a light overlay + lock + price. Taps still
+   centre the card; buying is done with the main Race/Buy button. */
+.car-lock {
+  position: absolute; inset: 0; z-index: 3;
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  border-radius: var(--r-card);
+  background: rgba(12,10,9,.42);
+  -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px);
+  pointer-events: none;
+}
+.car-card.is-locked .car-lock { display: flex; }
+.car-lock-ico { font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.55)); }
+.car-lock-price {
+  font: 800 14px var(--font-display); letter-spacing: .3px;
+  color: var(--accent-gold);
+  background: rgba(0,0,0,.45); padding: 3px 11px; border-radius: 999px;
+}
+#raceBtn.cant-afford { opacity: .5; }   /* can't afford the centred car — price stays visible */
 .car-card canvas {
   display: block;
   width: 100%; max-width: 260px;

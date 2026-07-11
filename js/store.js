@@ -2,7 +2,7 @@
 // All reads/writes go through the getters here + save().
 //
 // Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
-import { buy, CAR_GATING_ENABLED } from './economy.js';
+import { buy, CAR_GATING_ENABLED, FREE_CARS } from './economy.js';
 import { defaultNeon } from './neon.js';
 //
 // ── Schema evolution (never wipes player data) ────────────────────────────────
@@ -265,21 +265,31 @@ export const grant = (id) => {
   if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
 };
 
-// ── Car ownership (Time Attack) — hook only; gate is OFF for now ───────────────
-// Sandbox is a free test-drive of every car; races will require owning the car. Until
-// pricing ships (economy.CAR_GATING_ENABLED === false) carOwned() returns true for every
-// car, so nothing is blocked. See docs/plans/cars.md.
+// ── Car ownership (races) ─────────────────────────────────────────────────────
+// Sandbox is a free test-drive of every car; Time Attack / Zen require owning the car,
+// bought in the garage carousel. The FREE_CARS starters are always owned. See docs/plans/cars.md.
 
-// Account-wide list of purchased car ids (empty until pricing ships).
+// Account-wide list of purchased car ids.
 export const ownedCars = () => { _ensure(); return _s.ownedCars; };
 
-// True if the player may race this car. Always true while gating is off.
-export const carOwned = (id) => !CAR_GATING_ENABLED || ownedCars().includes(id);
+// True if the player may race this car: gating off, a free starter, or purchased.
+export const carOwned = (id) => !CAR_GATING_ENABLED || FREE_CARS.includes(id) || ownedCars().includes(id);
 
-// Record a car id as owned. No-op if already present. Persists. (For the future car shop.)
+// Record a car id as owned. No-op if already present. Persists.
 export const grantCar = (id) => {
   _ensure();
   if (!_s.ownedCars.includes(id)) { _s.ownedCars.push(id); save(); }
+};
+
+// Buy a car: deduct its price + grant it, only if affordable and not already owned.
+// Returns { ok:true } | { ok:false, reason:'owned'|'broke' }.
+export const buyCar = (id, price) => {
+  _ensure();
+  if (carOwned(id)) return { ok: false, reason: 'owned' };
+  if (_s.wallet < price) return { ok: false, reason: 'broke' };
+  addTires(-price, 'Bought car: ' + id);
+  grantCar(id);
+  return { ok: true };
 };
 
 // The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car

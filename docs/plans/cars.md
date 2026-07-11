@@ -87,6 +87,20 @@ real dealer test-drive. **Time Attack (races) will require owning the car** (pai
       Race button calls the gate (always passes now). Every car (incl. legacy) has a stable `id`.
       Flip the flag + populate `ownedCars` on purchase when car pricing ships. Unit-tested.
 
+## Car shop (gate ON)
+- **Prices** live in `car-registry.js` (`price:` per car) → generated into `cars-data.js`. Legacy
+  Bismark/Panda have no price = free starters (`economy.FREE_CARS`). Paid: Plum 300 · Catana 350 ·
+  Bavarian 400 · Stallion 450 · Toretto 550 · Smasher 650.
+- **Gate ON** (`CAR_GATING_ENABLED = true`): Sandbox = free test-drive of any car; Time Attack / Zen
+  require owning it. `carOwned(id)` = gating-off ‖ free starter ‖ purchased. `store.buyCar(id, price)`
+  deducts + `grantCar`.
+- **Buy in the carousel** (`select.html`): a locked (paid + unowned) car gets a light overlay + 🔒 +
+  price; the main button becomes "🔒 Buy 🛞N" for the centred locked car (dim when unaffordable).
+  Buying drops the overlay, flips the button to Race, and fires an achievement toast.
+- **Achievements**: `new-wheels` (first car, 25), `three-car-garage` (own 3, 40), hidden `full-garage`
+  (own all paid cars, 150). Checks read `ctx.ownedCars` + `content.cars` (paid ids); wired in
+  `ach-sync.js` (via pure `cars-data.js`) and the engine. Unit-tested.
+
 ## Guardrails
 - **Synchronous cars** — no runtime fetch; generated data is committed and imported statically.
 - **Legacy untouched** — Bismark/Panda stay inline; the generator only owns new cars.

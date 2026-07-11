@@ -17,38 +17,38 @@ export const CAR_REGISTRY = [
   {
     id: 'plum', name: 'Plum', svg: 'plum.svg',
     body: '#8e4585', stroke: '#222222', flip: true, len: 78,
-    ratings: { handling: 7, accel: 7, speed: 7 },
+    ratings: { handling: 7, accel: 7, speed: 7 }, price: 300,
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
   {
     id: 'bavarian', name: 'Bavarian', svg: 'bavarian.svg',
     body: '#4a4a4a', stroke: '#222222', flip: true, len: 76,
-    ratings: { handling: 8, accel: 6, speed: 7 },
+    ratings: { handling: 8, accel: 6, speed: 7 }, price: 400,
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
   {
     id: 'toretto', name: 'Toretto', svg: 'toretto.svg',
     body: '#c62828', stroke: '#222222', flip: true, len: 74,
-    ratings: { handling: 9, accel: 6, speed: 6 },
+    ratings: { handling: 9, accel: 6, speed: 6 }, price: 550,
     // "ideal for holding a drift" — a touch less self-align + more drift steer.
     feel: { steerSmooth: 6, selfAlign: 0.82, grip: 0.985, driftSteerBoost: 1.3 },
   },
   {
     id: 'horse', name: 'Stallion', svg: 'horse.svg',   // id/file stay 'horse' (internal); display name is Stallion
     body: '#6b4226', stroke: '#222222', flip: true, len: 80,   // chocolate, fast muscle car
-    ratings: { handling: 5, accel: 8, speed: 8 },
+    ratings: { handling: 5, accel: 8, speed: 8 }, price: 450,
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
   {
     id: 'smasher', name: 'Smasher', svg: 'smasher.svg',
     body: '#BADA55', stroke: '#222222', flip: true, len: 82,   // lime "badass" — a top-speed beast
-    ratings: { handling: 4, accel: 9, speed: 9 },
+    ratings: { handling: 4, accel: 9, speed: 9 }, price: 650,
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
   {
     id: 'catana', name: 'Catana', svg: 'catana.svg',
     body: '#2e5a9c', stroke: '#222222', flip: true, len: 81,   // Mark II-inspired legend — metallic blue
-    ratings: { handling: 6, accel: 6, speed: 6 },
+    ratings: { handling: 6, accel: 6, speed: 6 }, price: 350,
     // a drift legend "on the edge" — tail-happier feel
     feel: { steerSmooth: 6, selfAlign: 0.82, grip: 0.985, driftSteerBoost: 1.3 },
   },

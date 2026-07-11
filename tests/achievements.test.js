@@ -37,6 +37,7 @@ const CONTENT = {
   forwardTrackIds: ['green-study', 'steel-kitchen', 'workbench'],
   shopCategories:  ['finish', 'trail'],
   catalogById:     { 'finish-matte': 'finish', 'trail-mint': 'trail' },
+  cars:            ['plum', 'toretto', 'smasher'],
   names:           { 'green-study': 'Midnight Deadline', 'green-study:rev': 'Midnight Deadline (reversed)' },
 };
 
@@ -234,7 +235,17 @@ test('evaluate returns name/icon/reward for the toast', () => {
 // The catalog's checks expect the normalised ctx evaluate() builds internally; for the
 // "no throw" integrity test we mirror that minimal normalisation.
 function _normalizeForCheck(c) {
-  return { run: c.run ?? null, wallet: c.wallet ?? 0, owned: c.owned ?? [], cleared: c.cleared ?? [],
-    records: c.records ?? {}, caps: c.caps ?? {}, lifetime: c.lifetime ?? { runs: 0, driftSecs: 0 },
-    content: c.content };
+  return { run: c.run ?? null, wallet: c.wallet ?? 0, owned: c.owned ?? [], ownedCars: c.ownedCars ?? [],
+    cleared: c.cleared ?? [], records: c.records ?? {}, caps: c.caps ?? {},
+    lifetime: c.lifetime ?? { runs: 0, driftSecs: 0 },
+    content: { ...c.content, cars: c.content?.cars ?? [] } };
 }
+
+test('car achievements fire from ownedCars', () => {
+  assert.ok(!firing({}).has('new-wheels'));                                    // none owned
+  assert.ok(firing({ ownedCars: ['plum'] }).has('new-wheels'));               // first car
+  assert.ok(!firing({ ownedCars: ['plum', 'toretto'] }).has('three-car-garage'));
+  assert.ok(firing({ ownedCars: ['plum', 'toretto', 'smasher'] }).has('three-car-garage'));
+  assert.ok(!firing({ ownedCars: ['plum', 'toretto'] }).has('full-garage'));  // not all
+  assert.ok(firing({ ownedCars: ['plum', 'toretto', 'smasher'] }).has('full-garage'));  // all 3
+});

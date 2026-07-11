@@ -86,6 +86,7 @@ export const buildCarData = (entry, svgText) => {
     id:     entry.id,
     name:   entry.name,
     len:    entry.len ?? 78,
+    ...(entry.price ? { price: entry.price } : {}),   // tire-coin price (omitted = free)
     body:   entry.body,
     stroke: entry.stroke ?? g.stroke ?? '#222222',
     vw:     g.vw,
@@ -102,7 +103,7 @@ export const buildCarData = (entry, svgText) => {
 // Pretty-print one car as source (stable key order; compact detail rows).
 const emitCar = (c) => {
   const parts = [
-    `    id: ${JSON.stringify(c.id)}, name: ${JSON.stringify(c.name)}, len: ${c.len},`,
+    `    id: ${JSON.stringify(c.id)}, name: ${JSON.stringify(c.name)}, len: ${c.len},${c.price ? ` price: ${c.price},` : ''}`,
     `    body: ${JSON.stringify(c.body)}, stroke: ${JSON.stringify(c.stroke)}, vw: ${c.vw}, vh: ${c.vh}, flip: ${c.flip},`,
     `    drive: ${JSON.stringify(c.drive)},`,
     `    details: [`,

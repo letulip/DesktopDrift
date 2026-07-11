@@ -4,7 +4,7 @@ import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, setTires, recordTxn, carLook, markCleared,
-         stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
+         stats, wallet, owned, ownedCars, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
 import { defaultNeon } from './neon.js';
@@ -288,10 +288,10 @@ export const startGame = (T, opts = {}) => {
         tireTotalOnTrack: collectibles.filter(c => c.kind === 'tire').length,
         capsThisRun: runCaps, hour: new Date().getHours(),
       },
-      wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
+      wallet: wallet(), owned: owned(), ownedCars: ownedCars(), cleared: st.cleared ?? [],
       records: flattenRecords(records()), caps: st.caps ?? {},
       lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
-      content: buildContent(TRACKS, CATALOG),
+      content: buildContent(TRACKS, CATALOG, CARS),
     };
     const res = evaluate(ctx, achUnlocked());
     for (const p of res.progress) achSetProgress(p.id, p.value);

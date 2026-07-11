@@ -50,11 +50,12 @@
 
 <script type="module">
   import { CARS } from './js/config.js';
-  import { garage, save, wallet, carLook, carOwned } from './js/store.js';
+  import { garage, save, wallet, carLook, carOwned, buyCar } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
-  import { flushAchievementToasts } from './js/ach-toast.js';
+  import { flushAchievementToasts, showAchievementToasts } from './js/ach-toast.js';
+  import { syncStateAchievements } from './js/ach-sync.js';
   import { speedRating, handlingRating, accRating } from './js/car-stats.js';
 
   const params    = new URLSearchParams(location.search);
@@ -67,6 +68,8 @@
   // Sandbox is a free test-drive: every car is drawn STOCK (no saved paint/neon/finish) and
   // there's no Modify/tuning. Customisation belongs to Time Attack.
   const isSandbox = mode === 'sandbox';
+  // Races (Time Attack / Zen) require owning the car; sandbox lets you drive any car free.
+  const gated = !isSandbox;
 
   // Back button leads to track list (if we came from there) or to the main menu
   document.getElementById('backLink').href = isZen ? 'zen.html' : trackMeta ? 'tracks.html' : 'index.html';
@@ -164,6 +167,14 @@
     nm.textContent = M.name;
     card.appendChild(nm);
 
+    // Locked overlay for a paid car you don't own yet (races only; shown via .is-locked).
+    if (gated && M.price) {
+      const lock = document.createElement('div');
+      lock.className = 'car-lock';
+      lock.innerHTML = `<span class="car-lock-ico">🔒</span><span class="car-lock-price">🛞${M.price}</span>`;
+      card.appendChild(lock);
+    }
+
     card.addEventListener('click', () => { if (!moved) setActive(i); });   // tap a neighbour to select it
     carsEl.appendChild(card);
     return { card, cvs };
@@ -222,10 +233,27 @@
       el.style.filter = abs === 0 ? 'none' : `brightness(${1 - abs * 0.18})`;
       el.style.pointerEvents = abs <= base ? 'auto' : 'none';
       el.classList.toggle('sel', pos === 0 && !dragging);
+      el.classList.toggle('is-locked', gated && !!CARS[i].price && !carOwned(CARS[i].id));
     });
     dots.forEach((d, j) => d.classList.toggle('is-on', j === sel));
     navPrev.classList.toggle('is-off', sel === 0);
     navNext.classList.toggle('is-off', sel === CARS.length - 1);
+    updateCTA();
+  };
+
+  // The main button is "Race!" for an owned car, or "Buy 🛞N" when the centred car is locked.
+  const raceBtn = document.getElementById('raceBtn');
+  const walletEl = document.getElementById('wallet-amount');
+  const carLocked = (i) => gated && !!CARS[i].price && !carOwned(CARS[i].id);
+  const updateCTA = () => {
+    if (carLocked(sel)) {
+      const price = CARS[sel].price;
+      raceBtn.textContent = `🔒 Buy 🛞${price}`;
+      raceBtn.classList.toggle('cant-afford', wallet() < price);
+    } else {
+      raceBtn.textContent = isZen ? 'Start Zen' : 'Race! 🏁';
+      raceBtn.classList.remove('cant-afford');
+    }
   };
 
   const setActive = (i) => {
@@ -266,11 +294,17 @@
   });
   addEventListener('resize', layout);
 
-  // ── Race button ──────────────────────────────────────────────────────────────
-  document.getElementById('raceBtn').addEventListener('click', () => {
-    // Time Attack requires owning the car; sandbox is a free test-drive of any car. The
-    // ownership gate is OFF during dev (carOwned() is always true) — see docs/plans/cars.md.
-    if (trackMeta && !isZen && !carOwned(CARS[sel].id)) return;   // future: open the car shop
+  // ── Race / Buy button ─────────────────────────────────────────────────────────
+  raceBtn.addEventListener('click', () => {
+    // Locked (paid, unowned, gated mode) → buy it here instead of racing.
+    if (carLocked(sel)) {
+      const car = CARS[sel];
+      if (!buyCar(car.id, car.price).ok) { updateCTA(); return; }   // can't afford → leave the price shown
+      showAchievementToasts(syncStateAchievements());               // celebrate New Wheels / Full Garage
+      walletEl.textContent = wallet();                              // reflect price paid − any reward
+      layout();                                                     // drop the lock overlay, flip the CTA to Race
+      return;
+    }
     garage().carIndex = sel; save();
     const dirParam = reversed ? '&dir=rev' : '';
     if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
