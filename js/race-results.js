@@ -37,7 +37,7 @@ export const createRaceResults = () => {
   // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
   // pps: points per second (race efficiency)
-  // tires: { pickup, firstClear, finish } — tire coins earned this race (optional)
+  // tires: { pickup, cap, firstClear, finish } — tire coins earned this race (optional)
   // ddk: true when pps ≥ 600 → the crown above the 5 stars
   // unlocked: [{ id, name, icon, reward }] — achievements unlocked this race (optional)
   const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked }) => {
@@ -56,10 +56,11 @@ export const createRaceResults = () => {
     `;
 
     // Tire earnings breakdown (hidden when nothing was earned, e.g. Zen).
-    const t = tires || { pickup: 0, firstClear: 0, finish: 0 };
-    const tireTotal = t.pickup + t.firstClear + t.finish;
+    const t = tires || { pickup: 0, cap: 0, firstClear: 0, finish: 0 };
+    const tireTotal = t.pickup + (t.cap || 0) + t.firstClear + t.finish;
     const tireParts = [];
     if (t.pickup)     tireParts.push(`pickups +${t.pickup}`);
+    if (t.cap)        tireParts.push(`cola cap +${t.cap}`);
     if (t.firstClear) tireParts.push(`first clear +${t.firstClear}`);
     if (t.finish)     tireParts.push(`finish +${t.finish}`);
     overlay.querySelector('#rr-tires').innerHTML = tireTotal > 0

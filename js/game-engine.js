@@ -555,7 +555,7 @@ export const startGame = (T, opts = {}) => {
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
             ddk: isDDK(pps), unlocked: unlockedNow,
-            tires: { pickup: tiresEarned, firstClear: firstClearBonus, finish: finishBonus } });
+            tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, firstClear: firstClearBonus, finish: finishBonus } });
           return;
         }
 

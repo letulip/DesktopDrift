@@ -241,24 +241,30 @@
     updateCTA();
   };
 
-  // The main button is "Race!" for an owned car, or "Buy 🛞N" when the centred car is locked.
+  // The main button is "Race!" for an owned car, or a two-tap "Buy → Confirm?" when the
+  // centred car is locked (so a purchase is never a single accidental tap).
   const raceBtn = document.getElementById('raceBtn');
   const walletEl = document.getElementById('wallet-amount');
   const carLocked = (i) => gated && !!CARS[i].price && !carOwned(CARS[i].id);
+  let buyArmed = false, armTimer = null;
+  const disarm = () => { buyArmed = false; clearTimeout(armTimer); };
   const updateCTA = () => {
     if (carLocked(sel)) {
       const price = CARS[sel].price;
-      raceBtn.textContent = `🔒 Buy 🛞${price}`;
-      raceBtn.classList.toggle('cant-afford', wallet() < price);
+      const afford = wallet() >= price;
+      raceBtn.textContent = (buyArmed && afford) ? `Confirm buy? 🛞${price}` : `🔒 Buy 🛞${price}`;
+      raceBtn.classList.toggle('cant-afford', !afford);
+      raceBtn.classList.toggle('confirm', buyArmed && afford);
     } else {
       raceBtn.textContent = isZen ? 'Start Zen' : 'Race! 🏁';
-      raceBtn.classList.remove('cant-afford');
+      raceBtn.classList.remove('cant-afford', 'confirm');
     }
   };
 
   const setActive = (i) => {
     i = Math.max(0, Math.min(i, CARS.length - 1));
     dragDX = 0;
+    disarm();                              // switching cars cancels a pending buy-confirm
     if (i === sel) { layout(); return; }
     sel = i;
     garage().carIndex = i; save();
@@ -296,10 +302,17 @@
 
   // ── Race / Buy button ─────────────────────────────────────────────────────────
   raceBtn.addEventListener('click', () => {
-    // Locked (paid, unowned, gated mode) → buy it here instead of racing.
+    // Locked (paid, unowned, gated mode) → buy it here instead of racing (two-tap confirm).
     if (carLocked(sel)) {
       const car = CARS[sel];
-      if (!buyCar(car.id, car.price).ok) { updateCTA(); return; }   // can't afford → leave the price shown
+      if (wallet() < car.price) { updateCTA(); return; }            // can't afford → nothing (price stays)
+      if (!buyArmed) {                                              // 1st tap → arm "Confirm buy?"
+        buyArmed = true; updateCTA();
+        armTimer = setTimeout(() => { buyArmed = false; updateCTA(); }, 3000);   // auto-cancel
+        return;
+      }
+      disarm();                                                     // 2nd tap → commit
+      if (!buyCar(car.id, car.price).ok) { updateCTA(); return; }
       showAchievementToasts(syncStateAchievements());               // celebrate New Wheels / Full Garage
       walletEl.textContent = wallet();                              // reflect price paid − any reward
       layout();                                                     // drop the lock overlay, flip the CTA to Race
