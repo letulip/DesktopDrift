@@ -72,8 +72,13 @@
   gap: 16px;
 }
 #track-cards::-webkit-scrollbar { display: none; }
-@media (max-width: 880px) { #track-cards { grid-template-columns: repeat(2, minmax(0, 280px)); } }
-@media (max-width: 600px) { #track-cards { grid-template-columns: minmax(0, 340px); } }
+@media (max-width: 880px) {
+  #track-cards { grid-template-columns: repeat(2, minmax(0, 280px)); }
+}
+
+@media (max-width: 600px) {
+  #track-cards { grid-template-columns: 1fr; }
+}
 
 /* ── Track card (fills its grid column) ──────────────────────────────────── */
 .track-card {
