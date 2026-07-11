@@ -70,7 +70,8 @@
   box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 30px 14px 14px; border-radius: var(--r-card);
-  background: var(--surface); border: 2px solid var(--surface-line);
+  background: #221f1d;         /* OPAQUE so overlapping cards don't show through each other */
+  border: 2px solid var(--surface-line);
   cursor: pointer;
   transform-origin: center center;
   transition: transform .38s cubic-bezier(.2, .8, .2, 1), opacity .3s var(--ease),
@@ -95,7 +96,7 @@
   transform: translateY(-2px);
 }
 .car-card:hover { border-color: var(--accent); }
-.car-card.sel { border-color: var(--accent); background: var(--accent-tint); }
+.car-card.sel { border-color: var(--accent); background: #302416; }   /* opaque warm tint for the active card */
 .car-card canvas {
   display: block;
   width: 100%; max-width: 260px;
