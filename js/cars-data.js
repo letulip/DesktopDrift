@@ -23,7 +23,7 @@ export const GENERATED_CARS = [
   {
     id: "bavarian", name: "Bavarian", len: 76,
     body: "#4a4a4a", stroke: "#222222", vw: 422, vh: 157, flip: true,
-    drive: {"maxSpeed":457,"thrust":450,"steer":4,"lowSpeedTurn":0.4,"steerSmooth":6,"selfAlign":0.85,"grip":0.98,"driftSteerBoost":1.25},
+    drive: {"maxSpeed":457,"thrust":540,"steer":4,"lowSpeedTurn":0.4,"steerSmooth":6,"selfAlign":0.85,"grip":0.98,"driftSteerBoost":1.25},
     details: [
       { c: "#222222", d: "M13.0039 75L11.0039 77H8.00391L10.0039 57L11.0039 53.5L13.0039 54L14.0039 55.5L13.0039 75Z" },
       { c: "#222222", d: "M13.0039 81.5426L11.0039 79.5H8.00391L10.0039 99.9255L11.0039 103.5L13.0039 102.989L14.0039 101.457L13.0039 81.5426Z" },
