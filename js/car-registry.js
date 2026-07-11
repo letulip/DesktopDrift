@@ -42,7 +42,7 @@ export const CAR_REGISTRY = [
   {
     id: 'smasher', name: 'Smasher', svg: 'smasher.svg',
     body: '#BADA55', stroke: '#222222', flip: true, len: 82,   // lime "badass" — a top-speed beast
-    ratings: { handling: 3, accel: 9, speed: 9 },
+    ratings: { handling: 4, accel: 9, speed: 9 },
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
 ];
