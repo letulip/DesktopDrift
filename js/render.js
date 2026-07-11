@@ -2,6 +2,7 @@ import { CARS, TABLE } from './config.js';
 import { car, S } from './state.js';
 import { wallet } from './store.js';
 import { paintBody, hexToRgbStr } from './finish.js';
+import { drawNeon } from './neon-draw.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -71,9 +72,10 @@ let MINI = null;
 // Kept separately so we never mutate the shared TABLE singleton from config.js.
 let _TABLE = null;
 
-// Session-specific car paint: garage body colour and neon colour.
+// Session-specific car paint: garage body colour and neon config.
 // Written by setCarPaint() (called from game-engine after carModel is resolved),
 // read by draw() — never written back to the CARS descriptor.
+// _carNeon is a neon config object ({ layout, anim, colors, speed }) or null (off).
 let _carBody = null;
 let _carNeon = null;
 let _carFinish = null;          // equipped paint finish (matte/metallic/pearl/chrome) or null
@@ -595,31 +597,11 @@ export const draw = (speed) => {
       ctx.restore();
     }
   }
-  // neon underglow — drawn before the body so it sits underneath the car.
-  // Three segments: nose→front axle | between axles | rear axle→tail
+  // neon underglow — 6 perimeter zones, drawn before the body so it sits underneath the car.
+  // All colour/animation logic is the pure resolver (neon.js) via the shared drawNeon helper.
   if (_carNeon) {
-    ctx.save();
-    ctx.shadowColor = _carNeon;
-    ctx.shadowBlur  = 22;
-    ctx.globalAlpha = 0.65;
-    ctx.fillStyle   = _carNeon;
-
-    const hl     = M.len / 2;
-    const carWid = M.wid ?? (M.vh * M.len / M.vw); // path-based cars don't have M.wid
-    const gH     = carWid * 0.70;
-    const ghy    = -gH / 2;
-    // segments: 3% nose | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% tail
-    const s1 = M.len * 0.03, s2 = M.len * 0.58, s3 = M.len * 0.08;
-    const gp = M.len * 0.155;  // gap width per wheel
-
-    const ei = M.len * 0.02;  // inset from tips — block doesn't reach the car edge
-    ctx.beginPath();
-    ctx.rect(hl - s1,           ghy, s1 - ei, gH);  // nose (inset from tip)
-    ctx.rect(hl - s1 - gp - s2, ghy, s2,      gH);  // between axles (main segment)
-    ctx.rect(-hl + ei,          ghy, s3 - ei,  gH);  // tail (inset from tip)
-    ctx.fill();
-
-    ctx.restore();
+    const hw = (M.wid ?? (M.vh * M.len / M.vw)) / 2; // path-based cars don't have M.wid
+    drawNeon(ctx, M.len / 2, hw, _carNeon, performance.now() / 1000);
   }
   drawCar(M);
   ctx.restore();

@@ -82,13 +82,17 @@
 
   // Draw one car card with its per-car equipped look, without clobbering the factory
   // default body colour on the shared CARS descriptor.
-  const drawCard = (M, i) => {
+  const drawCard = (M, i, phase = 0) => {
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
-    drawCarPreview(cards[i].cvs, M, look.neonColor || null, look.finish || null);
+    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null, null, phase);
     M.body = orig;
   };
+
+  // A car's neon underglow animates when its config has a non-static animation
+  // (pulse / rainbow / flow). Legacy string colours and solid/none never animate.
+  const neonAnimated = (i) => { const n = carLook(i).neon; return !!(n && n.anim && n.anim !== 'none'); };
 
   // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
   // Scale is intentionally above current values — headroom for future upgrades.
@@ -186,6 +190,19 @@
 
   // ── Initial render — each car shows its own per-car look ──────────────────────
   CARS.forEach((M, i) => drawCard(M, i));
+
+  // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow
+  // move on the garage cards just like in the modify preview and in-race. Cards
+  // without an animated neon are drawn once above; if none animate, no loop runs.
+  const animatedCards = CARS.map((_, i) => i).filter(neonAnimated);
+  if (animatedCards.length) {
+    const tick = () => {
+      const phase = performance.now() / 1000;
+      for (const i of animatedCards) drawCard(CARS[i], i, phase);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
 
   // Celebrate anything a shop purchase just unlocked (stashed on Apply in modify.html).
   flushAchievementToasts();
