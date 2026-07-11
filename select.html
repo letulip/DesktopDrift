@@ -84,7 +84,8 @@
   // ── Selected car (each car keeps its OWN look — see carLook) ──────────────────
   const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  let sel = g.carIndex;
+  let sel = g.carIndex;                 // the active (centred) car
+  let downX = null, moved = false;      // pointer-drag state for swiping the carousel
 
   // Draw one car card with its per-car equipped look, without clobbering the factory
   // default body colour on the shared CARS descriptor. In sandbox the car is STOCK.
@@ -162,54 +163,76 @@
     nm.textContent = M.name;
     card.appendChild(nm);
 
-    card.addEventListener('click', () => centerCard(i, true));   // tapping a peeking card centres it
+    card.addEventListener('click', () => { if (!moved) setActive(i); });   // tap a neighbour to select it
     carsEl.appendChild(card);
     return { card, cvs };
   });
 
-  // ── Carousel: the car centred in the strip is the selected car ────────────────
+  // ── Coverflow carousel: the active (centred) car is the selected car ──────────
   const dotsEl = document.getElementById('car-dots');
   const dots = CARS.map((_, i) => {
     const d = document.createElement('button');
     d.type = 'button';
     d.className = 'car-dot' + (i === sel ? ' is-on' : '');
     d.setAttribute('aria-label', `Car ${i + 1}`);
-    d.addEventListener('click', () => centerCard(i, true));
+    d.addEventListener('click', () => setActive(i));
     dotsEl.appendChild(d);
     return d;
   });
 
-  // Bring a car to the centre of the strip (smooth on tap, instant on first load).
-  const centerCard = (i, smooth) =>
-    cards[i].card.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
+  // Neighbours shown per side: 2 on desktop (5 cards), 1 on mobile (3).
+  const mq = matchMedia('(max-width: 560px)');
+  const sideCount = () => (mq.matches ? 1 : 2);
 
-  const setSel = (i) => {
+  // Place every card by its distance from the active index: active = big + centred,
+  // neighbours shrink + fade + sit behind, far cards hidden. Called on select + resize.
+  const layout = () => {
+    const side = sideCount();
+    const cardW = cards[0].card.offsetWidth || 260;
+    const step  = cardW * 0.6;                                // adjacent card centres — ~40% overlap
+    cards.forEach((c, i) => {
+      const pos  = i - sel;                                   // 0 = centre, ±1 neighbour, …
+      const abs  = Math.abs(pos);
+      const show = abs <= side;
+      const scale = Math.max(0.5, 1 - abs * 0.16);            // shrink neighbours
+      const el = c.card;
+      el.style.transform = `translate(-50%, -50%) translateX(${pos * step}px) scale(${scale})`;
+      el.style.zIndex = String(100 - abs);                    // active on top, neighbours behind
+      el.style.opacity = show ? '1' : '0';
+      el.style.filter = abs === 0 ? 'none' : `brightness(${1 - abs * 0.18})`;
+      el.style.pointerEvents = show ? 'auto' : 'none';
+      el.classList.toggle('sel', pos === 0);
+    });
+    dots.forEach((d, j) => d.classList.toggle('is-on', j === sel));
+  };
+
+  const setActive = (i) => {
+    i = Math.max(0, Math.min(i, CARS.length - 1));
     if (i === sel) return;
     sel = i;
-    cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
-    dots.forEach((d, j) => d.classList.toggle('is-on', j === i));
     garage().carIndex = i; save();
+    layout();
   };
 
-  // The card whose centre is nearest the strip's centre (viewport coords → robust to padding).
-  const centeredIndex = () => {
-    const cr = carsEl.getBoundingClientRect();
-    const mid = cr.left + cr.width / 2;
-    let best = sel, bestDist = Infinity;
-    cards.forEach((c, i) => {
-      const r = c.card.getBoundingClientRect();
-      const dist = Math.abs((r.left + r.width / 2) - mid);
-      if (dist < bestDist) { bestDist = dist; best = i; }
-    });
-    return best;
+  // Swipe / drag horizontally to step through cars; a small move still counts as a tap.
+  carsEl.addEventListener('pointerdown', (e) => { downX = e.clientX; moved = false; });
+  carsEl.addEventListener('pointermove', (e) => {
+    if (downX != null && Math.abs(e.clientX - downX) > 8) moved = true;
+  });
+  const endDrag = (e) => {
+    if (downX == null) return;
+    const dx = e.clientX - downX; downX = null;
+    if (Math.abs(dx) > 40) setActive(sel + (dx < 0 ? 1 : -1));   // swipe left → next car
   };
+  carsEl.addEventListener('pointerup', endDrag);
+  carsEl.addEventListener('pointercancel', () => { downX = null; });
 
-  // Selection follows the scroll: after a swipe settles, the centred car wins.
-  let scrollT = null;
-  carsEl.addEventListener('scroll', () => {
-    clearTimeout(scrollT);
-    scrollT = setTimeout(() => setSel(centeredIndex()), 90);
-  }, { passive: true });
+  // Arrow keys + breakpoint/resize re-layout (desktop 5 ↔ mobile 3).
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft')  setActive(sel - 1);
+    if (e.key === 'ArrowRight') setActive(sel + 1);
+  });
+  addEventListener('resize', layout);
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
@@ -224,7 +247,7 @@
 
   // ── Initial render — each car shows its own per-car look ──────────────────────
   CARS.forEach((M, i) => drawCard(M, i));
-  centerCard(sel, false);   // scroll the saved car to the centre without animation
+  layout();   // position the coverflow around the saved car
 
   // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow
   // move on the garage cards just like in the modify preview and in-race. Cards

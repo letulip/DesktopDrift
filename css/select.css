@@ -20,21 +20,19 @@
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 #garage h2 { margin: 0; font: 600 16px var(--font-body); opacity: .6; }
-/* Horizontal snap carousel: one car centred, neighbours peeking; swipe/drag to browse. */
+/* Coverflow carousel: the active car is big + centred, neighbours shrink back behind it.
+   Cards are absolutely positioned; layout() in select.html sets each card's transform by its
+   distance from the active index. Desktop shows ±2 (5 cards), mobile ±1 (3). Swipe / tap a
+   neighbour / dots / arrow keys to change the active car. */
 #cars {
-  --card-w: min(78vw, 300px);
+  --card-w: min(300px, 82vw);
   position: relative;
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  max-width: 100%;
-  /* side padding lets the first and last card snap to the centre */
-  padding: 4px calc(50% - var(--card-w) / 2);
+  width: 100%;
+  height: 340px;
+  overflow: hidden;                 /* clip the far, faded cards */
+  touch-action: pan-y;              /* let the page scroll vertically; we handle horizontal */
+  user-select: none; -webkit-user-select: none;
 }
-#cars::-webkit-scrollbar { display: none; }
 
 /* Carousel position dots (below the strip) */
 .car-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
@@ -47,15 +45,19 @@
 
 /* ── Car cards ──────────────────────────────────────────────────────────── */
 .car-card {
-  position: relative;          /* anchor the modify (gear) button */
-  flex: 0 0 var(--card-w);     /* fixed-width carousel item */
-  scroll-snap-align: center;
+  position: absolute;          /* coverflow item — placed by layout() */
+  top: 50%; left: 50%;         /* centred; JS translate(-50%,-50%) + offset + scale */
+  width: var(--card-w);
   box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 14px; border-radius: var(--r-card);
+  padding: 30px 14px 14px; border-radius: var(--r-card);
   background: var(--surface); border: 2px solid var(--surface-line);
-  cursor: pointer; transition: border-color var(--ease), background var(--ease);
-  padding-block-start: 30px;
+  cursor: pointer;
+  transform-origin: center center;
+  transition: transform .38s cubic-bezier(.2, .8, .2, 1), opacity .3s var(--ease),
+              filter .3s var(--ease), border-color var(--ease), background var(--ease);
+  will-change: transform, opacity;
+  /* transform / z-index / opacity / filter are set per-card by layout() */
 }
 
 /* Modify (gear) button — top-right of each car card. The icon is icons/settings.svg
