@@ -45,4 +45,11 @@ export const CAR_REGISTRY = [
     ratings: { handling: 4, accel: 9, speed: 9 },
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
+  {
+    id: 'catana', name: 'Catana', svg: 'catana.svg',
+    body: '#2e5a9c', stroke: '#222222', flip: true, len: 81,   // Mark II-inspired legend — metallic blue
+    ratings: { handling: 6, accel: 6, speed: 6 },
+    // a drift legend "on the edge" — tail-happier feel
+    feel: { steerSmooth: 6, selfAlign: 0.82, grip: 0.985, driftSteerBoost: 1.3 },
+  },
 ];
