@@ -51,3 +51,19 @@ test('buildCarData derives 7/7/7 drive + carries registry identity/feel', () => 
   assert.equal(car.drive.grip, 0.98);        // feel override survives
   assert.equal(car.lines, undefined);        // no panel lines → field omitted
 });
+
+test('rect / circle / ellipse fills become details (Figma exports lights as these)', () => {
+  const svg = '<svg viewBox="0 0 100 50">' +
+    '<path d="M0 0L99 0L99 49L0 49Z long body path" stroke="black"/>' +
+    '<rect x="5" y="6" width="4" height="3" fill="#DD0000"/>' +
+    '<circle cx="20" cy="10" r="3" fill="#FFFBCF"/>' +
+    '<ellipse cx="30" cy="10" rx="4" ry="2" fill="#FFFBCF"/>' +
+    '<rect x="0" y="0" width="2" height="2" fill="none"/>' +   // fill=none → skipped
+    '</svg>';
+  const g = parseCarSvg(svg);
+  assert.equal(g.details.length, 3);                          // the fill=none rect is skipped
+  assert.equal(g.details.filter(d => d.c === '#DD0000').length, 1);
+  assert.equal(g.details.filter(d => d.c === '#FFFBCF').length, 2);
+  assert.ok(g.details[0].d.startsWith('M5 6h4v3'), 'rect → rect path');
+  assert.ok(g.details.some(d => d.d.includes('A')), 'circle/ellipse → arc path');
+});

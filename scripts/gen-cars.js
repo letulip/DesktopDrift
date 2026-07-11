@@ -50,6 +50,28 @@ export const parseCarSvg = (svg) => {
   }
   if (!strokes.length) throw new Error('no stroke (body) path found in SVG');
 
+  // Filled basic shapes (rect / circle / ellipse) are details too — Figma exports lights and
+  // trim as these, not always as <path>. Convert each to an equivalent path `d` in document
+  // order (after the <path> details) so draw order is preserved.
+  const num = (attrs, name) => { const m = attrs.match(new RegExp('\\b' + name + '="(-?[\\d.]+)"')); return m ? Number(m[1]) : 0; };
+  const shapeFill = (attrs) => { const f = (attrs.match(/\bfill="([^"]*)"/) || [])[1]; return (f && f.toLowerCase() !== 'none') ? f : null; };
+  for (const m of svg.matchAll(/<(rect|circle|ellipse)\b([^>]*?)\/?>/gs)) {
+    const tag = m[1], attrs = m[2];
+    const fill = shapeFill(attrs);
+    if (!fill) continue;
+    let d;
+    if (tag === 'rect') {
+      const x = num(attrs, 'x'), y = num(attrs, 'y'), w = num(attrs, 'width'), h = num(attrs, 'height');
+      d = `M${x} ${y}h${w}v${h}h${-w}Z`;
+    } else {                                   // circle / ellipse → a two-arc closed loop
+      const cx = num(attrs, 'cx'), cy = num(attrs, 'cy');
+      const rx = tag === 'circle' ? num(attrs, 'r') : num(attrs, 'rx');
+      const ry = tag === 'circle' ? num(attrs, 'r') : num(attrs, 'ry');
+      d = `M${cx - rx} ${cy}A${rx} ${ry} 0 1 0 ${cx + rx} ${cy}A${rx} ${ry} 0 1 0 ${cx - rx} ${cy}Z`;
+    }
+    details.push({ c: normColour(fill), d });
+  }
+
   // Longest `d` = the enclosing body silhouette; the shorter stroke paths are panel lines.
   strokes.sort((a, b) => b.d.length - a.d.length);
   const body  = strokes[0];

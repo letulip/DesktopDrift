@@ -33,4 +33,10 @@ export const CAR_REGISTRY = [
     // "ideal for holding a drift" — a touch less self-align + more drift steer.
     feel: { steerSmooth: 6, selfAlign: 0.82, grip: 0.985, driftSteerBoost: 1.3 },
   },
+  {
+    id: 'horse', name: 'Horse', svg: 'horse.svg',
+    body: '#6b4226', stroke: '#222222', flip: true, len: 80,   // chocolate, fast muscle car
+    ratings: { handling: 5, accel: 8, speed: 8 },
+    feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
+  },
 ];
