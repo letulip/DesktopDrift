@@ -332,7 +332,9 @@ export const startGame = (T, opts = {}) => {
   // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  const look = carLook(S.carModel);   // per-car equipped look
+  // Sandbox is a free test-drive: the car is always STOCK (factory look), ignoring any saved
+  // paint/neon/finish/trail. Customisation is a Time Attack thing. opts.stock signals this.
+  const look = opts.stock ? {} : carLook(S.carModel);   // per-car equipped look ({} = factory)
   // neon is a config object now; fall back to a solid config from the legacy neonColor.
   const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
   setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null);

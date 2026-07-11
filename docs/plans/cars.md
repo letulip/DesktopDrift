@@ -76,6 +76,17 @@ so display, the generator, and tests share one source:
 **Done when:** plum (and any future SVG) becomes a car via SVG + registry entry + `gen:cars`;
 the carousel reads well on mobile; ratings display 7/7/7 and round-trip; `npm test` green.
 
+## Sandbox test-drive + car ownership (added after C1–C7)
+Owner idea: **Sandbox is a free test-drive of every car, always STOCK** (no tuning) — like a
+real dealer test-drive. **Time Attack (races) will require owning the car** (paid, later).
+- [x] Sandbox = stock: `sandbox.html` calls `startGame(T, { stock: true })`; the engine then
+      applies a factory look (ignores `carLook`). `select.html` in sandbox mode draws stock
+      previews, hides the Modify gear, and skips the neon-anim loop (subtitle "Free test drive").
+- [x] Ownership hook (gate OFF): `store.ownedCars` + `carOwned(id)` + `grantCar(id)`; the flag
+      `economy.CAR_GATING_ENABLED = false` keeps `carOwned()` true for every car. Time Attack's
+      Race button calls the gate (always passes now). Every car (incl. legacy) has a stable `id`.
+      Flip the flag + populate `ownedCars` on purchase when car pricing ships. Unit-tested.
+
 ## Guardrails
 - **Synchronous cars** — no runtime fetch; generated data is committed and imported statically.
 - **Legacy untouched** — Bismark/Panda stay inline; the generator only owns new cars.

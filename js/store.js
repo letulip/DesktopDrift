@@ -2,7 +2,7 @@
 // All reads/writes go through the getters here + save().
 //
 // Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
-import { buy } from './economy.js';
+import { buy, CAR_GATING_ENABLED } from './economy.js';
 import { defaultNeon } from './neon.js';
 //
 // ── Schema evolution (never wipes player data) ────────────────────────────────
@@ -34,6 +34,7 @@ const defaults = () => ({
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
+  ownedCars:    [],        // purchased car ids (Time Attack ownership — gate is OFF for now, see economy.CAR_GATING_ENABLED)
   stats:        { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances + lifetime counters (races finished, seconds drifted)
 });
 
@@ -262,6 +263,23 @@ export const isOwned = (id) => owned().includes(id);
 // Record an item as owned. No-op if already present. Persists.
 export const grant = (id) => {
   if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
+};
+
+// ── Car ownership (Time Attack) — hook only; gate is OFF for now ───────────────
+// Sandbox is a free test-drive of every car; races will require owning the car. Until
+// pricing ships (economy.CAR_GATING_ENABLED === false) carOwned() returns true for every
+// car, so nothing is blocked. See docs/plans/cars.md.
+
+// Account-wide list of purchased car ids (empty until pricing ships).
+export const ownedCars = () => { _ensure(); return _s.ownedCars; };
+
+// True if the player may race this car. Always true while gating is off.
+export const carOwned = (id) => !CAR_GATING_ENABLED || ownedCars().includes(id);
+
+// Record a car id as owned. No-op if already present. Persists. (For the future car shop.)
+export const grantCar = (id) => {
+  _ensure();
+  if (!_s.ownedCars.includes(id)) { _s.ownedCars.push(id); save(); }
 };
 
 // The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car

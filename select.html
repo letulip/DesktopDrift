@@ -50,7 +50,7 @@
 
 <script type="module">
   import { CARS } from './js/config.js';
-  import { garage, save, wallet, carLook } from './js/store.js';
+  import { garage, save, wallet, carLook, carOwned } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
@@ -64,6 +64,9 @@
   const reversed  = params.get('dir') === 'rev';                   // reversed track variant
   const mode      = trackId ? 'timeattack' : (rawMode || 'sandbox');
   const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
+  // Sandbox is a free test-drive: every car is drawn STOCK (no saved paint/neon/finish) and
+  // there's no Modify/tuning. Customisation belongs to Time Attack.
+  const isSandbox = mode === 'sandbox';
 
   // Back button leads to track list (if we came from there) or to the main menu
   document.getElementById('backLink').href = isZen ? 'zen.html' : trackMeta ? 'tracks.html' : 'index.html';
@@ -72,6 +75,7 @@
     trackMeta ? trackMeta.name : mode === 'sandbox' ? 'Sandbox' : 'Time Attack';
 
   if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
+  if (isSandbox) document.getElementById('ts-sub').textContent = 'Free test drive · stock cars';
 
   // Wallet HUD + tap-for-history
   document.getElementById('wallet-amount').textContent = wallet();
@@ -83,8 +87,9 @@
   let sel = g.carIndex;
 
   // Draw one car card with its per-car equipped look, without clobbering the factory
-  // default body colour on the shared CARS descriptor.
+  // default body colour on the shared CARS descriptor. In sandbox the car is STOCK.
   const drawCard = (M, i, phase = 0) => {
+    if (isSandbox) { drawCarPreview(cards[i].cvs, M, null, null, null, phase); return; }
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
@@ -134,13 +139,16 @@
 
     // Modify (gear) — opens the per-car customization screen. The gear glyph is the
     // accent-coloured icons/settings.svg, applied via CSS mask (see .car-modify).
-    const gear = document.createElement('a');
-    gear.className = 'car-modify';
-    gear.href      = modifyHref(i);
-    gear.title     = 'Modify';
-    gear.setAttribute('aria-label', 'Modify');
-    gear.addEventListener('click', (e) => e.stopPropagation());  // don't trigger card select
-    card.appendChild(gear);
+    // Hidden in sandbox: a test-drive has no tuning.
+    if (!isSandbox) {
+      const gear = document.createElement('a');
+      gear.className = 'car-modify';
+      gear.href      = modifyHref(i);
+      gear.title     = 'Modify';
+      gear.setAttribute('aria-label', 'Modify');
+      gear.addEventListener('click', (e) => e.stopPropagation());  // don't trigger card select
+      card.appendChild(gear);
+    }
 
     const stats = document.createElement('div');
     stats.className = 'car-stats';
@@ -205,6 +213,9 @@
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
+    // Time Attack requires owning the car; sandbox is a free test-drive of any car. The
+    // ownership gate is OFF during dev (carOwned() is always true) — see docs/plans/cars.md.
+    if (trackMeta && !isZen && !carOwned(CARS[sel].id)) return;   // future: open the car shop
     garage().carIndex = sel; save();
     const dirParam = reversed ? '&dir=rev' : '';
     if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
@@ -218,7 +229,8 @@
   // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow
   // move on the garage cards just like in the modify preview and in-race. Cards
   // without an animated neon are drawn once above; if none animate, no loop runs.
-  const animatedCards = CARS.map((_, i) => i).filter(neonAnimated);
+  // (Sandbox draws stock cars, so nothing animates there.)
+  const animatedCards = isSandbox ? [] : CARS.map((_, i) => i).filter(neonAnimated);
   if (animatedCards.length) {
     const tick = () => {
       const phase = performance.now() / 1000;
