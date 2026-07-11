@@ -26,4 +26,11 @@ export const CAR_REGISTRY = [
     ratings: { handling: 8, accel: 5, speed: 7 },
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
+  {
+    id: 'toretto', name: 'Toretto', svg: 'toretto.svg',
+    body: '#c62828', stroke: '#222222', flip: true, len: 74,
+    ratings: { handling: 9, accel: 6, speed: 6 },
+    // "ideal for holding a drift" — a touch less self-align + more drift steer.
+    feel: { steerSmooth: 6, selfAlign: 0.82, grip: 0.985, driftSteerBoost: 1.3 },
+  },
 ];
