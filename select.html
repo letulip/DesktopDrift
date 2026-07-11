@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
+  <link rel="stylesheet" href="css/ach-toast.css">
 </head>
 <body>
 <div id="garage">
@@ -52,6 +53,7 @@
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
+  import { flushAchievementToasts } from './js/ach-toast.js';
 
   const params    = new URLSearchParams(location.search);
   const trackId   = params.get('track');                          // e.g. 'green-study'
@@ -201,6 +203,9 @@
     };
     requestAnimationFrame(tick);
   }
+
+  // Celebrate anything a shop purchase just unlocked (stashed on Apply in modify.html).
+  flushAchievementToasts();
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

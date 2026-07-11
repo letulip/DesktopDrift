@@ -99,6 +99,7 @@
   import { garage, save, wallet, isOwned, purchase, carLook } from './js/store.js';
   import { CATALOG, byKind } from './js/shop-catalog.js';
   import { syncStateAchievements } from './js/ach-sync.js';
+  import { queueAchievementToasts } from './js/ach-toast.js';
   import { drawCarPreview } from './js/car-preview.js';
   import { LAYOUTS, ANIMS, defaultNeon } from './js/neon.js';
   import { initWalletHistory } from './js/wallet-history.js';
@@ -406,7 +407,9 @@
     const total = cart.reduce((s, it) => s + it.price, 0);
     if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
     for (const it of cart) { if (!purchase(it).ok) return; }   // abort if any fails
-    if (cart.length) syncStateAchievements();                  // shop achievements fire on buy
+    // Shop achievements fire on buy; stash any newly unlocked so the garage can toast them
+    // (this page navigates back immediately, so they can't be shown in place).
+    if (cart.length) queueAchievementToasts(syncStateAchievements());
 
     garage().carIndex = carIdx;
     const lk = carLook(carIdx);     // write this car's own look
@@ -433,8 +436,8 @@
   });
 
   // (Shop-driven achievements are reconciled by syncStateAchievements() on buy — see
-  //  js/ach-sync.js. The page navigates back immediately, so unlocks are silent here;
-  //  the reward is credited and shown on the achievements page.)
+  //  js/ach-sync.js. The page navigates back immediately, so newly-unlocked defs are stashed
+  //  via queueAchievementToasts and celebrated with a toast on the garage — see js/ach-toast.js.)
 
   // ── Initial render ────────────────────────────────────────────────────────────
   refresh();
