@@ -75,7 +75,21 @@ stays readable. No framework, no bundler.
   - `fonts/unbounded-800-latin.woff2` — self-hosted display font (Unbounded 800, OFL).
   - `js/config.js` — pure static data: `CFG`, `CARS` (with Path2D init),
     `TABLE`, physics constants (`PHYS_HZ`, `GRIP_WOBBLE`, `STEER_WOBBLE`,
-    `NM_BAND`).
+    `NM_BAND`). `CARS = [...LEGACY_CARS, ...GENERATED_CARS]`: legacy cars
+    (Bismark, Panda) are inline + hand-extracted; newer cars come from the
+    generated `js/cars-data.js`. Append order is load-bearing — saved
+    `carIndex` must stay stable, so new cars land at index 2+.
+  - **Adding a car** (Variant B pipeline — see `docs/plans/cars.md`):
+    1) drop the top-down SVG in `cars/` (convention: one `stroke`-only `<path>`
+    = body silhouette; the longest wins if several, the rest become `lines`;
+    each `fill` `<path>` = a detail; `viewBox` → `vw`/`vh`).
+    2) add an entry to `js/car-registry.js` (`id`, `name`, `svg`, `body` colour,
+    `flip`, `len`, `ratings:{handling,accel,speed}`, optional `feel`).
+    3) `npm run gen:cars` → regenerates committed `js/cars-data.js`.
+    4) SW: the car SVG is author-time only (path is baked into `cars-data.js`) —
+    do NOT add it to `ASSETS`; just bump the cache. Stat math is the pure
+    `js/car-stats.js` (`speedRating`/`handlingRating`/`accRating` +
+    `driveForRatings`), shared by the garage display, the generator, and tests.
   - `js/items.js` — item catalog with 1:64-scale physics data. Each export is
     a plain object `{ hl, r, kind, imgSrc, c }`. No game state; no imports.
     Used by track files to spread item descriptors with position/angle.

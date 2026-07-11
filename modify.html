@@ -107,6 +107,7 @@
   const params = new URLSearchParams(location.search);
   const carIdx = Math.max(0, Math.min(parseInt(params.get('car'), 10) || 0, CARS.length - 1));
   const M = CARS[carIdx];
+  const factoryBody = M.body;   // the car's STOCK colour — used when no custom body colour is picked
 
   // Cancel returns to the garage, preserving the track/mode context.
   const back = new URLSearchParams(params); back.delete('car');
@@ -119,7 +120,7 @@
   // Loaded from THIS car's saved look (per-car). Purchases stay account-wide.
   const look = carLook(carIdx);
   const pending = {
-    body:    look.bodyColor || M.body,
+    body:    look.bodyColor ?? null,   // null = stock (factory colour)
     neonOn:  !!look.neon,
     // Neon FX config — a working copy so nothing is written to the store before Apply.
     neonCfg: look.neon
@@ -150,7 +151,7 @@
   // OR the neon underglow with a live animation (pulse / rainbow / flow). Otherwise draw once.
   const neonAnimating = () => pending.neonOn && pending.neonCfg.anim !== 'none';
   const draw = () => {
-    M.body = pending.body;
+    M.body = pending.body ?? factoryBody;   // stock colour when nothing custom is picked
     drawCarPreview(previewCvs, M, neonNow(), pending.finish, trailNow(), phase);
   };
   const loop = (ts) => { phase = ts * 0.001; draw(); rafId = requestAnimationFrame(loop); };
@@ -162,22 +163,27 @@
   // ── Body colour (free → just updates the pending look) ────────────────────────
   const bodyPaletteEl = document.getElementById('body-palette');
   const bodyName      = document.getElementById('body-name');
-  const bodyEls = PALETTE.map((entry, idx) => {
+  // Mark the swatch matching the pending body colour; none selected = STOCK (factory colour).
+  const refreshBody = () => {
+    const idx = PALETTE.findIndex(p => p.hex.toLowerCase() === (pending.body || '').toLowerCase());
+    bodyEls.forEach((e, j) => e.classList.toggle('sel', j === idx));
+    bodyName.textContent = idx >= 0 ? PALETTE[idx].name : 'Stock';
+  };
+  const bodyEls = PALETTE.map((entry) => {
     const el = document.createElement('div');
     el.className = 'swatch';
     el.style.background = entry.hex;
     el.title = entry.name;
     el.addEventListener('click', () => {
-      pending.body = entry.hex;
-      bodyEls.forEach((e, j) => e.classList.toggle('sel', j === idx));
-      bodyName.textContent = entry.name;
+      // Toggle: tapping the selected colour again clears it back to stock (like the shop parts).
+      pending.body = (pending.body || '').toLowerCase() === entry.hex.toLowerCase() ? null : entry.hex;
+      refreshBody();
       redraw();
     });
     bodyPaletteEl.appendChild(el);
     return el;
   });
-  const bInit = PALETTE.findIndex(p => p.hex.toLowerCase() === (pending.body || '').toLowerCase());
-  if (bInit >= 0) { bodyEls[bInit].classList.add('sel'); bodyName.textContent = PALETTE[bInit].name; }
+  refreshBody();
 
   // ── Neon FX underglow (on/off + layout + per-zone colours + animation) ────────
   // On/off toggle, a layout selector (locked layouts cart their catalog item), N
@@ -289,7 +295,7 @@
       el.classList.toggle('owned', own);
       el.classList.toggle('in-cart', inCart);
       tag.textContent = !item || own
-        ? (selected ? '✓' : '')
+        ? '✓'                                            // owned / free → always show the check
         : (selected && pending.neonOn ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
   };
@@ -362,7 +368,7 @@
       el.classList.toggle('owned', own);
       el.classList.toggle('in-cart', inCart);
       tag.textContent = own
-        ? (selected ? '✓' : '')
+        ? '✓'                                            // owned → always show the check
         : (selected ? `🛒🛞${item.price}` : `🛞${item.price}`);
     }
     const { total, count } = cartTotal();

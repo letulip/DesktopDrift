@@ -51,7 +51,7 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records, collectedCaps, tiresFor, wallet } from './js/store.js';
+  import { records, collectedCaps, tireSwept, wallet } from './js/store.js';
   import { svgToCentreline, instanceId } from './js/track-util.js';
   import { isDDK } from './js/economy.js';
   import { initWalletHistory } from './js/wallet-history.js';
@@ -227,13 +227,13 @@
           chip.textContent = collected + '/' + track.caps + ' cap' + (track.caps !== 1 ? 's' : '');
           meta.appendChild(chip);
         }
-        if (track.tires > 0) {
-          // Clamp: the stored list can briefly hold orphaned ids (before the engine self-heal
-          // runs on next entry); never show more than the track actually has.
-          const got = Math.min(tiresFor(inst).length, track.tires);
+        // Tires respawn every race, so instead of a count we show a wheel badge once the
+        // player has clean-swept the track (collected every tire in a single run).
+        if (track.tires > 0 && tireSwept(inst)) {
           const chip = document.createElement('span');
-          chip.className = 'track-chip tire' + (got >= track.tires ? ' is-done' : '');
-          chip.textContent = '🛞 ' + got + '/' + track.tires;
+          chip.className = 'track-chip tire is-done';
+          chip.textContent = '🛞 ✓';
+          chip.title = 'All tires collected in one run';
           meta.appendChild(chip);
         }
         if (meta.children.length) body.appendChild(meta);

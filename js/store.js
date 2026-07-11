@@ -2,8 +2,9 @@
 // All reads/writes go through the getters here + save().
 //
 // Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
-import { buy } from './economy.js';
+import { buy, CAR_GATING_ENABLED, FREE_CARS } from './economy.js';
 import { defaultNeon } from './neon.js';
+import { TRACKS } from './track-registry.js';   // pure data — used by the v4 tire-sweep migration
 //
 // ── Schema evolution (never wipes player data) ────────────────────────────────
 // On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
@@ -21,7 +22,7 @@ import { defaultNeon } from './neon.js';
 // deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
-const VERSION = 3;
+const VERSION = 4;
 
 const defaults = () => ({
   version:      VERSION,
@@ -34,7 +35,8 @@ const defaults = () => ({
   wallet:       0,         // tire-coin balance (soft currency — see ROADMAP Phase 2.5)
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
-  stats:        { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances + lifetime counters (races finished, seconds drifted)
+  ownedCars:    [],        // purchased car ids (Time Attack ownership — gate is OFF for now, see economy.CAR_GATING_ENABLED)
+  stats:        { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances (tires respawn now; tiresSwept = tracks fully cleared once) + lifetime counters
 });
 
 // Breaking-change migrations, keyed by the target version.
@@ -66,6 +68,22 @@ const MIGRATIONS = {
     for (const look of Object.values(s.garage.cars)) {
       if (_isObj(look) && look.neon === undefined) {
         look.neon = look.neonColor ? defaultNeon(look.neonColor) : null;
+      }
+    }
+    return s;
+  },
+  // v4: tires went from per-tire persistence (stats.tires) to a respawn model. Grandfather the
+  // clean-swept wheel badge: if a saved track had ALL its tires collected (count ≥ that track's
+  // tire total), mark the instance as swept so returning players keep their earned badges.
+  4: (s) => {
+    if (!_isObj(s.stats)) return s;
+    const st = s.stats;
+    if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+    const tires = _isObj(st.tires) ? st.tires : {};
+    for (const [inst, ids] of Object.entries(tires)) {
+      const total = TRACKS.find(t => t.id === inst.split(':')[0])?.tires ?? 0;
+      if (total > 0 && Array.isArray(ids) && ids.length >= total && !st.tiresSwept.includes(inst)) {
+        st.tiresSwept.push(inst);
       }
     }
     return s;
@@ -213,31 +231,22 @@ export const recordTxn = (amount, reason) => {
 // The tire-coin transaction history (oldest first). Empty until the first earn/spend.
 export const ledger = () => { _ensure(); if (!Array.isArray(_s.ledger)) _s.ledger = []; return _s.ledger; };
 
-// Ids of tires already collected on a track (empty if none yet).
-export const tiresFor = (trackId) => {
+// Tires respawn every race now (no per-tire persistence). We only remember which track
+// INSTANCES the player has fully cleared at least once (all tires in a single run) — that
+// drives the wheel badge on the track card + the one-time clean-sweep bonus.
+export const tireSwept = (instanceId) => {
   const st = stats();
-  if (!st.tires) st.tires = {};
-  return st.tires[trackId] ?? [];
+  if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+  return st.tiresSwept.includes(instanceId);
 };
 
-// Mark a tire id as permanently collected for a track. No-op if already recorded.
-export const tireCollect = (trackId, id) => {
+// Mark a track instance as clean-swept. Returns true the FIRST time (→ award the bonus).
+export const markTireSwept = (instanceId) => {
   const st = stats();
-  if (!st.tires) st.tires = {};
-  const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
-  if (!arr.includes(id)) { arr.push(id); save(); }
-};
-
-// Replace a track's collected-tire list wholesale (used by the engine's self-heal to prune
-// orphaned/duplicate ids so the count can't exceed the tile total). Persists only on change.
-export const setTires = (trackId, ids) => {
-  const st = stats();
-  if (!st.tires) st.tires = {};
-  const next = [...ids];
-  const prev = st.tires[trackId] ?? [];
-  if (prev.length !== next.length || prev.some((v, i) => v !== next[i])) {
-    st.tires[trackId] = next; save();
-  }
+  if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+  if (st.tiresSwept.includes(instanceId)) return false;
+  st.tiresSwept.push(instanceId); save();
+  return true;
 };
 
 // Record a track instance (trackId, or trackId:mode later) as finished. Returns true the
@@ -262,6 +271,33 @@ export const isOwned = (id) => owned().includes(id);
 // Record an item as owned. No-op if already present. Persists.
 export const grant = (id) => {
   if (!_s.owned.includes(id)) { _s.owned.push(id); save(); }
+};
+
+// ── Car ownership (races) ─────────────────────────────────────────────────────
+// Sandbox is a free test-drive of every car; Time Attack / Zen require owning the car,
+// bought in the garage carousel. The FREE_CARS starters are always owned. See docs/plans/cars.md.
+
+// Account-wide list of purchased car ids.
+export const ownedCars = () => { _ensure(); return _s.ownedCars; };
+
+// True if the player may race this car: gating off, a free starter, or purchased.
+export const carOwned = (id) => !CAR_GATING_ENABLED || FREE_CARS.includes(id) || ownedCars().includes(id);
+
+// Record a car id as owned. No-op if already present. Persists.
+export const grantCar = (id) => {
+  _ensure();
+  if (!_s.ownedCars.includes(id)) { _s.ownedCars.push(id); save(); }
+};
+
+// Buy a car: deduct its price + grant it, only if affordable and not already owned.
+// Returns { ok:true } | { ok:false, reason:'owned'|'broke' }.
+export const buyCar = (id, price) => {
+  _ensure();
+  if (carOwned(id)) return { ok: false, reason: 'owned' };
+  if (_s.wallet < price) return { ok: false, reason: 'broke' };
+  addTires(-price, 'Bought car: ' + id);
+  grantCar(id);
+  return { ok: true };
 };
 
 // The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car

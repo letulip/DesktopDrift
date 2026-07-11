@@ -3,8 +3,8 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, tiresFor, addTires, tireCollect, setTires, recordTxn, carLook, markCleared,
-         stats, wallet, owned, achUnlocked, achUnlock, achSetProgress } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept,
+         stats, wallet, owned, ownedCars, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
 import { defaultNeon } from './neon.js';
@@ -18,7 +18,7 @@ import {
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
 import { stepCar } from './physics.js';
-import { nearestCenter, circularAdvance, instanceId, reconcileTires } from './track-util.js';
+import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 
@@ -77,11 +77,9 @@ export const startGame = (T, opts = {}) => {
     if (cap.imgFull && !cap._imgFull) { const im = new Image(); im.src = cap.imgFull; cap._imgFull = im; }
   }
   // S.caps: pure runtime state only — static data stays in collectibles[].
-  // Restore previously collected caps from store so they stay permanently collected.
-  const _prevCollected = new Set([
-    ...collectedCaps(INSTANCE),
-    ...tiresFor(INSTANCE),
-  ]);
+  // Restore previously collected CAPS so they stay permanently collected. Tires RESPAWN every
+  // race now (arcade coin loop), so they always start uncollected.
+  const _prevCollected = new Set(collectedCaps(INSTANCE));
   S.caps = {};
   collectibles.forEach((c, i) => {
     // Multi-format lookup so no save format silently loses collected state. Accept any of:
@@ -95,10 +93,6 @@ export const startGame = (T, opts = {}) => {
       || _prevCollected.has(i);
     S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
   });
-  // Self-heal the stored tire list: prune it to the tiles that exist now (drops orphaned /
-  // duplicate ids from geometry or key-scheme churn, re-keys to the stable capId). Guarantees
-  // the collected count can never exceed the tile total — no more "16/12" badges.
-  setTires(INSTANCE, reconcileTires(tiresFor(INSTANCE), collectibles.filter(c => c.kind === 'tire')));
 
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -169,7 +163,6 @@ export const startGame = (T, opts = {}) => {
         if (dist < c.r + TIRE_CR) {
           cap.collected = true;
           cap.pop = 0.4;
-          tireCollect(INSTANCE, c.capId ?? i);
           addTires(c.value);                 // credit live (HUD); ledger logs the per-race sum
           tiresEarned += c.value;
           runTirePickups++;
@@ -282,16 +275,16 @@ export const startGame = (T, opts = {}) => {
         nearMisses: runNearMisses, crashes: runCrashes,
         conesHit: cones.filter(c => c.knocked).length, conesTotal: cones.length,
         timeAt8: runTimeAt8, comboUnbroken, tiresThisRun: runTirePickups,
-        // clean-sweep is per-track one-shot BY DESIGN: tire pickups persist permanently, so a
-        // partially-harvested track can never satisfy tiresThisRun === total again — the player
-        // earns it on a fresh track. Not a bug; the trap is intentional.
+        // Tires respawn every race, so the clean-sweep achievement is honestly re-checkable
+        // each run (collect all tires this run → tiresThisRun === tireTotalOnTrack). It's a
+        // one-time UNLOCK, and the per-track first-sweep BONUS above handles ongoing rewards.
         tireTotalOnTrack: collectibles.filter(c => c.kind === 'tire').length,
         capsThisRun: runCaps, hour: new Date().getHours(),
       },
-      wallet: wallet(), owned: owned(), cleared: st.cleared ?? [],
+      wallet: wallet(), owned: owned(), ownedCars: ownedCars(), cleared: st.cleared ?? [],
       records: flattenRecords(records()), caps: st.caps ?? {},
       lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
-      content: buildContent(TRACKS, CATALOG),
+      content: buildContent(TRACKS, CATALOG, CARS),
     };
     const res = evaluate(ctx, achUnlocked());
     for (const p of res.progress) achSetProgress(p.id, p.value);
@@ -332,7 +325,9 @@ export const startGame = (T, opts = {}) => {
   // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  const look = carLook(S.carModel);   // per-car equipped look
+  // Sandbox is a free test-drive: the car is always STOCK (factory look), ignoring any saved
+  // paint/neon/finish/trail. Customisation is a Time Attack thing. opts.stock signals this.
+  const look = opts.stock ? {} : carLook(S.carModel);   // per-car equipped look ({} = factory)
   // neon is a config object now; fall back to a solid config from the legacy neonColor.
   const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
   setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null);
@@ -510,10 +505,18 @@ export const startGame = (T, opts = {}) => {
           // pickups sum → first-clear bonus → finish payout.
           const baseName  = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
           const trackName = baseName + (REVERSED ? ' (reversed)' : '');
-          let firstClearBonus = 0, finishBonus = 0;
+          const tireTotal = collectibles.filter(c => c.kind === 'tire').length;
+          let firstClearBonus = 0, finishBonus = 0, cleanSweepBonus = 0;
           if (!ZEN) {
             if (tiresEarned > 0)
               recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
+            // First time you collect EVERY tire on a track in one run → a one-time bonus
+            // (doubles the run's tire coins) + marks the track (wheel badge). Repeats just pay
+            // the tire coins, so it never becomes a grind.
+            if (tireTotal > 0 && runTirePickups >= tireTotal && markTireSwept(INSTANCE)) {
+              cleanSweepBonus = tireTotal;
+              addTires(cleanSweepBonus, `${trackName} — clean sweep bonus`);
+            }
             if (T.id && markCleared(INSTANCE)) {    // first finish of this instance → bonus
               firstClearBonus = FIRST_CLEAR_BONUS;
               addTires(firstClearBonus, `${trackName} — first clear`);
@@ -553,7 +556,7 @@ export const startGame = (T, opts = {}) => {
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
             ddk: isDDK(pps), unlocked: unlockedNow,
-            tires: { pickup: tiresEarned, firstClear: firstClearBonus, finish: finishBonus } });
+            tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, cleanSweep: cleanSweepBonus, firstClear: firstClearBonus, finish: finishBonus } });
           return;
         }
 

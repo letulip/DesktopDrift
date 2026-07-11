@@ -10,10 +10,11 @@
 // read ctx.run, which is null here, so they never fire from a sweep — they need a real race
 // (that path is game-engine.js awardAchievements). Idempotent: achUnlock gates the reward.
 
-import { stats, records, owned, wallet, achUnlocked, achUnlock, achSetProgress, addTires } from './store.js';
+import { stats, records, owned, ownedCars, wallet, achUnlocked, achUnlock, achSetProgress, addTires } from './store.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
 import { TRACKS } from './track-registry.js';
 import { CATALOG } from './shop-catalog.js';
+import { GENERATED_CARS } from './cars-data.js';   // pure data (no Path2D) — safe to import here
 
 // Evaluate state-based achievements against the live save; persist unlocks + ladder progress
 // and credit each new reward once. Returns the newly-unlocked defs ({ id, name, icon, reward }).
@@ -27,10 +28,10 @@ export const syncStateAchievements = () => {
   const st = stats();
   const base = {
     run: null,
-    owned: owned(), cleared: st.cleared ?? [],
+    owned: owned(), ownedCars: ownedCars(), cleared: st.cleared ?? [],
     records: flattenRecords(records()), caps: st.caps ?? {},
     lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
-    content: buildContent(TRACKS, CATALOG),
+    content: buildContent(TRACKS, CATALOG, GENERATED_CARS),
   };
   const out = [];
   for (;;) {

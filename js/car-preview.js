@@ -71,11 +71,13 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   ctx.scale(M.flip ? -s : s, s);
   ctx.translate(-M.vw / 2, -M.vh / 2);
   paintBody(ctx, M._p2d, M.body, finish, M.vw, M.vh);
-  if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
   ctx.lineJoin   = 'round';
   ctx.lineWidth  = 5;
   ctx.strokeStyle = M.stroke;
   ctx.stroke(M._p2d);
   if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
+  // Details (windows, headlights, tail-lights) go on TOP of the outline + panel lines so
+  // edge-hugging lights aren't buried under the 5px body stroke or a panel-line stroke.
+  if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
   ctx.restore();
 };

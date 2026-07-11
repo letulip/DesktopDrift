@@ -37,6 +37,7 @@
   <div id="content" class="content--column">
 
     <div id="cars"></div>
+    <div id="car-dots" class="car-dots"></div>
 
     <button id="raceBtn">Race! 🏁</button>
   </div>
@@ -48,12 +49,14 @@
 </div>
 
 <script type="module">
-  import { CARS, GU_TO_KMH } from './js/config.js';
-  import { garage, save, wallet, carLook } from './js/store.js';
+  import { CARS } from './js/config.js';
+  import { garage, save, wallet, carLook, carOwned, buyCar } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
-  import { flushAchievementToasts } from './js/ach-toast.js';
+  import { flushAchievementToasts, showAchievementToasts } from './js/ach-toast.js';
+  import { syncStateAchievements } from './js/ach-sync.js';
+  import { speedRating, handlingRating, accRating } from './js/car-stats.js';
 
   const params    = new URLSearchParams(location.search);
   const trackId   = params.get('track');                          // e.g. 'green-study'
@@ -62,6 +65,11 @@
   const reversed  = params.get('dir') === 'rev';                   // reversed track variant
   const mode      = trackId ? 'timeattack' : (rawMode || 'sandbox');
   const trackMeta = trackId ? TRACKS.find(t => t.id === trackId) : null;
+  // Sandbox is a free test-drive: every car is drawn STOCK (no saved paint/neon/finish) and
+  // there's no Modify/tuning. Customisation belongs to Time Attack.
+  const isSandbox = mode === 'sandbox';
+  // Races (Time Attack / Zen) require owning the car; sandbox lets you drive any car free.
+  const gated = !isSandbox;
 
   // Back button leads to track list (if we came from there) or to the main menu
   document.getElementById('backLink').href = isZen ? 'zen.html' : trackMeta ? 'tracks.html' : 'index.html';
@@ -70,6 +78,7 @@
     trackMeta ? trackMeta.name : mode === 'sandbox' ? 'Sandbox' : 'Time Attack';
 
   if (isZen) document.getElementById('raceBtn').textContent = 'Start Zen';
+  if (isSandbox) document.getElementById('ts-sub').textContent = 'Free test drive · stock cars';
 
   // Wallet HUD + tap-for-history
   document.getElementById('wallet-amount').textContent = wallet();
@@ -78,11 +87,13 @@
   // ── Selected car (each car keeps its OWN look — see carLook) ──────────────────
   const g = garage();
   g.carIndex = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  let sel = g.carIndex;
+  let sel = g.carIndex;                 // the active (centred) car
+  let downX = null, moved = false;      // pointer-drag state for swiping the carousel
 
   // Draw one car card with its per-car equipped look, without clobbering the factory
-  // default body colour on the shared CARS descriptor.
+  // default body colour on the shared CARS descriptor. In sandbox the car is STOCK.
   const drawCard = (M, i, phase = 0) => {
+    if (isSandbox) { drawCarPreview(cards[i].cvs, M, null, null, null, phase); return; }
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
@@ -94,24 +105,7 @@
   // (pulse / rainbow / flow). Legacy string colours and solid/none never animate.
   const neonAnimated = (i) => { const n = carLook(i).neon; return !!(n && n.anim && n.anim !== 'none'); };
 
-  // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
-  // Scale is intentionally above current values — headroom for future upgrades.
-  const SPEED_MAX_KMH  = 15;   // 10 cells = 15 km/h (physical limit of a 1:64 model)
-  const STEER_MAX      = 5.0;  // max steer accounting for future upgrades
-  const LOWTURN_MAX    = 0.5;  // max lowSpeedTurn accounting for future upgrades
-  const THRUST_MAX     = 900;  // max thrust accounting for future upgrades
-
-  const speedRating = (d) =>
-    Math.min(10, Math.round(d.maxSpeed * GU_TO_KMH / SPEED_MAX_KMH * 10));
-
-  const handlingRating = (d) =>
-    Math.min(10, Math.round(
-      (d.steer / STEER_MAX * 0.7 + d.lowSpeedTurn / LOWTURN_MAX * 0.3) * 10
-    ));
-
-  const accRating = (d) =>
-    Math.min(10, Math.round(d.thrust / THRUST_MAX * 10));
-
+  // ── Stat bars (0–10 cells) — ratings come from the shared pure js/car-stats.js ─
   const makeStatRow = (label, n, cls) => {
     const row = document.createElement('div');
     row.className = 'stat-row';
@@ -149,13 +143,17 @@
 
     // Modify (gear) — opens the per-car customization screen. The gear glyph is the
     // accent-coloured icons/settings.svg, applied via CSS mask (see .car-modify).
-    const gear = document.createElement('a');
-    gear.className = 'car-modify';
-    gear.href      = modifyHref(i);
-    gear.title     = 'Modify';
-    gear.setAttribute('aria-label', 'Modify');
-    gear.addEventListener('click', (e) => e.stopPropagation());  // don't trigger card select
-    card.appendChild(gear);
+    // Hidden in sandbox: a test-drive has no tuning.
+    if (!isSandbox) {
+      const gear = document.createElement('a');
+      gear.className = 'car-modify';
+      gear.href      = modifyHref(i);
+      gear.title     = 'Modify';
+      gear.setAttribute('aria-label', 'Modify');
+      gear.addEventListener('click', (e) => e.stopPropagation());      // don't trigger card select
+      gear.addEventListener('pointerdown', (e) => e.stopPropagation()); // don't start a carousel drag (which captures the pointer + eats the link click)
+      card.appendChild(gear);
+    }
 
     const stats = document.createElement('div');
     stats.className = 'car-stats';
@@ -169,19 +167,157 @@
     nm.textContent = M.name;
     card.appendChild(nm);
 
-    card.addEventListener('click', () => selectCar(i));
+    // Locked overlay for a paid car you don't own yet (races only; shown via .is-locked).
+    if (gated && M.price) {
+      const lock = document.createElement('div');
+      lock.className = 'car-lock';
+      lock.innerHTML = `<span class="car-lock-ico">🔒</span><span class="car-lock-price">🛞${M.price}</span>`;
+      card.appendChild(lock);
+    }
+
+    card.addEventListener('click', () => { if (!moved) setActive(i); });   // tap a neighbour to select it
     carsEl.appendChild(card);
     return { card, cvs };
   });
 
-  const selectCar = (i) => {
-    sel = i;
-    cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
-    garage().carIndex = i; save();
+  // ── Coverflow carousel: the active (centred) car is the selected car ──────────
+  let dragDX = 0, dragging = false;    // live-drag offset while swiping
+
+  const dotsEl = document.getElementById('car-dots');
+  const dots = CARS.map((_, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'car-dot' + (i === sel ? ' is-on' : '');
+    d.setAttribute('aria-label', `Car ${i + 1}`);
+    d.addEventListener('click', () => setActive(i));
+    dotsEl.appendChild(d);
+    return d;
+  });
+
+  // Circular prev/next arrows, layered on top of the back cards (easy tap targets).
+  const mkNav = (cls, sym, delta) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'car-nav ' + cls;
+    b.textContent = sym;
+    b.setAttribute('aria-label', cls === 'prev' ? 'Previous car' : 'Next car');
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());   // don't start a carousel drag
+    b.addEventListener('click', () => setActive(sel + delta));
+    carsEl.appendChild(b);
+    return b;
+  };
+  const navPrev = mkNav('prev', '❮', -1);
+  const navNext = mkNav('next', '❯', +1);
+
+  const stepPx = () => (cards[0].card.offsetWidth || 260) * 0.6;   // adjacent centres — ~40% overlap
+
+  // Neighbours shown per side: 2 on desktop (5 cards), 1 on mobile (3).
+  const mq = matchMedia('(max-width: 560px)');
+  const sideCount = () => (mq.matches ? 1 : 2);
+
+  // Place every card by its distance from the active index (+ any live drag): active = big +
+  // centred, neighbours shrink + fade + sit behind, far cards hidden. While dragging we reveal
+  // one extra card each side so the incoming car slides in instead of popping.
+  const layout = () => {
+    const base = sideCount();
+    const side = base + (dragging ? 1 : 0);
+    const step = stepPx();
+    cards.forEach((c, i) => {
+      const pos  = i - sel;                                   // 0 = centre, ±1 neighbour, …
+      const abs  = Math.abs(pos);
+      const scale = Math.max(0.5, 1 - abs * 0.16);            // shrink neighbours
+      const el = c.card;
+      el.style.transform = `translate(-50%, -50%) translateX(${pos * step + dragDX}px) scale(${scale})`;
+      el.style.zIndex = String(100 - abs);                    // active on top, neighbours behind
+      el.style.opacity = abs <= side ? '1' : '0';
+      el.style.filter = abs === 0 ? 'none' : `brightness(${1 - abs * 0.18})`;
+      el.style.pointerEvents = abs <= base ? 'auto' : 'none';
+      el.classList.toggle('sel', pos === 0 && !dragging);
+      el.classList.toggle('is-locked', gated && !!CARS[i].price && !carOwned(CARS[i].id));
+    });
+    dots.forEach((d, j) => d.classList.toggle('is-on', j === sel));
+    navPrev.classList.toggle('is-off', sel === 0);
+    navNext.classList.toggle('is-off', sel === CARS.length - 1);
+    updateCTA();
   };
 
-  // ── Race button ──────────────────────────────────────────────────────────────
-  document.getElementById('raceBtn').addEventListener('click', () => {
+  // The main button is "Race!" for an owned car, or a two-tap "Buy → Confirm?" when the
+  // centred car is locked (so a purchase is never a single accidental tap).
+  const raceBtn = document.getElementById('raceBtn');
+  const walletEl = document.getElementById('wallet-amount');
+  const carLocked = (i) => gated && !!CARS[i].price && !carOwned(CARS[i].id);
+  let buyArmed = false, armTimer = null;
+  const disarm = () => { buyArmed = false; clearTimeout(armTimer); };
+  const updateCTA = () => {
+    if (carLocked(sel)) {
+      const price = CARS[sel].price;
+      const afford = wallet() >= price;
+      raceBtn.textContent = (buyArmed && afford) ? `Confirm buy? 🛞${price}` : `🔒 Buy 🛞${price}`;
+      raceBtn.classList.toggle('cant-afford', !afford);
+      raceBtn.classList.toggle('confirm', buyArmed && afford);
+    } else {
+      raceBtn.textContent = isZen ? 'Start Zen' : 'Race! 🏁';
+      raceBtn.classList.remove('cant-afford', 'confirm');
+    }
+  };
+
+  const setActive = (i) => {
+    i = Math.max(0, Math.min(i, CARS.length - 1));
+    dragDX = 0;
+    disarm();                              // switching cars cancels a pending buy-confirm
+    if (i === sel) { layout(); return; }
+    sel = i;
+    garage().carIndex = i; save();
+    layout();
+  };
+
+  // Live drag: the strip follows the finger, then snaps to the nearest card on release.
+  carsEl.addEventListener('pointerdown', (e) => {
+    downX = e.clientX; moved = false; dragging = true;
+    carsEl.classList.add('dragging');
+    carsEl.setPointerCapture?.(e.pointerId);
+  });
+  carsEl.addEventListener('pointermove', (e) => {
+    if (downX == null) return;
+    dragDX = e.clientX - downX;
+    if (Math.abs(dragDX) > 6) moved = true;
+    layout();
+  });
+  const endDrag = (e) => {
+    if (downX == null) return;
+    const dx = (e.clientX ?? downX) - downX;
+    downX = null; dragging = false;
+    carsEl.classList.remove('dragging');
+    setActive(sel + Math.round(-dx / stepPx()));   // snap to the nearest card (clears dragDX)
+  };
+  carsEl.addEventListener('pointerup', endDrag);
+  carsEl.addEventListener('pointercancel', endDrag);
+
+  // Arrow keys + breakpoint/resize re-layout (desktop 5 ↔ mobile 3).
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft')  setActive(sel - 1);
+    if (e.key === 'ArrowRight') setActive(sel + 1);
+  });
+  addEventListener('resize', layout);
+
+  // ── Race / Buy button ─────────────────────────────────────────────────────────
+  raceBtn.addEventListener('click', () => {
+    // Locked (paid, unowned, gated mode) → buy it here instead of racing (two-tap confirm).
+    if (carLocked(sel)) {
+      const car = CARS[sel];
+      if (wallet() < car.price) { updateCTA(); return; }            // can't afford → nothing (price stays)
+      if (!buyArmed) {                                              // 1st tap → arm "Confirm buy?"
+        buyArmed = true; updateCTA();
+        armTimer = setTimeout(() => { buyArmed = false; updateCTA(); }, 3000);   // auto-cancel
+        return;
+      }
+      disarm();                                                     // 2nd tap → commit
+      if (!buyCar(car.id, car.price).ok) { updateCTA(); return; }
+      showAchievementToasts(syncStateAchievements());               // celebrate New Wheels / Full Garage
+      walletEl.textContent = wallet();                              // reflect price paid − any reward
+      layout();                                                     // drop the lock overlay, flip the CTA to Race
+      return;
+    }
     garage().carIndex = sel; save();
     const dirParam = reversed ? '&dir=rev' : '';
     if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
@@ -190,11 +326,13 @@
 
   // ── Initial render — each car shows its own per-car look ──────────────────────
   CARS.forEach((M, i) => drawCard(M, i));
+  layout();   // position the coverflow around the saved car
 
   // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow
   // move on the garage cards just like in the modify preview and in-race. Cards
   // without an animated neon are drawn once above; if none animate, no loop runs.
-  const animatedCards = CARS.map((_, i) => i).filter(neonAnimated);
+  // (Sandbox draws stock cars, so nothing animates there.)
+  const animatedCards = isSandbox ? [] : CARS.map((_, i) => i).filter(neonAnimated);
   if (animatedCards.length) {
     const tick = () => {
       const phase = performance.now() / 1000;

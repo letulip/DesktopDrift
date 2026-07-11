@@ -48,7 +48,7 @@
 <script type="module">
   import * as T from './js/track-oval.js';
   import { startGame } from './js/game-engine.js';
-  startGame(T);
+  startGame(T, { stock: true });   // free test-drive: always the factory car, no tuning
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>

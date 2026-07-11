@@ -24,6 +24,12 @@ export const FIRST_CLEAR_BONUS = 20;
 export const DDK_PPS = 600;
 export const isDDK   = (pps) => (pps || 0) >= DDK_PPS;
 
+// ── Car ownership gate (see docs/plans/cars.md) ───────────────────────────────
+// Sandbox is a free test-drive of every car; Time Attack / Zen (races) require OWNING the
+// car — bought in the garage carousel. The two starter cars are always owned (free).
+export const CAR_GATING_ENABLED = true;
+export const FREE_CARS = ['bismark', 'panda'];   // starter cars — never gated
+
 // ── Shop purchase logic (see ROADMAP Phase 2.5 + docs/plans/shop.md) ───────────
 // Pure decision only — no state, no persistence. js/store.js applies the result to
 // the wallet + owned list. Cosmetics are sidegrades; never sell power (records-safe).

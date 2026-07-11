@@ -16,6 +16,7 @@ const _content = (c = {}) => ({
   forwardTrackIds: c.forwardTrackIds ?? [],
   shopCategories:  c.shopCategories  ?? [],
   catalogById:     c.catalogById     ?? {},
+  cars:            c.cars            ?? [],   // ids of purchasable (paid) cars
   names:           c.names           ?? {},
 });
 
@@ -23,6 +24,7 @@ const _norm = (ctx = {}) => ({
   run:      ctx.run ?? null,
   wallet:   ctx.wallet ?? 0,
   owned:    ctx.owned ?? [],
+  ownedCars: ctx.ownedCars ?? [],
   cleared:  ctx.cleared ?? [],
   records:  ctx.records ?? {},
   caps:     ctx.caps ?? {},
@@ -109,8 +111,17 @@ const STATIC = [
     icon: '🧩', category: 'economy', hidden: false, reward: 30,
     check: (x) => x.content.shopCategories.length > 0 &&
       x.content.shopCategories.every(cat => x.owned.some(id => x.content.catalogById[id] === cat)) },
+  { id: 'new-wheels', name: 'New Wheels', desc: 'Buy your first car.',
+    icon: '🚗', category: 'economy', hidden: false, reward: 25,
+    check: (x) => x.ownedCars.length >= 1 },
+  { id: 'three-car-garage', name: 'Three-Car Garage', desc: 'Own three bought cars.',
+    icon: '🏎️', category: 'economy', hidden: false, reward: 40,
+    check: (x) => x.ownedCars.length >= 3 },
 
   // Hidden --------------------------------------------------------------------
+  { id: 'full-garage', name: 'Full Garage', desc: 'Own every car in the shop.',
+    icon: '🏁', category: 'hidden', hidden: true, reward: 150,
+    check: (x) => x.content.cars.length > 0 && x.content.cars.every(id => x.ownedCars.includes(id)) },
   { id: 'glass-cannon', name: 'Living Dangerously', desc: '5 stars and 15+ near misses in one race.',
     icon: '💥', category: 'hidden', hidden: true, reward: 40,
     check: (x) => (x.run?.stars ?? 0) >= 5 && (x.run?.nearMisses ?? 0) >= 15 },
@@ -202,7 +213,7 @@ const _ddkDefs = (content) => content.allInstanceIds.map(id => ({
 // Build the `content` descriptor from the live registries (tracks + shop catalog). Pure —
 // the registries are injected, not imported — so both the engine and the achievements page
 // derive the identical content (and therefore the identical ids) from one place.
-export const buildContent = (tracks, catalog) => {
+export const buildContent = (tracks, catalog, cars = []) => {
   const forwardIds  = tracks.map(t => t.id);
   const reversedIds = forwardIds.map(id => `${id}:rev`);
   const names = {};
@@ -212,6 +223,7 @@ export const buildContent = (tracks, catalog) => {
     forwardTrackIds: forwardIds,
     shopCategories: [...new Set(catalog.map(i => i.kind))],
     catalogById: Object.fromEntries(catalog.map(i => [i.id, i.kind])),
+    cars: cars.filter(c => c.price).map(c => c.id),   // purchasable (paid) car ids
     names,
   };
 };

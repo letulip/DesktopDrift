@@ -15,9 +15,9 @@ import { installLocalStorage } from './helpers.js';
 const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
-        wallet, addTires, tiresFor, tireCollect,
+        wallet, addTires, tireSwept, markTireSwept,
         owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared,
-        achAll, achUnlocked, achUnlock, achSetProgress, setTires } =
+        achAll, achUnlocked, achUnlock, achSetProgress } =
   await import('../js/store.js');
 
 test('defaults: garage (selected car + empty per-car looks)', () => {
@@ -41,7 +41,7 @@ test('getters return the same live object across calls', () => {
 });
 
 test('stats: defaults to caps/tires/cleared + lifetime counters', () => {
-  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 });
+  assert.deepEqual(stats(), { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 });
 });
 
 test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
@@ -52,12 +52,12 @@ test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', (
   assert.equal(addTires(-100), 0);   // clamped, never negative
 });
 
-test('tiresFor / tireCollect: one-time collection per track (mirrors caps)', () => {
-  assert.deepEqual(tiresFor('green-study'), []);
-  tireCollect('green-study', 't0');
-  tireCollect('green-study', 't0');  // no-op (already collected)
-  tireCollect('green-study', 't1');
-  assert.deepEqual(tiresFor('green-study'), ['t0', 't1']);
+test('tireSwept / markTireSwept: per-track clean-sweep flag, first-time only', () => {
+  assert.equal(tireSwept('green-study'), false);
+  assert.equal(markTireSwept('green-study'), true);   // first sweep → award
+  assert.equal(tireSwept('green-study'), true);
+  assert.equal(markTireSwept('green-study'), false);  // already swept → no re-award
+  assert.equal(tireSwept('steel-kitchen'), false);    // independent per instance
 });
 
 test('collectedCaps: returns [] for unknown track', () => {
@@ -94,7 +94,7 @@ test('mutate live object + save() persists correct JSON shape', () => {
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.version, 3);
+  assert.equal(raw.version, 4);
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
   assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
@@ -231,9 +231,3 @@ test('achUnlocked: reflects only unlocked ids, not mere progress', () => {
   assert.ok(achUnlocked().has('drift-50'));
 });
 
-test('setTires: replaces the collected-tire list wholesale (self-heal prune)', () => {
-  setTires('reconcile-track', ['t0', 't1', 't2']);
-  assert.deepEqual(tiresFor('reconcile-track'), ['t0', 't1', 't2']);
-  setTires('reconcile-track', ['t0']);                 // prune down
-  assert.deepEqual(tiresFor('reconcile-track'), ['t0']);
-});
