@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG, byKind } from '../js/shop-catalog.js';
+import { LAYOUTS, ANIMS } from '../js/neon.js';
 
 describe('CATALOG invariants', () => {
   it('all ids are unique', () => {
@@ -15,8 +16,8 @@ describe('CATALOG invariants', () => {
     }
   });
 
-  it('all kinds are finish or trail', () => {
-    const valid = new Set(['finish', 'trail']);
+  it('all kinds are known', () => {
+    const valid = new Set(['finish', 'trail', 'neon-layout', 'neon-anim']);
     for (const item of CATALOG) {
       assert.ok(valid.has(item.kind), `${item.id}: unknown kind '${item.kind}'`);
     }
@@ -62,5 +63,23 @@ describe('byKind', () => {
   it('unknown kind returns empty array', () => {
     assert.deepEqual(byKind('livery'), []);
     assert.deepEqual(byKind(''), []);
+  });
+});
+
+describe('Neon FX catalog', () => {
+  it('sells 3 layouts (solid stays free/unlisted) with valid neon.js layout ids', () => {
+    const layouts = byKind('neon-layout');
+    assert.equal(layouts.length, 3);
+    const ids = new Set(LAYOUTS.map(l => l.id));
+    for (const it of layouts) assert.ok(ids.has(it.value), `${it.id}: value '${it.value}' not a layout`);
+    assert.ok(!layouts.some(it => it.value === 'solid'), 'solid must stay free (unlisted)');
+  });
+
+  it('sells 3 animations (static stays free/unlisted) with valid neon.js anim ids', () => {
+    const anims = byKind('neon-anim');
+    assert.equal(anims.length, 3);
+    const ids = new Set(ANIMS.map(a => a.id));
+    for (const it of anims) assert.ok(ids.has(it.value), `${it.id}: value '${it.value}' not an anim`);
+    assert.ok(!anims.some(it => it.value === 'none'), 'static must stay free (unlisted)');
   });
 });

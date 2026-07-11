@@ -4,6 +4,8 @@
 // resolution (small cards vs a large modify preview) via the canvas size.
 // Paints the equipped finish + parses the trail colour via shared helpers.
 import { paintBody, hexToRgbStr } from './finish.js';
+import { drawNeon } from './neon-draw.js';
+import { defaultNeon } from './neon.js';
 
 export const CANVAS_W = 240;   // default card resolution (taller than the car so the neon fits)
 export const CANVAS_H = 140;
@@ -32,10 +34,11 @@ const drawTrail = (ctx, color, cx, cy, s, M, phase) => {
   }
 };
 
-// Draw car model M onto canvas `cvs`, optionally with a neon underglow colour, a paint
-// finish (matte/metallic/pearl/chrome), and a trail colour (a fading drift trail behind
-// the car — `phase` animates it). null disables each.
-export const drawCarPreview = (cvs, M, neonColor = null, finish = null, trail = null, phase = 0) => {
+// Draw car model M onto canvas `cvs`, optionally with a neon underglow (a neon CONFIG object
+// { layout, anim, colors, speed } — or a legacy colour string, or null), a paint finish
+// (matte/metallic/pearl/chrome), and a trail colour (a fading drift trail behind the car).
+// `phase` (seconds) animates both the trail and any neon animation. null disables each.
+export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null, phase = 0) => {
   const W = cvs.width, H = cvs.height;
   const ctx = cvs.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -50,35 +53,23 @@ export const drawCarPreview = (cvs, M, neonColor = null, finish = null, trail = 
 
   if (trail) drawTrail(ctx, trail, cx, cy, s, M, phase);
 
+  // Neon underglow via the shared 6-zone renderer. Drawn in DEVICE space (shadowBlur is
+  // device-px, unaffected by ctx.scale) at the car centre, with the car half-size scaled by
+  // `s`. A legacy colour string is wrapped as a solid config; a config object is used as-is.
+  const neonCfg = typeof neon === 'string' ? defaultNeon(neon) : (neon || null);
+  if (neonCfg) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (M.flip) ctx.scale(-1, 1);   // mirror front/rear zones to match a flipped body
+    // Wider + brighter than in-race so the underglow reads clearly on the small shop card.
+    drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, 2.1, 1.45);
+    ctx.restore();
+  }
+
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(M.flip ? -s : s, s);
   ctx.translate(-M.vw / 2, -M.vh / 2);
-  // Neon glow — three segments: nose→front axle | between axles | rear axle→tail.
-  // 3% end | 15.5% wheel gap | 58% between axles | 15.5% wheel gap | 8% end
-  // Drawn in path coordinates (after scale+translate), before the car body.
-  if (neonColor) {
-    const glowH = M.vh * 0.78;
-    const gy    = (M.vh - glowH) / 2;
-    const s1p = M.vw * 0.03, s2p = M.vw * 0.58, s3p = M.vw * 0.08;
-    const gpp = M.vw * 0.155;  // gap per wheel
-
-    ctx.shadowColor = neonColor;
-    ctx.shadowBlur  = 30;      // bright underglow that still fits inside the preview
-    ctx.globalAlpha = 1;
-    ctx.fillStyle   = neonColor;
-
-    const ei_p = M.vw * 0.02;  // inset from path tips
-    ctx.beginPath();
-    ctx.rect(ei_p,         gy, s1p - ei_p, glowH);  // end 1 (inset from tip)
-    ctx.rect(s1p + gpp,    gy, s2p,        glowH);  // between axles
-    ctx.rect(M.vw - s3p,   gy, s3p - ei_p, glowH);  // end 2 (inset from tip)
-    ctx.fill();
-
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur  = 0;
-    ctx.shadowColor = 'transparent';
-  }
   paintBody(ctx, M._p2d, M.body, finish, M.vw, M.vh);
   if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
   ctx.lineJoin   = 'round';

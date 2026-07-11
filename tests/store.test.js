@@ -27,7 +27,7 @@ test('defaults: garage (selected car + empty per-car looks)', () => {
 });
 
 test('carLook: lazily returns a null-default look per car index', () => {
-  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null });
+  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null, neon: null });
 });
 
 test('defaults: settings / records / achievements', () => {
@@ -94,7 +94,7 @@ test('mutate live object + save() persists correct JSON shape', () => {
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.version, 2);
+  assert.equal(raw.version, 3);
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
   assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
