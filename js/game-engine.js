@@ -458,10 +458,14 @@ export const startGame = (T, opts = {}) => {
       S.driftGrace += dt;
       if (S.driftGrace > 0.5 && S.comboPoints >= 1) {
         comboUnbroken = false;   // an active combo streak ended mid-race
-        if (onTrack) bankPoints(); else burnCombo('OFF TRACK!');  // bank the points (keep the multiplier)
+        // Breaking the drift long enough to bank (>0.5s off the slide) costs the multiplier
+        // too — you keep the points you earned, but the flow reward resets. A genuinely
+        // seamless flick (grace < 0.5s, nothing banks) still builds through, so clean
+        // drift-chaining is unaffected; only a real break drops the multiplier.
+        if (onTrack) { bankPoints(); resetMult(); } else burnCombo('OFF TRACK!');
       }
-      // The multiplier survives a brief interruption (a fast flick can straighten the car for
-      // up to ~1s); it only resets after a sustained non-drift stretch — never on a quick flick.
+      // Safety net: a stop that built a multiplier but no bankable points still clears it
+      // after a sustained non-drift stretch (a quick flick never reaches this).
       if (onTrack && S.driftGrace > MULT_RESET_GRACE && S.multBuild > 0) resetMult();
     }
 
