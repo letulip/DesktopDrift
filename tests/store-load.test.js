@@ -101,6 +101,23 @@ test('corrupt slice (wrong type) heals to default, other data kept', async () =>
   assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
 });
 
+// v4 migration: an old save that had ALL a track's tires collected earns the clean-swept
+// wheel (grandfathered); a partially-collected track does not.
+test('v4 tire-sweep migration grandfathers fully-collected tracks', async () => {
+  installLocalStorage({
+    'desktop-drift': JSON.stringify({
+      version: 3,
+      stats: { caps: {}, tires: {
+        'green-study':   Array.from({ length: 12 }, (_, i) => 't' + i),   // 12/12 → swept
+        'steel-kitchen': ['t0', 't1', 't2'],                             // 3/11  → not swept
+      } },
+    }),
+  });
+  const fresh = await import('../js/store.js?v=v4mig');
+  assert.equal(fresh.tireSwept('green-study'), true);
+  assert.equal(fresh.tireSwept('steel-kitchen'), false);
+});
+
 // A saved wallet balance + the clean-swept-tracks list survive a load (economy persistence).
 test('wallet + swept tracks are preserved on load', async () => {
   installLocalStorage({

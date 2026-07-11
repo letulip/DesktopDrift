@@ -4,6 +4,7 @@
 // Pure shop purchase logic lives in js/economy.js (buy); this module applies it.
 import { buy, CAR_GATING_ENABLED, FREE_CARS } from './economy.js';
 import { defaultNeon } from './neon.js';
+import { TRACKS } from './track-registry.js';   // pure data — used by the v4 tire-sweep migration
 //
 // ── Schema evolution (never wipes player data) ────────────────────────────────
 // On load we deep-MERGE the saved object over `defaults()`: missing keys are filled
@@ -21,7 +22,7 @@ import { defaultNeon } from './neon.js';
 // deploy producing a "future" save) is merged, not wiped.
 
 const KEY     = 'desktop-drift';
-const VERSION = 3;
+const VERSION = 4;
 
 const defaults = () => ({
   version:      VERSION,
@@ -67,6 +68,22 @@ const MIGRATIONS = {
     for (const look of Object.values(s.garage.cars)) {
       if (_isObj(look) && look.neon === undefined) {
         look.neon = look.neonColor ? defaultNeon(look.neonColor) : null;
+      }
+    }
+    return s;
+  },
+  // v4: tires went from per-tire persistence (stats.tires) to a respawn model. Grandfather the
+  // clean-swept wheel badge: if a saved track had ALL its tires collected (count ≥ that track's
+  // tire total), mark the instance as swept so returning players keep their earned badges.
+  4: (s) => {
+    if (!_isObj(s.stats)) return s;
+    const st = s.stats;
+    if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+    const tires = _isObj(st.tires) ? st.tires : {};
+    for (const [inst, ids] of Object.entries(tires)) {
+      const total = TRACKS.find(t => t.id === inst.split(':')[0])?.tires ?? 0;
+      if (total > 0 && Array.isArray(ids) && ids.length >= total && !st.tiresSwept.includes(inst)) {
+        st.tiresSwept.push(inst);
       }
     }
     return s;

@@ -94,7 +94,7 @@ test('mutate live object + save() persists correct JSON shape', () => {
   save();
 
   const raw = JSON.parse(store.get('desktop-drift'));
-  assert.equal(raw.version, 3);
+  assert.equal(raw.version, 4);
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
   assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
