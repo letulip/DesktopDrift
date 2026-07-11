@@ -35,12 +35,14 @@ const BASE_BLUR = 22, BASE_ALPHA = 0.65;
 // zones that share a colour into ONE shadowBlur pass — solid = 1 pass; per-zone / animated
 // up to 6. `blurScale` compensates callers whose car is drawn larger (shadowBlur is device-px,
 // unaffected by ctx.scale) — the garage preview passes >1 so the glow stays proportional.
-export const drawNeon = (ctx, hl, hw, neon, t = 0, blurScale = 1) => {
+// `alphaScale` brightens the glow for callers that need it more visible (the shop preview
+// passes >1 so the underglow reads clearly on a small card); clamped so alpha never exceeds 1.
+export const drawNeon = (ctx, hl, hw, neon, t = 0, blurScale = 1, alphaScale = 1) => {
   if (!neon) return;
   const zc = zoneColors(neon, t);
   const intensity = zc[0].intensity;                 // uniform across zones for every animation
   const blur  = BASE_BLUR  * (0.55 + 0.45 * intensity) * blurScale;
-  const alpha = BASE_ALPHA * (0.55 + 0.45 * intensity);
+  const alpha = Math.min(1, BASE_ALPHA * (0.55 + 0.45 * intensity) * alphaScale);
   const geom = zoneGeom(hl, hw);
 
   // group zone indices by resolved colour so same-colour zones fill in a single blur pass

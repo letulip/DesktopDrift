@@ -61,7 +61,8 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
     ctx.save();
     ctx.translate(cx, cy);
     if (M.flip) ctx.scale(-1, 1);   // mirror front/rear zones to match a flipped body
-    drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, 1.5);
+    // Wider + brighter than in-race so the underglow reads clearly on the small shop card.
+    drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, 2.1, 1.45);
     ctx.restore();
   }
 
