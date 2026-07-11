@@ -35,7 +35,7 @@ const defaults = () => ({
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
   ownedCars:    [],        // purchased car ids (Time Attack ownership — gate is OFF for now, see economy.CAR_GATING_ENABLED)
-  stats:        { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances + lifetime counters (races finished, seconds drifted)
+  stats:        { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances (tires respawn now; tiresSwept = tracks fully cleared once) + lifetime counters
 });
 
 // Breaking-change migrations, keyed by the target version.
@@ -214,31 +214,22 @@ export const recordTxn = (amount, reason) => {
 // The tire-coin transaction history (oldest first). Empty until the first earn/spend.
 export const ledger = () => { _ensure(); if (!Array.isArray(_s.ledger)) _s.ledger = []; return _s.ledger; };
 
-// Ids of tires already collected on a track (empty if none yet).
-export const tiresFor = (trackId) => {
+// Tires respawn every race now (no per-tire persistence). We only remember which track
+// INSTANCES the player has fully cleared at least once (all tires in a single run) — that
+// drives the wheel badge on the track card + the one-time clean-sweep bonus.
+export const tireSwept = (instanceId) => {
   const st = stats();
-  if (!st.tires) st.tires = {};
-  return st.tires[trackId] ?? [];
+  if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+  return st.tiresSwept.includes(instanceId);
 };
 
-// Mark a tire id as permanently collected for a track. No-op if already recorded.
-export const tireCollect = (trackId, id) => {
+// Mark a track instance as clean-swept. Returns true the FIRST time (→ award the bonus).
+export const markTireSwept = (instanceId) => {
   const st = stats();
-  if (!st.tires) st.tires = {};
-  const arr = st.tires[trackId] ?? (st.tires[trackId] = []);
-  if (!arr.includes(id)) { arr.push(id); save(); }
-};
-
-// Replace a track's collected-tire list wholesale (used by the engine's self-heal to prune
-// orphaned/duplicate ids so the count can't exceed the tile total). Persists only on change.
-export const setTires = (trackId, ids) => {
-  const st = stats();
-  if (!st.tires) st.tires = {};
-  const next = [...ids];
-  const prev = st.tires[trackId] ?? [];
-  if (prev.length !== next.length || prev.some((v, i) => v !== next[i])) {
-    st.tires[trackId] = next; save();
-  }
+  if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
+  if (st.tiresSwept.includes(instanceId)) return false;
+  st.tiresSwept.push(instanceId); save();
+  return true;
 };
 
 // Record a track instance (trackId, or trackId:mode later) as finished. Returns true the

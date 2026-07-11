@@ -17,7 +17,7 @@ installLocalStorage({
   }),
 });
 
-const { settings, garage, records, achievements, stats, collectedCaps, wallet, tiresFor,
+const { settings, garage, records, achievements, stats, collectedCaps, wallet,
         owned, carLook } =
   await import('../js/store.js');
 
@@ -48,7 +48,7 @@ test('loads persisted records / achievements (real PPS record shape)', () => {
 
 test('stats: missing slice is filled from defaults on an existing save', () => {
   // The seeded save has no stats field — merge fills it; existing data is untouched.
-  assert.deepEqual(stats(), { caps: {}, tires: {}, cleared: [], runs: 0, driftSecs: 0 });
+  assert.deepEqual(stats(), { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 });
 });
 
 test('wallet: missing field on an old save is filled from defaults (0)', () => {
@@ -101,16 +101,16 @@ test('corrupt slice (wrong type) heals to default, other data kept', async () =>
   assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
 });
 
-// A saved wallet balance and collected tires survive a load (economy persistence).
-test('wallet + collected tires are preserved on load', async () => {
+// A saved wallet balance + the clean-swept-tracks list survive a load (economy persistence).
+test('wallet + swept tracks are preserved on load', async () => {
   installLocalStorage({
     'desktop-drift': JSON.stringify({
       version: 1,
       wallet: 137,
-      stats: { caps: {}, tires: { 'green-study': ['t0', 't2'] } },
+      stats: { caps: {}, tiresSwept: ['green-study'] },
     }),
   });
   const fresh = await import('../js/store.js?v=econ');
   assert.equal(fresh.wallet(), 137);
-  assert.deepEqual(fresh.tiresFor('green-study'), ['t0', 't2']);
+  assert.equal(fresh.tireSwept('green-study'), true);
 });
