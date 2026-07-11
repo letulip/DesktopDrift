@@ -25,14 +25,33 @@
    distance from the active index. Desktop shows ±2 (5 cards), mobile ±1 (3). Swipe / tap a
    neighbour / dots / arrow keys to change the active car. */
 #cars {
-  --card-w: min(300px, 82vw);
+  --card-w: min(320px, 86vw);
   position: relative;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;               /* full-bleed: escape the narrow column so the coverflow has room */
   height: 340px;
   overflow: hidden;                 /* clip the far, faded cards */
-  touch-action: pan-y;              /* let the page scroll vertically; we handle horizontal */
+  touch-action: pan-y;              /* let the page scroll vertically; we handle horizontal swipes */
   user-select: none; -webkit-user-select: none;
 }
+#cars.dragging .car-card { transition: none; }   /* follow the finger without transition lag */
+
+/* Prev / next arrows — circular, on top of the back cards, big easy tap targets */
+.car-nav {
+  position: absolute; top: 50%; z-index: 200;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(20,17,15,.72); border: 1px solid var(--surface-line);
+  color: var(--accent); font: 700 24px/1 var(--font-body);
+  cursor: pointer; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  transition: background var(--ease), border-color var(--ease), opacity var(--ease);
+}
+.car-nav.prev { left: calc(50% - var(--card-w) / 2 - 8px); transform: translate(-50%, -50%); }
+.car-nav.next { left: calc(50% + var(--card-w) / 2 + 8px); transform: translate(-50%, -50%); }
+.car-nav:hover { background: rgba(20,17,15,.92); border-color: var(--accent-line); }
+.car-nav:active { background: var(--accent-tint); }
+.car-nav.is-off { opacity: .25; pointer-events: none; }
 
 /* Carousel position dots (below the strip) */
 .car-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }

@@ -169,6 +169,8 @@
   });
 
   // ── Coverflow carousel: the active (centred) car is the selected car ──────────
+  let dragDX = 0, dragging = false;    // live-drag offset while swiping
+
   const dotsEl = document.getElementById('car-dots');
   const dots = CARS.map((_, i) => {
     const d = document.createElement('button');
@@ -180,52 +182,81 @@
     return d;
   });
 
+  // Circular prev/next arrows, layered on top of the back cards (easy tap targets).
+  const mkNav = (cls, sym, delta) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'car-nav ' + cls;
+    b.textContent = sym;
+    b.setAttribute('aria-label', cls === 'prev' ? 'Previous car' : 'Next car');
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());   // don't start a carousel drag
+    b.addEventListener('click', () => setActive(sel + delta));
+    carsEl.appendChild(b);
+    return b;
+  };
+  const navPrev = mkNav('prev', '❮', -1);
+  const navNext = mkNav('next', '❯', +1);
+
+  const stepPx = () => (cards[0].card.offsetWidth || 260) * 0.6;   // adjacent centres — ~40% overlap
+
   // Neighbours shown per side: 2 on desktop (5 cards), 1 on mobile (3).
   const mq = matchMedia('(max-width: 560px)');
   const sideCount = () => (mq.matches ? 1 : 2);
 
-  // Place every card by its distance from the active index: active = big + centred,
-  // neighbours shrink + fade + sit behind, far cards hidden. Called on select + resize.
+  // Place every card by its distance from the active index (+ any live drag): active = big +
+  // centred, neighbours shrink + fade + sit behind, far cards hidden. While dragging we reveal
+  // one extra card each side so the incoming car slides in instead of popping.
   const layout = () => {
-    const side = sideCount();
-    const cardW = cards[0].card.offsetWidth || 260;
-    const step  = cardW * 0.6;                                // adjacent card centres — ~40% overlap
+    const base = sideCount();
+    const side = base + (dragging ? 1 : 0);
+    const step = stepPx();
     cards.forEach((c, i) => {
       const pos  = i - sel;                                   // 0 = centre, ±1 neighbour, …
       const abs  = Math.abs(pos);
-      const show = abs <= side;
       const scale = Math.max(0.5, 1 - abs * 0.16);            // shrink neighbours
       const el = c.card;
-      el.style.transform = `translate(-50%, -50%) translateX(${pos * step}px) scale(${scale})`;
+      el.style.transform = `translate(-50%, -50%) translateX(${pos * step + dragDX}px) scale(${scale})`;
       el.style.zIndex = String(100 - abs);                    // active on top, neighbours behind
-      el.style.opacity = show ? '1' : '0';
+      el.style.opacity = abs <= side ? '1' : '0';
       el.style.filter = abs === 0 ? 'none' : `brightness(${1 - abs * 0.18})`;
-      el.style.pointerEvents = show ? 'auto' : 'none';
-      el.classList.toggle('sel', pos === 0);
+      el.style.pointerEvents = abs <= base ? 'auto' : 'none';
+      el.classList.toggle('sel', pos === 0 && !dragging);
     });
     dots.forEach((d, j) => d.classList.toggle('is-on', j === sel));
+    navPrev.classList.toggle('is-off', sel === 0);
+    navNext.classList.toggle('is-off', sel === CARS.length - 1);
   };
 
   const setActive = (i) => {
     i = Math.max(0, Math.min(i, CARS.length - 1));
-    if (i === sel) return;
+    dragDX = 0;
+    if (i === sel) { layout(); return; }
     sel = i;
     garage().carIndex = i; save();
     layout();
   };
 
-  // Swipe / drag horizontally to step through cars; a small move still counts as a tap.
-  carsEl.addEventListener('pointerdown', (e) => { downX = e.clientX; moved = false; });
+  // Live drag: the strip follows the finger, then snaps to the nearest card on release.
+  carsEl.addEventListener('pointerdown', (e) => {
+    downX = e.clientX; moved = false; dragging = true;
+    carsEl.classList.add('dragging');
+    carsEl.setPointerCapture?.(e.pointerId);
+  });
   carsEl.addEventListener('pointermove', (e) => {
-    if (downX != null && Math.abs(e.clientX - downX) > 8) moved = true;
+    if (downX == null) return;
+    dragDX = e.clientX - downX;
+    if (Math.abs(dragDX) > 6) moved = true;
+    layout();
   });
   const endDrag = (e) => {
     if (downX == null) return;
-    const dx = e.clientX - downX; downX = null;
-    if (Math.abs(dx) > 40) setActive(sel + (dx < 0 ? 1 : -1));   // swipe left → next car
+    const dx = (e.clientX ?? downX) - downX;
+    downX = null; dragging = false;
+    carsEl.classList.remove('dragging');
+    setActive(sel + Math.round(-dx / stepPx()));   // snap to the nearest card (clears dragDX)
   };
   carsEl.addEventListener('pointerup', endDrag);
-  carsEl.addEventListener('pointercancel', () => { downX = null; });
+  carsEl.addEventListener('pointercancel', endDrag);
 
   // Arrow keys + breakpoint/resize re-layout (desktop 5 ↔ mobile 3).
   addEventListener('keydown', (e) => {
