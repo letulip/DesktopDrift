@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v130';
+const CACHE = 'desktop-drift-v132';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -37,6 +37,7 @@ const ASSETS = [
   'css/achievements.css',
   'css/settings.css',
   'css/donate.css',
+  'css/ach-toast.css',
   'fonts/unbounded-800-latin.woff2',
   'js/store.js',
   'js/config.js',
@@ -44,6 +45,7 @@ const ASSETS = [
   'js/economy.js',
   'js/achievements.js',
   'js/ach-sync.js',
+  'js/ach-toast.js',
   'js/shop-catalog.js',
   'js/car-preview.js',
   'js/finish.js',

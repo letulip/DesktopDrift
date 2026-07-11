@@ -1,0 +1,90 @@
+/* Out-of-race achievement toast (js/ach-toast.js). A top-centre stack of celebratory
+   popups shown on the garage after a shop purchase unlocks an achievement. */
+
+#ach-toasts {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: min(92vw, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;              /* let the page under the stack stay interactive */
+}
+
+.ach-toast {
+  position: relative;
+  pointer-events: auto;             /* but the toasts themselves (× button) are clickable */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 40px 12px 14px;     /* room on the right for the close button */
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--bg-raise), var(--bg-mid));
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45), 0 0 22px var(--accent-tint);
+  color: var(--ink);
+  overflow: hidden;                 /* rounds the corners + clips stray confetti */
+  opacity: 0;
+  transform: translateY(-14px) scale(.96);
+  transition: opacity .35s ease, transform .35s cubic-bezier(.2, .8, .2, 1);
+}
+.ach-toast.is-in  { opacity: 1; transform: translateY(0) scale(1); }
+.ach-toast.is-out { opacity: 0; transform: translateY(-10px) scale(.98);
+                    transition: opacity .55s ease, transform .55s ease; }
+
+.ach-toast-confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ach-toast-icon { flex-shrink: 0; font-size: 30px; line-height: 1; }
+
+.ach-toast-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ach-toast-head {
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: .85;
+}
+.ach-toast-name {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ach-toast-reward { font-size: 11px; font-weight: 700; color: var(--accent-gold); }
+
+.ach-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  opacity: .5;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ach-toast-close:hover { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ach-toast,
+  .ach-toast.is-in,
+  .ach-toast.is-out { transform: none; transition: opacity .2s ease; }
+}
