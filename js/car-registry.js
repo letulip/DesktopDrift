@@ -20,4 +20,10 @@ export const CAR_REGISTRY = [
     ratings: { handling: 7, accel: 7, speed: 7 },
     feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
   },
+  {
+    id: 'bavarian', name: 'Bavarian', svg: 'bavarian.svg',
+    body: '#4a4a4a', stroke: '#222222', flip: true, len: 76,
+    ratings: { handling: 8, accel: 5, speed: 7 },
+    feel: { steerSmooth: 6, selfAlign: 0.85, grip: 0.98, driftSteerBoost: 1.25 },
+  },
 ];
