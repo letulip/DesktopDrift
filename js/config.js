@@ -1,3 +1,5 @@
+import { GENERATED_CARS } from './cars-data.js';
+
 // --- Car parameters (tuning knobs) ---
 export const CFG = {
   thrust: 550,          // forward acceleration (px/s^2)
@@ -12,8 +14,11 @@ export const CFG = {
   driftSteerBoost: 1.2  // sharper steering during a drift (helps direction switches)
 };
 
-// Car models (top-down view). Vector (primitives) or SVG-path based.
-export const CARS = [
+// Car models (top-down view). Legacy cars are inline here (hand-extracted); newer cars come
+// from js/cars-data.js — GENERATED from cars/*.svg + js/car-registry.js by scripts/gen-cars.js
+// (npm run gen:cars). Append order matters: existing saved carIndex (0/1) must stay stable, so
+// new cars land at index 2+. See docs/plans/cars.md.
+const LEGACY_CARS = [
   { name: 'Bismark', len: 82, body: '#a4a4a4', stroke: '#222222', vw: 426, vh: 157, flip: true,
     drive: { thrust: 580, maxSpeed: 470, steer: 2.2, steerSmooth: 4.5, lowSpeedTurn: 0.20, selfAlign: 0.82, grip: 0.98, driftSteerBoost: 1.2 },
     details: [
@@ -35,6 +40,10 @@ export const CARS = [
     ],
     path: 'M26.3471 13.0687H16.0083L11.5773 16.7654L7.8849 25.6374V43.3815M26.3471 13.0687L23.3932 43.3815M26.3471 13.0687L127.52 10.8507M23.3932 43.3815H13.0543M23.3932 43.3815H109.058M7.8849 43.3815V110.661M7.8849 43.3815H13.0543M26.3471 140.235H16.0083L11.5773 137.277L7.8849 129.145V110.661M26.3471 140.235L23.3932 110.661M26.3471 140.235L127.52 145.41M7.8849 110.661H13.0543M23.3932 110.661H13.0543M23.3932 110.661H109.058M13.0543 110.661V43.3815M4.93094 145.41L0.5 131.363V20.4621L4.93094 7.89336L52.1943 0.5H332.082L386.73 3.45735L397.808 7.89336L401.5 20.4621V135.059L397.808 148.367L386.73 152.803L332.082 156.5H52.1943L4.93094 145.41ZM131.951 10.8507L123.828 27.8555L117.181 76.6517L123.828 121.751L131.951 145.41L186.599 128.405L180.692 96.6137V61.8649L186.599 27.8555L131.951 10.8507ZM156.321 149.846V145.41L201.369 130.623H240.509L247.894 149.846H156.321Z' },
 ];
+
+// Full roster: legacy inline cars first (stable indices), then the generated ones.
+export const CARS = [...LEGACY_CARS, ...GENERATED_CARS];
+
 // Initialise Path2D and dimensions (browser-only — Path2D is a browser API)
 for (const m of CARS) {
   if (m.path) {
@@ -57,7 +66,7 @@ export const STEER_WOBBLE = 0.16; // heading drift amplitude, rad/s
 // --- Speed conversion from game units to real-world units ---
 // Calibrated against the physical speed of real 1:64 scale models (up to ~15 km/h).
 // Bismark maxSpeed 470 gu/s → 10.8 km/h; Panda 410 gu/s → 9.5 km/h.
-export const GU_TO_KMH = 0.023;   // game units/s → km/h
+export { GU_TO_KMH } from './car-stats.js';   // game units/s → km/h (defined with the star scales)
 
 // Near-miss: gap beyond the collision radius that counts as "just scraped by"
 export const NM_BAND = 42;

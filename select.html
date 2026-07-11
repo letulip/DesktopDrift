@@ -37,6 +37,7 @@
   <div id="content" class="content--column">
 
     <div id="cars"></div>
+    <div id="car-dots" class="car-dots"></div>
 
     <button id="raceBtn">Race! 🏁</button>
   </div>
@@ -48,12 +49,13 @@
 </div>
 
 <script type="module">
-  import { CARS, GU_TO_KMH } from './js/config.js';
+  import { CARS } from './js/config.js';
   import { garage, save, wallet, carLook } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
   import { flushAchievementToasts } from './js/ach-toast.js';
+  import { speedRating, handlingRating, accRating } from './js/car-stats.js';
 
   const params    = new URLSearchParams(location.search);
   const trackId   = params.get('track');                          // e.g. 'green-study'
@@ -94,24 +96,7 @@
   // (pulse / rainbow / flow). Legacy string colours and solid/none never animate.
   const neonAnimated = (i) => { const n = carLook(i).neon; return !!(n && n.anim && n.anim !== 'none'); };
 
-  // ── Stat ratings (0–10 cells) ────────────────────────────────────────────────
-  // Scale is intentionally above current values — headroom for future upgrades.
-  const SPEED_MAX_KMH  = 15;   // 10 cells = 15 km/h (physical limit of a 1:64 model)
-  const STEER_MAX      = 5.0;  // max steer accounting for future upgrades
-  const LOWTURN_MAX    = 0.5;  // max lowSpeedTurn accounting for future upgrades
-  const THRUST_MAX     = 900;  // max thrust accounting for future upgrades
-
-  const speedRating = (d) =>
-    Math.min(10, Math.round(d.maxSpeed * GU_TO_KMH / SPEED_MAX_KMH * 10));
-
-  const handlingRating = (d) =>
-    Math.min(10, Math.round(
-      (d.steer / STEER_MAX * 0.7 + d.lowSpeedTurn / LOWTURN_MAX * 0.3) * 10
-    ));
-
-  const accRating = (d) =>
-    Math.min(10, Math.round(d.thrust / THRUST_MAX * 10));
-
+  // ── Stat bars (0–10 cells) — ratings come from the shared pure js/car-stats.js ─
   const makeStatRow = (label, n, cls) => {
     const row = document.createElement('div');
     row.className = 'stat-row';
@@ -169,16 +154,54 @@
     nm.textContent = M.name;
     card.appendChild(nm);
 
-    card.addEventListener('click', () => selectCar(i));
+    card.addEventListener('click', () => centerCard(i, true));   // tapping a peeking card centres it
     carsEl.appendChild(card);
     return { card, cvs };
   });
 
-  const selectCar = (i) => {
+  // ── Carousel: the car centred in the strip is the selected car ────────────────
+  const dotsEl = document.getElementById('car-dots');
+  const dots = CARS.map((_, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'car-dot' + (i === sel ? ' is-on' : '');
+    d.setAttribute('aria-label', `Car ${i + 1}`);
+    d.addEventListener('click', () => centerCard(i, true));
+    dotsEl.appendChild(d);
+    return d;
+  });
+
+  // Bring a car to the centre of the strip (smooth on tap, instant on first load).
+  const centerCard = (i, smooth) =>
+    cards[i].card.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', inline: 'center', block: 'nearest' });
+
+  const setSel = (i) => {
+    if (i === sel) return;
     sel = i;
     cards.forEach((c, j) => c.card.classList.toggle('sel', j === i));
+    dots.forEach((d, j) => d.classList.toggle('is-on', j === i));
     garage().carIndex = i; save();
   };
+
+  // The card whose centre is nearest the strip's centre (viewport coords → robust to padding).
+  const centeredIndex = () => {
+    const cr = carsEl.getBoundingClientRect();
+    const mid = cr.left + cr.width / 2;
+    let best = sel, bestDist = Infinity;
+    cards.forEach((c, i) => {
+      const r = c.card.getBoundingClientRect();
+      const dist = Math.abs((r.left + r.width / 2) - mid);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    });
+    return best;
+  };
+
+  // Selection follows the scroll: after a swipe settles, the centred car wins.
+  let scrollT = null;
+  carsEl.addEventListener('scroll', () => {
+    clearTimeout(scrollT);
+    scrollT = setTimeout(() => setSel(centeredIndex()), 90);
+  }, { passive: true });
 
   // ── Race button ──────────────────────────────────────────────────────────────
   document.getElementById('raceBtn').addEventListener('click', () => {
@@ -190,6 +213,7 @@
 
   // ── Initial render — each car shows its own per-car look ──────────────────────
   CARS.forEach((M, i) => drawCard(M, i));
+  centerCard(sel, false);   // scroll the saved car to the centre without animation
 
   // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow
   // move on the garage cards just like in the modify preview and in-race. Cards
