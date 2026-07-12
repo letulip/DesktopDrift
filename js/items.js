@@ -223,7 +223,7 @@ export const ITEM_PLATE_SOUP_SPOON = {
 
 // Frying pan with stew / sausages (~45 cm with handle, pan diameter 28 cm)
 export const ITEM_PAN_STEER = {
-  hl: 100,
+  hl: 120,
   r: 204,
   kind: 'bowl',
   c: '#3d434a',
