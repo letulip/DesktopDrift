@@ -215,6 +215,17 @@ stays readable. No framework, no bundler.
     45 fps (no clean 60 exists on 90 Hz) and micro-stuttered on 60 Hz from rAF jitter.
     Do not reintroduce a fixed-ms frame cap; only halve when native rate is a clean
     multiple of 60 if battery ever demands it.
+    **Mobile-GPU lesson — do NOT bake the track into a big offscreen bitmap by default.**
+    An offscreen static-surface bake (table+track → one canvas, `drawImage` each frame) was
+    tried to avoid the per-frame 200 px stroke. It BACKFIRED on weak GPUs: blitting a ~26–42 MB
+    texture every frame is a net loss vs the decimated live stroke on fill-rate-poor Adreno
+    (it made even the simple tracks lag on a Moto G8 Plus / Adreno 610), and it does NOT fix
+    the Mali-G76 corruption on cafe-marble/dev-desk (that glitch is per-frame **translucent
+    gradient-sprite overdraw** — the coffee/donut items — not the surface). The bake is now
+    OFF by default (`_surfaceMode` / `USE_SURFACE_BAKE` in `render.js`, opt-in via
+    `?surface=bake`). If you ever revisit it, gate it to strong GPUs only; don't make it the
+    default. The real per-frame win is **off-screen culling** of props/collectibles (`_inView`
+    in `draw()`): the camera zooms on the car, so most items aren't visible — skip them.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
