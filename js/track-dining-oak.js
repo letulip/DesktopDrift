@@ -19,7 +19,7 @@ export const {
     background: '#0f0b08',
     table:      '#2e241a',
     tableEdge:  '#5a4a36',
-    track:      '#43372a',
+    track:      '#cdbf9e',   // warm light tan, consistent with the other tracks (was the dark default #43372a)
     skid:       'rgba(15,9,6,0.5)',
     checkpoint: 'rgba(125,212,255,0.5)',
     cone:       '#ff7a1a',

@@ -61,6 +61,6 @@ export const TRACKS = [
     svgSrc: `tracks/dining-oak.svg`,
     caps:   1,
     tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
-    theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#43372a` },
+    theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#cdbf9e` },
   },
 ];

@@ -15,12 +15,12 @@
 <line id="ITEM_PLATE_MASHED" x1="6187.71" y1="5655.41" x2="5467.71" y2="5152.41" stroke="black"/>
 <line id="ITEM_BOWL_SOUP_1_2" x1="13928.5" y1="3356" x2="13928.5" y2="4156" stroke="black"/>
 <line id="ITEM_BOWL_SOUP_EGG" x1="14113.5" y1="1569" x2="14113.5" y2="2369" stroke="black"/>
-<line id="ITEM_PLATE_SOUP_SPOON_2" x1="14999.4" y1="5542.66" x2="15568.4" y2="6149.66" stroke="black"/>
-<line id="ITEM_PLATE_SAUSAGE_SET" x1="12827.5" y1="6196" x2="12827.5" y2="6996" stroke="black"/>
+<line id="ITEM_PLATE_SOUP_SPOON_2" x1="15276.4" y1="5855.66" x2="15845.4" y2="6462.66" stroke="black"/>
+<line id="ITEM_PLATE_SAUSAGE_SET" x1="12582.5" y1="6635" x2="12582.5" y2="7435" stroke="black"/>
 <line id="ITEM_PLATE_SAUSAGE_SET_2" x1="3027.07" y1="4266.49" x2="2173.07" y2="4394.49" stroke="black"/>
 <line id="ITEM_FRIES_RED_2" x1="1221.47" y1="604.166" x2="944.471" y2="1389.17" stroke="black"/>
-<line id="ITEM_KNIFE_2_3" x1="13168.5" y1="4378.04" x2="13123.5" y2="4982.04" stroke="black"/>
-<line id="ITEM_FORK_2" x1="11389.4" y1="4518.67" x2="11772.4" y2="4958.67" stroke="black"/>
+<line id="ITEM_KNIFE_2_3" x1="13223.5" y1="4018.04" x2="13178.5" y2="4622.04" stroke="black"/>
+<line id="ITEM_FORK_2" x1="11267.4" y1="4157.67" x2="11650.4" y2="4597.67" stroke="black"/>
 <line id="ITEM_FORK_2_2" x1="6132.38" y1="4619.67" x2="6515.38" y2="5059.67" stroke="black"/>
 <line id="ITEM_FORK_2_3" x1="10698.4" y1="1659.67" x2="11081.4" y2="2099.67" stroke="black"/>
 <line id="ITEM_FORK_2_4" x1="3856.38" y1="1809.67" x2="4239.38" y2="2249.67" stroke="black"/>
@@ -35,6 +35,6 @@
 <line id="ITEM_FORK_2_8" x1="8828.17" y1="1385.47" x2="8278.17" y2="1590.47" stroke="black"/>
 <line id="ITEM_FRIES_ORANGE_3" x1="1546.43" y1="7226.75" x2="1955.43" y2="7931.75" stroke="white"/>
 <line id="ITEM_PLATE_CHICKEN" x1="6660.71" y1="1137.41" x2="5940.71" y2="634.41" stroke="black"/>
-<line id="ITEM_PLATE_MASHED_2" x1="12331.5" y1="4992.01" x2="12317.5" y2="4156.01" stroke="black"/>
+<line id="ITEM_PLATE_MASHED_2" x1="12368.5" y1="4632.01" x2="12354.5" y2="3796.01" stroke="black"/>
 </g>
 </svg>
