@@ -35,13 +35,13 @@ export const ITEM_PLATE_WHITE  = { hl: 0, r: 164, kind: 'plate', c: '#ffffff', i
 export const ITEM_PLATE_GREY   = { hl: 0, r: 164, kind: 'plate', c: '#dce3e8', imgSrc: 'items/plate2-ready.svg' };
 
 // --- Table knives (~21 cm, capsule 246×30) ---
-export const ITEM_KNIFE_1 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
-export const ITEM_KNIFE_2 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
-export const ITEM_KNIFE_3 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
+export const ITEM_KNIFE_1 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
+export const ITEM_KNIFE_2 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
+export const ITEM_KNIFE_3 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
 
 // --- Table forks (~21 cm, capsule 246×30) ---
-export const ITEM_FORK_1 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
-export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
+export const ITEM_FORK_1 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
+export const ITEM_FORK_2 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
 
 // --- Large meat fork (~32.5 cm, capsule 380×40) ---
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
@@ -214,7 +214,7 @@ export const ITEM_HORSESHOE = { hl: 0, r: 110, kind: 'plate', c: '#fabf48', imgS
 
 // Deep soup plate with spoon (~30×28 cm, enlarged round collider to include spoon)
 export const ITEM_PLATE_SOUP_SPOON = {
-  hl: 0,
+  hl: 40,
   r: 175,
   kind: 'plate',
   c: '#dce2e8',
@@ -223,7 +223,7 @@ export const ITEM_PLATE_SOUP_SPOON = {
 
 // Frying pan with stew / sausages (~45 cm with handle, pan diameter 28 cm)
 export const ITEM_PAN_STEER = {
-  hl: 120,
+  hl: 0,
   r: 184,
   kind: 'bowl',
   c: '#3d434a',
@@ -295,7 +295,7 @@ export const ITEM_BOWL_SOUP_EGG = {
 
 // Plate with sausages and cutlery (~30×28 cm, enlarged collider to include cutlery)
 export const ITEM_PLATE_SAUSAGE_SET = {
-  hl: 0,
+  hl: 40,
   r: 175,
   kind: 'plate',
   c: '#f5f2db',
