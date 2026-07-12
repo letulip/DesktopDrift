@@ -33,18 +33,26 @@ test('decode also accepts a raw JSON export (the downloadable file)', () => {
 });
 
 test('round-trips non-ASCII content (UTF-8-safe base64)', () => {
-  const p = { version: 4, settings: { units: 'kmh' }, garage: { carIndex: 0, cars: {} }, note: 'café ▲ 日本' };
+  const p = { version: 4, settings: { units: 'kmh' }, garage: { carIndex: 0, cars: {} }, wallet: 0, note: 'café ▲ 日本' };
   assert.deepEqual(decodeProfile(encodeProfile(p)), p);
 });
 
-test('validateProfile: real profiles pass, garbage fails', () => {
-  assert.equal(validateProfile(SAMPLE), true);
-  assert.equal(validateProfile({ settings: {}, wallet: 0 }), true);   // ≥2 known keys
-  assert.equal(validateProfile({ foo: 1, bar: 2 }), false);           // unrelated object
-  assert.equal(validateProfile({ version: 4 }), false);               // only 1 known key
+test('validateProfile: real full-snapshot profiles pass, foreign/garbage fails', () => {
+  assert.equal(validateProfile(SAMPLE), true);                                                 // full export
+  assert.equal(validateProfile({ version: 4, settings: {}, garage: {}, wallet: 0 }), true);    // int version + 4 known keys
+  assert.equal(validateProfile({ version: 4, settings: {}, garage: {} }), false);              // only 3 known keys
+  assert.equal(validateProfile({ version: '1.0', settings: { theme: 'dark' } }), false);       // foreign config: string version
+  assert.equal(validateProfile({ settings: {}, garage: {}, wallet: 0, owned: [] }), false);    // 4 keys but no version
+  assert.equal(validateProfile({ foo: 1, bar: 2 }), false);                                    // unrelated object
+  assert.equal(validateProfile({ version: 4 }), false);                                        // version only
   assert.equal(validateProfile(null), false);
-  assert.equal(validateProfile([1, 2, 3]), false);                    // arrays are not profiles
+  assert.equal(validateProfile([1, 2, 3]), false);                                             // arrays are not profiles
   assert.equal(validateProfile('DDP1.x'), false);
+});
+
+test('decode rejects a foreign JSON file that only coincidentally shares key names', () => {
+  // Picking the wrong .json (e.g. some other app's config) must NOT import — it would wipe the save.
+  assert.throws(() => decodeProfile('{"version":"1.0","settings":{"theme":"dark"}}'), /not a Desktop Drift profile/);
 });
 
 test('decode rejects empty / whitespace input with a clear message', () => {

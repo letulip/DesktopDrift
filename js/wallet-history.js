@@ -5,6 +5,13 @@
 // with their own reason, which shows up here automatically).
 import { ledger } from './store.js';
 
+// Escape HTML entities. Ledger rows are written into innerHTML below, and ledger text can
+// now originate from a player-IMPORTED profile (settings → Profile / Sync). Any such string
+// MUST be neutralised or a crafted `reason`/`balance` would inject markup/script into the
+// game's origin. Exported for the regression test in tests/wallet-history.test.js.
+const HTML_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export const escapeHtml = (v) => String(v).replace(/[&<>"']/g, (c) => HTML_ESC[c]);
+
 // "1726000000000" → "2m ago" / "3h ago" / "5d ago" / "just now".
 const relTime = (t) => {
   const s = (Date.now() - t) / 1000;
@@ -44,12 +51,12 @@ const render = () => {
     const sign = pos ? '+' : '−';
     return '<div class="wh-row">' +
       '<div class="wh-row-main">' +
-        '<span class="wh-reason">' + (e.reason || 'Adjustment') + '</span>' +
+        '<span class="wh-reason">' + escapeHtml(e.reason || 'Adjustment') + '</span>' +
         '<span class="wh-time">' + relTime(e.t) + '</span>' +
       '</div>' +
       '<div class="wh-row-amt">' +
         '<span class="wh-amt ' + (pos ? 'pos' : 'neg') + '">' + sign + '🛞' + Math.abs(e.amount) + '</span>' +
-        '<span class="wh-bal">🛞' + e.balance + '</span>' +
+        '<span class="wh-bal">🛞' + escapeHtml(e.balance) + '</span>' +
       '</div>' +
     '</div>';
   }).join('');

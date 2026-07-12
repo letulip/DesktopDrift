@@ -27,9 +27,14 @@ const b64decode = (b64) => {
   return new TextDecoder().decode(bytes);
 };
 
-// Does this object look like a Desktop Drift profile? (Has ≥2 known top-level keys.)
+// Does this object look like a Desktop Drift profile? A real export is a full store
+// snapshot: it always carries an INTEGER `version` (store stamps it) and every top-level
+// slot. We require the integer version + ≥4 known keys so common foreign JSON (e.g.
+// `{"version":"1.0","settings":{…}}`) is rejected before it can wipe the save on import.
 export const validateProfile = (obj) =>
-  isObj(obj) && KNOWN_KEYS.filter((k) => k in obj).length >= 2;
+  isObj(obj) &&
+  Number.isInteger(obj.version) &&
+  KNOWN_KEYS.filter((k) => k in obj).length >= 4;
 
 // Encode a full store snapshot into a portable, single-line code (header + base64 JSON).
 export const encodeProfile = (state) => {
