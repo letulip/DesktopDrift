@@ -5,14 +5,14 @@
 <line id="ITEM_BOWL_SOUP_1" x1="3017.5" y1="1784" x2="3017.5" y2="2584" stroke="black"/>
 <line id="ITEM_PLATE_BBQ" x1="4182.29" y1="7350.02" x2="4152.5" y2="6355.02" stroke="black"/>
 <line id="ITEM_FRIES_ORANGE" x1="10090.4" y1="5309.75" x2="10499.4" y2="6014.75" stroke="white"/>
-<line id="ITEM_PAN_STEER" x1="10254.4" y1="1848.26" x2="9677.42" y2="2778.26" stroke="black"/>
+<line id="ITEM_PAN_STEER" x1="10498.9" y1="2546.48" x2="9108.87" y2="2184.48" stroke="black"/>
 <line id="ITEM_KNIFE_2" x1="12958.3" y1="1828.38" x2="12511.3" y2="2215.38" stroke="black"/>
 <line id="ITEM_KNIFE_2_2" x1="12017.5" y1="2265.18" x2="11794.5" y2="2827.18" stroke="black"/>
 <line id="ITEM_FRIES_RED" x1="7980.47" y1="5549.17" x2="7703.47" y2="6334.17" stroke="black"/>
 <path id="track_path" d="M13689 5601.71L15099 4324.37L15682.5 2763L15099 1168.5L14034.5 738L11974.5 1563L9727.52 631.5L8051.5 738L6564.5 2351L4960.32 1769.7L3483.17 738H2207.44L1301 3047.03L1703.86 6092.99L3483.17 8009H5195.33L7713.21 4324.37L8921.79 3538.32L9727.52 3882.22L11641.1 5601.71H13689Z" stroke="black" stroke-width="800"/>
 <line id="ITEM_FRIES_ORANGE_2" x1="5019.63" y1="892.332" x2="4386.63" y2="180.332" stroke="white"/>
 <line id="ITEM_PLATE_SOUP_SPOON" x1="4377.5" y1="3540" x2="4377.5" y2="4340" stroke="black"/>
-<line id="ITEM_PLATE_MASHED" x1="6187.71" y1="5655.41" x2="5467.71" y2="5152.41" stroke="black"/>
+<line id="ITEM_PLATE_MASHED" x1="6016.71" y1="5563.41" x2="5296.71" y2="5060.41" stroke="black"/>
 <line id="ITEM_BOWL_SOUP_1_2" x1="13928.5" y1="3356" x2="13928.5" y2="4156" stroke="black"/>
 <line id="ITEM_BOWL_SOUP_EGG" x1="14113.5" y1="1569" x2="14113.5" y2="2369" stroke="black"/>
 <line id="ITEM_PLATE_SOUP_SPOON_2" x1="15276.4" y1="5855.66" x2="15845.4" y2="6462.66" stroke="black"/>
