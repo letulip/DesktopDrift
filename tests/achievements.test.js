@@ -172,6 +172,15 @@ test('cone achievements: slalom (none hit) vs bulldozer (all hit)', () => {
   assert.ok(!firing({ run: { ...RUN, conesHit: 5, conesTotal: 6 } }).has('bulldozer'));
 });
 
+test('one-pps: fires only when the rounded run PPS is exactly 1', () => {
+  assert.ok(firing({ run: { ...RUN, pps: 1 } }).has('one-pps'));       // a whole 1 PPS
+  assert.ok(firing({ run: { ...RUN, pps: 1.4 } }).has('one-pps'));     // rounds to 1 (matches the results screen)
+  assert.ok(!firing({ run: { ...RUN, pps: 1.5 } }).has('one-pps'));    // rounds to 2
+  assert.ok(!firing({ run: { ...RUN, pps: 0 } }).has('one-pps'));      // shows "0 PPS", not 1
+  assert.ok(!firing({ run: { ...RUN, pps: 120 } }).has('one-pps'));    // a normal run never triggers it
+  assert.ok(!firing({ run: null }).has('one-pps'));                    // not reconstructable from history
+});
+
 test('cola-collector: a cap on every forward track', () => {
   assert.ok(!firing({ caps: { 'green-study': [0], 'steel-kitchen': [0] } }).has('cola-collector'));
   assert.ok(firing({ caps: { 'green-study': [0], 'steel-kitchen': [0], 'workbench': [0] } }).has('cola-collector'));

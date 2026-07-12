@@ -134,6 +134,11 @@ const STATIC = [
   { id: 'bulldozer', name: 'Bulldozer', desc: 'Knock over every cone in a race.',
     icon: '🚜', category: 'hidden', hidden: true, reward: 30,
     check: (x) => (x.run?.conesTotal ?? 0) > 0 && x.run.conesHit === x.run.conesTotal },
+  // Gag: finish a race with a rounded PPS of exactly 1 — the results screen shows Math.round(pps),
+  // so this fires exactly when the player sees "1 PPS". A wink-and-a-pity-prize for a near-zero run.
+  { id: 'one-pps', name: 'Participation Trophy', desc: 'Finish a race scoring just 1 PPS.',
+    icon: '🏅', category: 'hidden', hidden: true, reward: 5,
+    check: (x) => x.run?.finished === true && Math.round(x.run?.pps) === 1 },
   { id: 'cola-collector', name: 'Sugar High', desc: 'Collect the cola cap on every track.',
     icon: '🧃', category: 'hidden', hidden: true, reward: 40,
     check: (x) => x.content.forwardTrackIds.length > 0 &&
