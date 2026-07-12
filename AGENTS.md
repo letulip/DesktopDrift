@@ -50,7 +50,9 @@ stays readable. No framework, no bundler.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
-  - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
+  - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph),
+    haptics toggle, and a **Profile / Sync** section (export/import the whole save to
+    move progress between devices — `js/profile-sync.js` + `js/profile-io.js`).
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **SEO files (root):**
@@ -221,7 +223,9 @@ stays readable. No framework, no bundler.
     (`wallet` int + `stats.tires` mirror the caps model). Achievements:
     `achAll()` / `achUnlocked()` (Set) / `achUnlock(id)` (idempotent) /
     `achSetProgress(id, n)` (latches to max) + lifetime `stats.runs` / `stats.driftSecs`.
-    Key `'desktop-drift'`, `VERSION = 2`.
+    Whole-profile sync: `snapshot()` (full state, for export) / `replaceAll(obj)` (import,
+    routed through the same migrate+merge heal; caller must reload).
+    Key `'desktop-drift'`, `VERSION = 4`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
     `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
     is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
@@ -233,6 +237,13 @@ stays readable. No framework, no bundler.
     `MIGRATIONS[newVersion] = (s)=>…`; the chain runs old→VERSION, then merge fills the
     rest. Reset to defaults happens **only** for unparseable/corrupt data — an unknown
     ("future") version is merged, not wiped.
+  - `js/profile-io.js` — **pure** profile codec for device sync. `encodeProfile(state)` →
+    a `DDP1.`-prefixed base64 code, `decodeProfile(code|json)` → validated profile object
+    (tolerates a raw JSON file export), `validateProfile` / `profileJson`. No DOM, no store —
+    unit-tested in `tests/profile-io.test.js`.
+  - `js/profile-sync.js` — settings "Profile / Sync" DOM glue. `initProfileSync()` wires
+    copy-code / download-file export and paste-or-file import → native confirm →
+    `store.replaceAll()` → reload. Persistence stays in `store.js`; codec in `profile-io.js`.
   - `js/palette.js` — curated colour palettes. Exports `PALETTE` (20 body colours,
     `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
     Imported only by `select.html`. Designed to grow: Phase 2 liveries will add

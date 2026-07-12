@@ -135,6 +135,23 @@ export const save = () => {
   try { localStorage.setItem(KEY, JSON.stringify(_s)); } catch {}
 };
 
+// ── Whole-profile snapshot / replace (device sync — see js/profile-io.js) ─────────────
+// snapshot(): the full persisted state object, for EXPORT (read-only use by the codec).
+// replaceAll(obj): swap the ENTIRE save with an imported profile, routed through the SAME
+// migrate + merge-over-defaults heal path as a normal load — so a partial / older / garbled
+// import is normalised (missing keys back-filled, wrong-typed slices healed, version
+// re-stamped) rather than trusted blindly. Returns false if the input isn't an object.
+// The caller MUST reload the page afterwards: every module (and this module's own _s cache)
+// only re-reads storage on the next load.
+export const snapshot = () => { _ensure(); return _s; };
+export const replaceAll = (obj) => {
+  if (!_isObj(obj)) return false;
+  _s = _merge(defaults(), _migrate(obj));
+  _s.version = VERSION;
+  save();
+  return true;
+};
+
 // Getters return live objects — mutate the needed fields, then call save().
 export const settings     = () => { _ensure(); return _s.settings; };
 export const garage       = () => { _ensure(); return _s.garage; };
