@@ -158,16 +158,11 @@
         lock.innerHTML = `<span class="track-lock-ico">🔒</span><span>Earn ★★★ on the forward lap</span>`;
         top.appendChild(lock);
       } else {
+        const badges = document.createElement('div');
+        badges.className = 'track-badges';
+
         const stars = document.createElement('div');
         stars.className = 'track-stars';
-        // DDK crown above the row once this instance's best is 600+ PPS.
-        if (isDDK(record?.pps)) {
-          const crown = document.createElement('span');
-          crown.className = 'track-crown';
-          crown.textContent = '👑';
-          crown.title = 'DDK — 600+ PPS';
-          stars.appendChild(crown);
-        }
         const starRow = document.createElement('div');
         starRow.className = 'track-star-row';
         const filled = starsOf(record?.pps);
@@ -178,7 +173,17 @@
           starRow.appendChild(sp);
         }
         stars.appendChild(starRow);
-        top.appendChild(stars);
+        badges.appendChild(stars);
+
+        // DDK crown — its own badge to the RIGHT of the stars once this instance's best is 600+ PPS.
+        if (isDDK(record?.pps)) {
+          const crown = document.createElement('span');
+          crown.className = 'track-crown';
+          crown.textContent = '👑';
+          crown.title = 'DDK — 600+ PPS';
+          badges.appendChild(crown);
+        }
+        top.appendChild(badges);
       }
 
       const scorePanel = document.createElement('div');
