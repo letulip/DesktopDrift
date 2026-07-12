@@ -41,6 +41,26 @@
   border-color: rgba(255,255,255,.3);
   color: rgba(255,255,255,.75);
 }
+/* Profile / Sync section */
+.profile-desc {
+  max-width: 320px; text-align: center;
+  font: 12px/1.5 var(--font-body); color: rgba(255,255,255,.5);
+}
+.profile-input {
+  width: min(86vw, 340px); resize: vertical;
+  padding: 10px 12px; border-radius: var(--r-panel);
+  border: 1.5px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06); color: var(--ink);
+  font: 13px/1.4 var(--font-body);
+  transition: border-color var(--ease);
+}
+.profile-input::placeholder { color: rgba(255,255,255,.3); }
+.profile-input:focus { outline: none; border-color: var(--accent); }
+label.unit-btn { display: inline-flex; align-items: center; }   /* file-picker trigger looks like a button */
+.profile-status {
+  min-height: 16px; font: 12px var(--font-body);
+  opacity: 0; transition: opacity var(--ease);
+}
 #backLink {
   color: rgba(255,255,255,.35);
   font: 13px var(--font-body);

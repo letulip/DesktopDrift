@@ -15,7 +15,7 @@ import { installLocalStorage } from './helpers.js';
 const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
-        wallet, addTires, tireSwept, markTireSwept,
+        wallet, addTires, tireSwept, markTireSwept, hasTrophy, markTrophy,
         owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared,
         achAll, achUnlocked, achUnlock, achSetProgress } =
   await import('../js/store.js');
@@ -41,7 +41,7 @@ test('getters return the same live object across calls', () => {
 });
 
 test('stats: defaults to caps/tires/cleared + lifetime counters', () => {
-  assert.deepEqual(stats(), { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 });
+  assert.deepEqual(stats(), { caps: {}, tires: {}, tiresSwept: [], trophies: [], cleared: [], runs: 0, driftSecs: 0 });
 });
 
 test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', () => {
@@ -50,6 +50,14 @@ test('wallet: defaults to 0; addTires accumulates, persists, and clamps at 0', (
   assert.equal(addTires(3), 8);
   assert.equal(wallet(), 8);
   assert.equal(addTires(-100), 0);   // clamped, never negative
+});
+
+test('hasTrophy / markTrophy: per-instance 1-PPS badge marker, idempotent', () => {
+  assert.equal(hasTrophy('green-study'), false);
+  assert.equal(markTrophy('green-study'), true);      // first 1-PPS run → badge earned
+  assert.equal(hasTrophy('green-study'), true);
+  assert.equal(markTrophy('green-study'), false);     // already earned → badge unchanged
+  assert.equal(hasTrophy('green-study:rev'), false);  // reversed is a separate instance
 });
 
 test('tireSwept / markTireSwept: per-track clean-sweep flag, first-time only', () => {

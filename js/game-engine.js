@@ -3,9 +3,9 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept,
+import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept, markTrophy,
          stats, wallet, owned, ownedCars, achUnlocked, achUnlock, achSetProgress } from './store.js';
-import { finishPayout, starsForPps, isDDK, FIRST_CLEAR_BONUS } from './economy.js';
+import { finishPayout, starsForPps, isDDK, isOnePps, ONE_PPS_BONUS, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
 import { defaultNeon } from './neon.js';
 import { TRACKS } from './track-registry.js';
@@ -506,7 +506,7 @@ export const startGame = (T, opts = {}) => {
           const baseName  = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
           const trackName = baseName + (REVERSED ? ' (reversed)' : '');
           const tireTotal = collectibles.filter(c => c.kind === 'tire').length;
-          let firstClearBonus = 0, finishBonus = 0, cleanSweepBonus = 0;
+          let firstClearBonus = 0, finishBonus = 0, cleanSweepBonus = 0, trophyBonus = 0;
           if (!ZEN) {
             if (tiresEarned > 0)
               recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
@@ -523,6 +523,13 @@ export const startGame = (T, opts = {}) => {
             }
             finishBonus = finishPayout(pps);
             addTires(finishBonus, `${trackName} — finish bonus`);
+            // Participation Trophy — repeatable pity payout for a 1-PPS finish; also earns the
+            // 🏅 badge on the track card (markTrophy is idempotent, so the badge is set once).
+            if (isOnePps(pps)) {
+              trophyBonus = ONE_PPS_BONUS;
+              addTires(trophyBonus, `${trackName} — Participation Trophy`);
+              markTrophy(INSTANCE);
+            }
           }
 
           let isNewRecord = false;
@@ -556,7 +563,7 @@ export const startGame = (T, opts = {}) => {
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
             ddk: isDDK(pps), unlocked: unlockedNow,
-            tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, cleanSweep: cleanSweepBonus, firstClear: firstClearBonus, finish: finishBonus } });
+            tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, cleanSweep: cleanSweepBonus, firstClear: firstClearBonus, finish: finishBonus, trophy: trophyBonus } });
           return;
         }
 

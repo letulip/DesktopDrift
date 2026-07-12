@@ -51,7 +51,7 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records, collectedCaps, tireSwept, wallet } from './js/store.js';
+  import { records, collectedCaps, tireSwept, hasTrophy, wallet } from './js/store.js';
   import { svgToCentreline, instanceId } from './js/track-util.js';
   import { isDDK } from './js/economy.js';
   import { initWalletHistory } from './js/wallet-history.js';
@@ -182,6 +182,14 @@
           crown.textContent = '👑';
           crown.title = 'DDK — 600+ PPS';
           badges.appendChild(crown);
+        }
+        // Participation Trophy — 🏅 badge once this instance has had a 1-PPS finish.
+        if (hasTrophy(inst)) {
+          const trophy = document.createElement('span');
+          trophy.className = 'track-trophy';
+          trophy.textContent = '🏅';
+          trophy.title = 'Participation Trophy — finished a race with just 1 PPS';
+          badges.appendChild(trophy);
         }
         top.appendChild(badges);
       }

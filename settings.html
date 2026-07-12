@@ -38,11 +38,30 @@
     </div>
   </div>
 
+  <div class="settings-group" id="profile-group">
+    <div class="settings-label">Profile / Sync</div>
+    <div class="profile-desc">Move your progress to another device. Export here, then import on the other device.</div>
+    <div class="unit-row">
+      <button class="unit-btn" id="btn-profile-copy">Copy code</button>
+      <button class="unit-btn" id="btn-profile-download">Download file</button>
+    </div>
+    <textarea id="profile-input" class="profile-input" rows="3" spellcheck="false"
+              autocapitalize="off" autocomplete="off"
+              placeholder="Paste a profile code here to import…"></textarea>
+    <div class="unit-row">
+      <button class="unit-btn" id="btn-profile-import">Import from code</button>
+      <label class="unit-btn" for="profile-file">Import from file</label>
+      <input type="file" id="profile-file" accept="application/json,.json" hidden>
+    </div>
+    <div id="profile-status" class="profile-status" role="status" aria-live="polite"></div>
+  </div>
+
   <a id="backLink" href="index.html">← Back to menu</a>
 </div>
 
 <script type="module">
   import { settings, save } from './js/store.js';
+  import { initProfileSync } from './js/profile-sync.js';
 
   const s      = settings();
   const btnKmh = document.getElementById('btn-kmh');
@@ -80,6 +99,9 @@
     group.style.display = '';   // show only on supported devices
     applyHaptics(s.haptics ?? true);
   }
+
+  // Profile / Sync — export & import the full save (see js/profile-sync.js).
+  initProfileSync();
 </script>
 
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
