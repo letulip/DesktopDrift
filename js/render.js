@@ -3,6 +3,7 @@ import { car, S } from './state.js';
 import { wallet } from './store.js';
 import { paintBody, hexToRgbStr } from './finish.js';
 import { drawNeon } from './neon-draw.js';
+import { bakeSurfaceDims } from './track-surface.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -90,6 +91,56 @@ export const setCarPaint = (body, neon, finish, trail) => {
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
 
+// Offscreen static-surface cache: the table + track ribbon pre-rendered ONCE (world
+// coordinates) so draw() blits it with a single drawImage instead of re-stroking the
+// 200px round-join centreline every frame — the single most expensive per-frame op,
+// worst on long self-crossing tracks (cafe-marble). Everything dynamic (skids, flag,
+// props, cones, car) still draws live on top. null → draw() falls back to the live
+// stroke (bake unavailable / too big to allocate). Shape: { canvas, x, y, w, h }
+// where x/y/w/h are the world-space rectangle the bitmap covers.
+let trackSurface = null;
+
+// Bake the static table + track ribbon into an offscreen canvas. Reads _T / _TABLE / TH /
+// trackPath / DPR / W — must be called from initRender AFTER those are set.
+const _buildTrackSurface = () => {
+  trackSurface = null;
+  const TB = _TABLE, TRACK_HALF = _T.TRACK_HALF;
+  // World bounding box: the table plus a margin for the 12px edge stroke.
+  const M = 24;
+  const bx = -TB.w / 2 - M, by = -TB.h / 2 - M, bw = TB.w + 2 * M, bh = TB.h + 2 * M;
+  // Target sharpness = this device's on-screen pixels per world unit (DPR × the ZOOM
+  // draw() uses for this width). bakeSurfaceDims clamps to safe canvas limits.
+  const zoom = W < 640 ? 0.65 : 1.0;
+  const { scale, pw, ph } = bakeSurfaceDims(bw, bh, DPR * zoom);
+  if (pw < 2 || ph < 2) return;                   // degenerate — keep the live stroke
+  let off, octx;
+  try {
+    off = document.createElement('canvas');
+    off.width = pw; off.height = ph;
+    octx = off.getContext('2d');
+    if (!octx) return;
+  } catch { return; }
+  octx.setTransform(scale, 0, 0, scale, -bx * scale, -by * scale);   // world → bitmap px
+  // table (same fill + edge as the live path)
+  octx.fillStyle = TH.table;
+  if (TB.shape === 'round') {
+    octx.beginPath(); octx.ellipse(0, 0, TB.w / 2, TB.h / 2, 0, 0, Math.PI * 2); octx.fill();
+    octx.strokeStyle = TH.tableEdge; octx.lineWidth = 12;
+    octx.beginPath(); octx.ellipse(0, 0, TB.w / 2, TB.h / 2, 0, 0, Math.PI * 2); octx.stroke();
+  } else {
+    octx.fillRect(-TB.w / 2, -TB.h / 2, TB.w, TB.h);
+    octx.strokeStyle = TH.tableEdge; octx.lineWidth = 12;
+    octx.strokeRect(-TB.w / 2, -TB.h / 2, TB.w, TB.h);
+  }
+  // track ribbon — identical round stroke to the live draw()
+  octx.strokeStyle = TH.track;
+  octx.lineWidth = TRACK_HALF * 2;
+  octx.lineJoin = 'round';
+  octx.lineCap = 'round';
+  octx.stroke(trackPath);
+  trackSurface = { canvas: off, x: bx, y: by, w: bw, h: bh };
+};
+
 // Standing-cone cache: three Path2Ds (shadow / body / highlight).
 // Rebuilt only when a cone is knocked — typically a handful of times per game,
 // not every frame. Knocked cones are few and dynamic; they are drawn individually.
@@ -168,6 +219,9 @@ export const initRender = (T) => {
   // Standing-cone paths: all cones are upright at game start.
   _coneKnockedCount = 0;
   _buildStandingCones();
+
+  // Pre-render the static table + track ribbon (blit each frame instead of re-stroking).
+  _buildTrackSurface();
 }
 
 // --- Helper primitives ---
@@ -463,25 +517,29 @@ export const draw = (speed) => {
   ctx.fillStyle = TH.background;
   ctx.fillRect(car.x - W / (2 * ZOOM), car.y - (H / 2 + camOffY) / ZOOM, W / ZOOM, H / ZOOM);
 
-  // table
-  ctx.fillStyle = TH.table;
-  if (_TABLE.shape === 'round') {
-    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
+  // table + track surface — pre-baked into one offscreen bitmap (world coords) so a
+  // single blit replaces the per-frame fillRect + strokeRect + 200px round-join stroke.
+  if (trackSurface) {
+    ctx.drawImage(trackSurface.canvas, trackSurface.x, trackSurface.y, trackSurface.w, trackSurface.h);
   } else {
-    ctx.fillRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
-    ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
-    ctx.strokeRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
+    // Fallback (bake unavailable): draw the static surface live.
+    ctx.fillStyle = TH.table;
+    if (_TABLE.shape === 'round') {
+      ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
+      ctx.beginPath(); ctx.ellipse(0, 0, _TABLE.w / 2, _TABLE.h / 2, 0, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      ctx.fillRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
+      ctx.strokeStyle = TH.tableEdge; ctx.lineWidth = 12;
+      ctx.strokeRect(-_TABLE.w / 2, -_TABLE.h / 2, _TABLE.w, _TABLE.h);
+    }
+    // A round stroke fills self-crossings solid (no even-odd hole on figure-8 layouts).
+    ctx.strokeStyle = TH.track;
+    ctx.lineWidth   = TRACK_HALF * 2;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    ctx.stroke(trackPath);
   }
-
-  // track surface — stroke the centreline at full track width (cached Path2D, no rebuild).
-  // A round stroke fills self-crossings solid (no even-odd hole on figure-8 layouts).
-  ctx.strokeStyle = TH.track;
-  ctx.lineWidth   = TRACK_HALF * 2;
-  ctx.lineJoin    = 'round';
-  ctx.lineCap     = 'round';
-  ctx.stroke(trackPath);
 
   // skid marks — batched by alpha level (a few fill() calls instead of ≤1500 fillRect/frame)
   drawSkids();
