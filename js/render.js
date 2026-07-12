@@ -100,6 +100,21 @@ let trackPath = null, miniTrackPath = null;
 // where x/y/w/h are the world-space rectangle the bitmap covers.
 let trackSurface = null;
 
+// Diagnostic A/B toggle for the offscreen surface bake below. The bake trades per-frame path
+// tessellation for a big per-frame texture blit — which is a NET LOSS on fill-rate-poor GPUs
+// (it made even the simple tracks lag on an Adreno 610 / Moto G8 Plus) and it does NOT fix the
+// Mali gradient-overdraw glitch. So it is OFF by default: draw() falls back to the decimated
+// live stroke. Override per device with ?surface=bake (or ?surface=live); the choice sticks in
+// localStorage so it survives track re-selection while testing on a phone.
+const _surfaceMode = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('surface');
+    if (q === 'bake' || q === 'live') localStorage.setItem('dd-surface', q);
+    return localStorage.getItem('dd-surface') || 'live';
+  } catch { return 'live'; }
+})();
+const USE_SURFACE_BAKE = _surfaceMode === 'bake';
+
 // Bake the static table + track ribbon into an offscreen canvas. Reads _T / _TABLE / TH /
 // trackPath / DPR / W — must be called from initRender AFTER those are set.
 const _buildTrackSurface = () => {
@@ -220,8 +235,9 @@ export const initRender = (T) => {
   _coneKnockedCount = 0;
   _buildStandingCones();
 
-  // Pre-render the static table + track ribbon (blit each frame instead of re-stroking).
-  _buildTrackSurface();
+  // Pre-render the static table + track ribbon ONLY when explicitly enabled (see _surfaceMode).
+  // Default OFF → draw() uses the decimated live stroke (cheaper on weak GPUs).
+  if (USE_SURFACE_BAKE) _buildTrackSurface();
 }
 
 // --- Helper primitives ---
