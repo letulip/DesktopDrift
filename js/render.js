@@ -145,11 +145,18 @@ export const initRender = (T) => {
 
   // Track surface path — the CENTRELINE, stroked at 2·TRACK_HALF in draw(). A round stroke
   // (not an even-odd outer/inner annulus) fills self-intersections SOLID, so figure-8 tracks
-  // no longer hole out where the loop crosses itself. Same technique the minimap + card
-  // thumbnails already use. One Path2D per game session.
+  // no longer hole out where the loop crosses itself.
+  //
+  // DECIMATED for the render stroke: at 200px width the fine chaikin detail is sub-pixel, so
+  // keeping every RENDER_STEP-th point is visually identical but far cheaper to tessellate each
+  // frame (stroke cost scales with point count — the winding tracks like cafe-marble carried
+  // ~800 points). Physics / off-track read the full T.center/outer/inner arrays, NOT this
+  // Path2D, so this is purely cosmetic. One Path2D per game session.
+  const RENDER_STEP = 3;                              // tunable: 1 = full detail, 3 ≈ −66% points
+  const c = T.center, n = c.length;
   trackPath = new Path2D();
-  trackPath.moveTo(T.center[0].x, T.center[0].y);
-  for (let i = 1; i < T.center.length; i++) trackPath.lineTo(T.center[i].x, T.center[i].y);
+  trackPath.moveTo(c[0].x, c[0].y);
+  for (let i = RENDER_STEP; i < n; i += RENDER_STEP) trackPath.lineTo(c[i].x, c[i].y);
   trackPath.closePath();
 
   // Track centreline for minimap (pixel coords) — also static.
