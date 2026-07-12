@@ -3,7 +3,7 @@
 // (see docs/plans/achievements.md → ctx contract), so this whole module is unit-testable in
 // Node. Persistence lives in js/store.js; the engine + shop assemble `ctx`, call evaluate(),
 // then unlock + credit the tire reward.
-import { DDK_PPS, starsForPps } from './economy.js';
+import { DDK_PPS, starsForPps, isOnePps } from './economy.js';
 export { DDK_PPS };   // re-export so consumers can take it from either module
 
 // ── ctx / content normalisation ──────────────────────────────────────────────
@@ -138,7 +138,7 @@ const STATIC = [
   // so this fires exactly when the player sees "1 PPS". A wink-and-a-pity-prize for a near-zero run.
   { id: 'one-pps', name: 'Participation Trophy', desc: 'Finish a race scoring just 1 PPS.',
     icon: '🏅', category: 'hidden', hidden: true, reward: 5,
-    check: (x) => x.run?.finished === true && Math.round(x.run?.pps) === 1 },
+    check: (x) => x.run?.finished === true && isOnePps(x.run?.pps) },
   { id: 'cola-collector', name: 'Sugar High', desc: 'Collect the cola cap on every track.',
     icon: '🧃', category: 'hidden', hidden: true, reward: 40,
     check: (x) => x.content.forwardTrackIds.length > 0 &&
@@ -204,7 +204,7 @@ export const CATEGORY_ORDER = [
   { key: 'wealth',      label: 'Wealth' },
   { key: 'economy',     label: 'Economy' },
   { key: 'hidden',      label: 'Secrets' },
-  { key: 'ddk',         label: 'DDK — Mastery' },
+  { key: 'ddk',         label: 'Mastery' },
 ];
 
 // Per-instance DDK crowns — generated from the content instance list (scales with tracks).

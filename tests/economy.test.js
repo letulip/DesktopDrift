@@ -3,7 +3,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { starsForPps, finishPayout, MAX_STARS, FINISH_FLAT, FINISH_PER_STAR,
-         canAfford, buy, FIRST_CLEAR_BONUS, DDK_PPS, isDDK } from '../js/economy.js';
+         canAfford, buy, FIRST_CLEAR_BONUS, DDK_PPS, isDDK, ONE_PPS_BONUS, isOnePps } from '../js/economy.js';
+
+test('isOnePps: true only when PPS rounds to exactly 1 (matches the results screen)', () => {
+  assert.equal(isOnePps(1), true);
+  assert.equal(isOnePps(1.4), true);      // Math.round → 1
+  assert.equal(isOnePps(0.5), true);      // Math.round(0.5) → 1
+  assert.equal(isOnePps(1.5), false);     // rounds to 2
+  assert.equal(isOnePps(0), false);       // shows "0 PPS"
+  assert.equal(isOnePps(120), false);
+  assert.equal(isOnePps(undefined), false);
+  assert.ok(ONE_PPS_BONUS > 0);
+});
 
 test('DDK: crown threshold is 600 PPS; isDDK is inclusive', () => {
   assert.equal(DDK_PPS, 600);

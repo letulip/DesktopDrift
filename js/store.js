@@ -36,7 +36,7 @@ const defaults = () => ({
   ledger:       [],        // tire-coin transactions: { t, amount, reason, balance } (newest last)
   owned:        [],        // purchased shop item ids (cosmetics — see docs/plans/shop.md)
   ownedCars:    [],        // purchased car ids (Time Attack ownership — gate is OFF for now, see economy.CAR_GATING_ENABLED)
-  stats:        { caps: {}, tires: {}, tiresSwept: [], cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances (tires respawn now; tiresSwept = tracks fully cleared once) + lifetime counters
+  stats:        { caps: {}, tires: {}, tiresSwept: [], trophies: [], cleared: [], runs: 0, driftSecs: 0 }, // collected ids/instances (tires respawn now; tiresSwept = tracks fully cleared once; trophies = instances that earned the 1-PPS 🏅) + lifetime counters
 });
 
 // Breaking-change migrations, keyed by the target version.
@@ -263,6 +263,22 @@ export const markTireSwept = (instanceId) => {
   if (!Array.isArray(st.tiresSwept)) st.tiresSwept = [];
   if (st.tiresSwept.includes(instanceId)) return false;
   st.tiresSwept.push(instanceId); save();
+  return true;
+};
+
+// Participation Trophy — track INSTANCES where the player once finished with a rounded PPS
+// of exactly 1 (the 1-PPS gag). Drives the 🏅 badge on the track card. The tire reward for it
+// is repeatable and paid per-race by the engine; this list is just the earned-badge marker.
+export const hasTrophy = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.trophies)) st.trophies = [];
+  return st.trophies.includes(instanceId);
+};
+export const markTrophy = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.trophies)) st.trophies = [];
+  if (st.trophies.includes(instanceId)) return false;   // already earned → badge unchanged
+  st.trophies.push(instanceId); save();
   return true;
 };
 

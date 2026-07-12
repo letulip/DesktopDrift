@@ -225,6 +225,9 @@ stays readable. No framework, no bundler.
     `achSetProgress(id, n)` (latches to max) + lifetime `stats.runs` / `stats.driftSecs`.
     Whole-profile sync: `snapshot()` (full state, for export) / `replaceAll(obj)` (import,
     routed through the same migrate+merge heal; caller must reload).
+    Track-instance markers: `tireSwept`/`markTireSwept` (clean-sweep wheel badge) and
+    `hasTrophy`/`markTrophy` (the 1-PPS 🏅 badge, `stats.trophies`) — both drive a badge on
+    the `tracks.html` card next to the stars (like the DDK crown).
     Key `'desktop-drift'`, `VERSION = 4`.
     **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
     `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`

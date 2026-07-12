@@ -24,6 +24,12 @@ export const FIRST_CLEAR_BONUS = 20;
 export const DDK_PPS = 600;
 export const isDDK   = (pps) => (pps || 0) >= DDK_PPS;
 
+// Participation Trophy — the gag at the other end: finishing with a rounded PPS of exactly 1
+// (the number the results screen shows). Pays ONE_PPS_BONUS tires EVERY qualifying race (a
+// repeatable pity payout on top of the finish bonus) and earns the 🏅 badge on the track card.
+export const ONE_PPS_BONUS = 5;
+export const isOnePps = (pps) => Math.round(pps || 0) === 1;
+
 // ── Car ownership gate (see docs/plans/cars.md) ───────────────────────────────
 // Sandbox is a free test-drive of every car; Time Attack / Zen (races) require OWNING the
 // car — bought in the garage carousel. The two starter cars are always owned (free).
