@@ -396,6 +396,7 @@ const drawCaps = () => {
     if (desc.kind !== 'cola') continue;
     const { x, y, r, _img, _imgFull, c } = desc;
     const { sweep, collected, pop } = state;
+    if (!_inView(x, y, r * 3.5)) continue;   // off-screen (r*3.5 keeps the pop burst safe near edges)
 
     ctx.save();
     ctx.translate(x, y);
@@ -469,6 +470,7 @@ const drawTires = () => {
     const { collected, pop } = state;
 
     if (collected && pop <= 0) continue;
+    if (!_inView(x, y, r * 3.5)) continue;   // off-screen (r*3.5 keeps the bounce/pop safe near edges)
 
     ctx.save();
     ctx.translate(x, y);
@@ -516,6 +518,14 @@ const drawTires = () => {
   }
 };
 
+// Visible world rectangle — set each frame by draw() from the camera transform, read by
+// _inView() to cull off-screen props/collectibles. The camera zooms on the car, so on the
+// prop-heavy tracks (cafe-marble's translucent coffee/donut sprites) most items are off-screen;
+// drawing them anyway was the per-frame overdraw that corrupts weak Mali GPUs and lags weak Adreno.
+let _view = { xMin: -Infinity, xMax: Infinity, yMin: -Infinity, yMax: Infinity };
+const _inView = (x, y, ext) =>
+  x + ext >= _view.xMin && x - ext <= _view.xMax && y + ext >= _view.yMin && y - ext <= _view.yMax;
+
 // --- Main render ---
 export const draw = (speed) => {
   const { center, cones, props, checkpoints, TRACK_HALF, CONE_R, CP_R, startAngle } = _T;
@@ -528,6 +538,14 @@ export const draw = (speed) => {
   ctx.translate(W / 2, H / 2 + camOffY);
   ctx.scale(ZOOM, ZOOM);
   ctx.translate(-car.x, -car.y);
+
+  // Visible world rect for off-screen culling. Camera maps world→screen as
+  // sx = W/2 + (x-car.x)*ZOOM, sy = (H/2+camOffY) + (y-car.y)*ZOOM; invert for the [0,W]×[0,H] window.
+  const invZ = 1 / ZOOM;
+  _view.xMin = car.x - (W / 2) * invZ;
+  _view.xMax = car.x + (W / 2) * invZ;
+  _view.yMin = car.y - (H / 2 + camOffY) * invZ;
+  _view.yMax = car.y + (H / 2 - camOffY) * invZ;
 
   // floor — covers the entire visible world rectangle with a small margin
   ctx.fillStyle = TH.background;
@@ -595,8 +613,12 @@ export const draw = (speed) => {
     ctx.strokeStyle = '#7dd4ff';           ctx.lineWidth = 5; ctx.stroke();
   }
 
-  // props
-  for (const o of props) drawProp(o);
+  // props — cull off-screen items (the big win on prop-heavy tracks). ext = the item's world
+  // half-extent + a small pad so partially-visible items still draw.
+  for (const o of props) {
+    if (!_inView(o.x, o.y, (o.hl || 0) + o.r + 8)) continue;
+    drawProp(o);
+  }
 
   // collectibles
   drawCaps();
