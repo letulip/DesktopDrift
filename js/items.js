@@ -35,13 +35,13 @@ export const ITEM_PLATE_WHITE  = { hl: 0, r: 164, kind: 'plate', c: '#ffffff', i
 export const ITEM_PLATE_GREY   = { hl: 0, r: 164, kind: 'plate', c: '#dce3e8', imgSrc: 'items/plate2-ready.svg' };
 
 // --- Table knives (~21 cm, capsule 246×30) ---
-export const ITEM_KNIFE_1 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
-export const ITEM_KNIFE_2 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
-export const ITEM_KNIFE_3 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
+export const ITEM_KNIFE_1 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
+export const ITEM_KNIFE_2 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
+export const ITEM_KNIFE_3 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
 
 // --- Table forks (~21 cm, capsule 246×30) ---
-export const ITEM_FORK_1 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
-export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
+export const ITEM_FORK_1 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
+export const ITEM_FORK_2 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
 
 // --- Large meat fork (~32.5 cm, capsule 380×40) ---
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
@@ -93,37 +93,7 @@ export const ITEM_DOUGHNUT_1 = { hl: 0, r: 88, kind: 'plate', c: '#ff6b5a', imgS
 export const ITEM_DOUGHNUT_2 = { hl: 0, r: 88, kind: 'plate', c: '#7b5c46', imgSrc: 'items/doughnut-2-ready.svg' };
 export const ITEM_DOUGHNUT_3 = { hl: 0, r: 88, kind: 'plate', c: '#f07178', imgSrc: 'items/doughnut-3-ready.svg' };
 
-// --- Food & tableware (1:64 scale) ---
-
-// Deep soup plate with spoon (~30×28 cm, enlarged round collider to cover spoon)
-export const ITEM_PLATE_SOUP_SPOON = { hl: 0, r: 175, kind: 'plate', c: '#dce2e8', imgSrc: 'items/plate-soup2-ready.svg' };
-
-// Frying pan with stew/sausages (~45 cm with handles, diameter 28 cm)
-export const ITEM_PAN_STEER = { hl: 80, r: 164, kind: 'bowl', c: '#3d434a', imgSrc: 'items/pan-steer-ready.svg' };
-
-// Fries in red packaging (~12×8 cm)
-export const ITEM_FRIES_RED = { hl: 35, r: 46, kind: 'board', c: '#f92a1c', imgSrc: 'items/fries2-ready.svg' };
-
-// Fries in orange packaging (~12×8 cm)
-export const ITEM_FRIES_ORANGE = { hl: 35, r: 46, kind: 'board', c: '#f27221', imgSrc: 'items/fries1-ready.svg' };
-
-// Plate with chicken drumsticks (diameter 28 cm)
-export const ITEM_PLATE_CHICKEN = { hl: 0, r: 164, kind: 'plate', c: '#a0b4ed', imgSrc: 'items/plate-chicken-ready.svg' };
-
-// Plate with BBQ skewers (diameter 28 cm)
-export const ITEM_PLATE_BBQ = { hl: 0, r: 164, kind: 'plate', c: '#faba02', imgSrc: 'items/plate-bbq-ready.svg' };
-
-// Plate with mashed potato and chicken (diameter 28 cm)
-export const ITEM_PLATE_MASHED = { hl: 0, r: 164, kind: 'plate', c: '#ededed', imgSrc: 'items/plate-mashed-chicken-ready.svg' };
-
-// Soup bowl 1 (diameter ~20 cm)
-export const ITEM_BOWL_SOUP_1 = { hl: 0, r: 117, kind: 'plate', c: '#f5f5f5', imgSrc: 'items/plate-soup3-ready.svg' };
-
-// Soup bowl with egg (diameter ~20 cm)
-export const ITEM_BOWL_SOUP_EGG = { hl: 0, r: 117, kind: 'plate', c: '#ffdb59', imgSrc: 'items/plate-soup1-ready.svg' };
-
-// Plate with sausages and cutlery (~30×28 cm, enlarged round collider to cover cutlery)
-export const ITEM_PLATE_SAUSAGE_SET = { hl: 0, r: 175, kind: 'plate', c: '#f5f2db', imgSrc: 'items/plate-sausage-ready.svg' };
+// --- Food & tableware descriptors are consolidated in the "FOOD & TABLEWARE" section below. ---
 
 
 // --- Tableware sets (composite SVGs) ---
@@ -236,3 +206,98 @@ export const ITEM_NAILS_ROW = { hl: 12, r: 46, kind: 'board', c: '#ffd600', imgS
 export const ITEM_NAILS_CROSS = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
 // Horseshoe (~12×12 cm, round collider)
 export const ITEM_HORSESHOE = { hl: 0, r: 110, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };
+
+
+// ==========================================
+// 🍽️ FOOD & TABLEWARE (1:64 scale)
+// ==========================================
+
+// Deep soup plate with spoon (~30×28 cm, enlarged round collider to include spoon)
+export const ITEM_PLATE_SOUP_SPOON = {
+  hl: 40,
+  r: 175,
+  kind: 'plate',
+  c: '#dce2e8',
+  imgSrc: 'items/plate-soup2-ready.svg'
+};
+
+// Frying pan with stew / sausages (~45 cm with handle, pan diameter 28 cm)
+export const ITEM_PAN_STEER = {
+  hl: 0,
+  r: 184,
+  kind: 'bowl',
+  c: '#3d434a',
+  imgSrc: 'items/pan-steer-ready.svg'
+};
+
+// Fries in red package (~12×8 cm)
+export const ITEM_FRIES_RED = {
+  hl: 35,
+  r: 66,
+  kind: 'board',
+  c: '#f92a1c',
+  imgSrc: 'items/fries2-ready.svg'
+};
+
+// Fries in orange package (~12×8 cm)
+export const ITEM_FRIES_ORANGE = {
+  hl: 35,
+  r: 76,
+  kind: 'board',
+  c: '#f27221',
+  imgSrc: 'items/fries1-ready.svg'
+};
+
+// Plate with chicken drumsticks (28 cm plate)
+export const ITEM_PLATE_CHICKEN = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#a0b4ed',
+  imgSrc: 'items/plate-chicken-ready.svg'
+};
+
+// Plate with BBQ skewers (28 cm plate)
+export const ITEM_PLATE_BBQ = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#faba02',
+  imgSrc: 'items/plate-bbq-ready.svg'
+};
+
+// Plate with mashed potato and chicken (28 cm plate)
+export const ITEM_PLATE_MASHED = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#ededed',
+  imgSrc: 'items/plate-mashed-chicken-ready.svg'
+};
+
+// Soup bowl (diameter ~20 cm)
+export const ITEM_BOWL_SOUP_1 = {
+  hl: 0,
+  r: 117,
+  kind: 'plate',
+  c: '#f5f5f5',
+  imgSrc: 'items/plate-soup3-ready.svg'
+};
+
+// Soup bowl with egg (diameter ~20 cm)
+export const ITEM_BOWL_SOUP_EGG = {
+  hl: 0,
+  r: 117,
+  kind: 'plate',
+  c: '#ffdb59',
+  imgSrc: 'items/plate-soup1-ready.svg'
+};
+
+// Plate with sausages and cutlery (~30×28 cm, enlarged collider to include cutlery)
+export const ITEM_PLATE_SAUSAGE_SET = {
+  hl: 40,
+  r: 175,
+  kind: 'plate',
+  c: '#f5f2db',
+  imgSrc: 'items/plate-sausage-ready.svg'
+};

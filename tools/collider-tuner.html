@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collider Tuner — dining-oak</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 20px; background: #14110f; color: #eee;
+         font: 14px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #999; margin: 0 0 16px; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .card { background: #1e1a16; border: 1px solid #322c26; border-radius: 10px; padding: 10px; }
+  .card canvas { width: 100%; height: 170px; background:
+     repeating-conic-gradient(#2a2620 0% 25%, #211d18 0% 50%) 50% / 24px 24px; border-radius: 6px; display: block; }
+  .name { font-weight: 700; margin: 8px 0 2px; font-size: 13px; }
+  .meta { color: #8a8078; font-size: 11px; margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
+  .row label { width: 22px; color: #b9a; }
+  .row input { width: 70px; background: #14110f; color: #eee; border: 1px solid #443c34;
+               border-radius: 5px; padding: 4px 6px; font: inherit; }
+  .warn { color: #ff9a4d; } .ok { color: #6bd06b; }
+  .ideal { font-size: 11px; color: #7fd4ff; cursor: pointer; text-decoration: underline dotted; }
+  #dump { width: 100%; height: 140px; margin-top: 16px; background: #100d0b; color: #cfc;
+          border: 1px solid #322c26; border-radius: 8px; padding: 10px; font: 12px/1.5 monospace; }
+</style>
+</head>
+<body>
+<h1>Collider Tuner — <span id="count" style="color:#cdbf9e">all items</span></h1>
+<p class="sub">Green outline = the capsule collider (physics). It should hug the item's real footprint.
+  Edit <b>hl</b> (half-length) / <b>r</b> (radius) live. <b>Distortion</b> = how much the image is stretched
+  by the capsule's aspect vs the SVG's own aspect — click <b>“ideal”</b> to snap to a non-distorting split
+  at the current overall size. Copy the values from the box at the bottom into <code>js/items.js</code>.
+  <br>Local dev tool — not part of the game, not deployed.</p>
+<div class="grid" id="grid"></div>
+<textarea id="dump" readonly></textarea>
+
+<script type="module">
+// Cache-busted so the tuner always reflects the CURRENT items.js (dodges the module cache).
+const ITEMS = await import('../js/items.js?t=' + Date.now());
+
+const TAU = Math.PI;
+// Every item descriptor exported from items.js (module-namespace keys come out alphabetical).
+const ids = Object.keys(ITEMS).filter(k =>
+  k.startsWith('ITEM_') && ITEMS[k] && typeof ITEMS[k] === 'object' && typeof ITEMS[k].r === 'number');
+document.getElementById('count').textContent = ids.length + ' items';
+
+const state = {};   // id -> { hl, r }  (live-edited copy)
+ids.forEach(id => { state[id] = { hl: ITEMS[id].hl, r: ITEMS[id].r }; });   // init ALL up front
+const grid = document.getElementById('grid');
+const dump = document.getElementById('dump');
+
+const loadImg = (src) => new Promise((res) => {
+  const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src;
+});
+
+function capAspect(hl, r) { return hl > 0 ? (hl + r) / r : 1; }        // fw/fh
+function imgAspect(im)   { return Math.max(im.naturalWidth, im.naturalHeight) / Math.min(im.naturalWidth, im.naturalHeight); }
+
+function draw(cv, o, im) {
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const hl = o.hl, r = o.r;
+  const halfX = hl + r, halfY = r;
+  const s = Math.min((W / 2 - 14) / halfX, (H / 2 - 14) / halfY);
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(s, s);
+
+  // image, exactly as render.js drawProp() maps it into the capsule
+  if (im) {
+    const fw = hl > 0 ? (hl + r) * 2 : r * 2, fh = r * 2;
+    ctx.globalAlpha = 0.9;
+    if (im.naturalHeight > im.naturalWidth) { ctx.save(); ctx.rotate(TAU / 2); ctx.drawImage(im, -fh / 2, -fw / 2, fh, fw); ctx.restore(); }
+    else ctx.drawImage(im, -fw / 2, -fh / 2, fw, fh);
+    ctx.globalAlpha = 1;
+  }
+  // capsule collider outline
+  ctx.beginPath();
+  ctx.moveTo(-hl, -r); ctx.lineTo(hl, -r);
+  ctx.arc(hl, 0, r, -TAU / 2, TAU / 2);
+  ctx.lineTo(-hl, r);
+  ctx.arc(-hl, 0, r, TAU / 2, -TAU / 2);
+  ctx.closePath();
+  ctx.lineWidth = 2 / s; ctx.strokeStyle = '#39ff14'; ctx.stroke();
+  // foci
+  ctx.fillStyle = '#39ff14aa';
+  for (const fx of (hl > 0 ? [-hl, hl] : [0])) { ctx.beginPath(); ctx.arc(fx, 0, 3 / s, 0, TAU * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+function refreshDump() {
+  dump.value = ids.map(id => {
+    const o = state[id];
+    return `${id}: hl:${o.hl}, r:${o.r}`;
+  }).join('\n');
+}
+
+for (const id of ids) {
+  const base = ITEMS[id];
+  const holder = { im: null };                        // filled in async so cards render instantly
+
+  const card = document.createElement('div'); card.className = 'card';
+  const cv = document.createElement('canvas'); cv.width = 240; cv.height = 170;
+  const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = id;
+  const meta = document.createElement('div'); meta.className = 'meta';
+  const svgInfo = document.createElement('span'); svgInfo.textContent = `${base.kind} · loading…`;
+  const dist = document.createElement('span');
+  const ideal = document.createElement('span'); ideal.className = 'ideal'; ideal.textContent = ' [ideal]';
+  meta.append(svgInfo, ' — ', dist, ideal);
+
+  const mk = (key) => {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.textContent = key;
+    const inp = document.createElement('input'); inp.type = 'number'; inp.step = key === 'hl' ? 5 : 2; inp.value = state[id][key];
+    inp.addEventListener('input', () => { state[id][key] = +inp.value || 0; update(); });
+    row.append(lab, inp); card.appendChild(row); return inp;
+  };
+
+  const update = () => {
+    draw(cv, state[id], holder.im);
+    const im = holder.im;
+    if (im) {
+      const d = Math.abs(capAspect(state[id].hl, state[id].r) / imgAspect(im) - 1) * 100;
+      dist.textContent = `distortion ${d.toFixed(0)}%`;
+      dist.className = d < 6 ? 'ok' : 'warn';
+    } else dist.textContent = '';
+    refreshDump();
+  };
+
+  card.append(cv, nm, meta);
+  const hlIn = mk('hl'), rIn = mk('r');
+  ideal.addEventListener('click', () => {
+    const im = holder.im; if (!im) return;
+    const L = state[id].hl + state[id].r;              // keep overall size, fix the split
+    const A = imgAspect(im);
+    const r = Math.round(L / A), hl = Math.round(L - r);
+    state[id].hl = base.hl > 0 ? hl : 0; state[id].r = r;
+    hlIn.value = state[id].hl; rIn.value = state[id].r; update();
+  });
+  grid.appendChild(card);
+  update();                                            // draw the capsule now (image fills in below)
+
+  loadImg('../' + base.imgSrc).then(im => {
+    holder.im = im;
+    svgInfo.textContent = im ? `${base.kind} · SVG ${im.naturalWidth}×${im.naturalHeight}`
+                             : `${base.kind} · image missing (${base.imgSrc})`;
+    update();
+  });
+}
+refreshDump();
+</script>
+</body>
+</html>

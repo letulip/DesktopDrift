@@ -54,12 +54,13 @@ export const TRACKS = [
     tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
     theme:  { background: `#1b2230`, table: `#8f99ac`, tableEdge: `#5c667c`, track: `#c7bda4` },
   },
-  // {
-  //   id:     `dining-oak`,
-  //   name:   `Breakfast Boulevard`,
-  //   desc:   `A cozy dining table turned dangerous circuit. Watch out – those giant forks are unforgiving!`,
-  //   svgSrc: `tracks/dining-oak.svg`,
-  //
-  //   theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#43372a` },
-  // },
+  {
+    id:     `dining-oak`,
+    name:   `Breakfast Boulevard`,
+    desc:   `A cozy dining table turned dangerous circuit. Watch out for the giant forks — they're unforgiving!`,
+    svgSrc: `tracks/dining-oak.svg`,
+    caps:   1,
+    tires:  12,   // tire-coin pickups (badge denominator); must match the track module's `tires`
+    theme:  { background: `#0f0b08`, table: `#2e241a`, tableEdge: `#5a4a36`, track: `#cdbf9e` },
+  },
 ];
