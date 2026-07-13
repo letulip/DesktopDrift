@@ -60,8 +60,9 @@ precise builder task instead and hand it to the owner.
 6. **One platform per work session**, end to end, with a written log (below).
 7. **Language:** public copy in English by default; Russian for RU platforms
    (Yandex, DTF, VK). Match the platform's register.
-8. **Code changes are builder tasks.** Format: goal, exact scope, acceptance
-   criteria, files likely touched. Never edit game code yourself.
+8. **Code changes are builder tasks.** Write them in the intake format defined
+   in `docs/promo/BUILDER_AGENT.md` (goal, exact scope, acceptance criteria,
+   files likely touched, references). Never edit game code yourself.
 
 ## Voice & style for all copy
 
@@ -125,5 +126,8 @@ or the agent posts with approval where the account is already logged in.
 - Gameplay GIF / video: `docs/promo/assets/` ✅ — `cover-630x500.gif` (10 s,
   2.9 MB, itch.io cover slot) + `gameplay-master.mp4` (26 s, 1280×720, source
   for Shorts/GIF cuts). Re-capture any time with `tools/capture/record.js`.
-  16:9 cover art: still none (owner task — see steps/00).
+- Cover art 16:9: `docs/promo/assets/desktop-drift-thumbnail.png` ✅ (1672×941,
+  16:9 — owner has the source; ask for a native 1920×1080 re-export if a
+  platform demands exact pixels, don't upscale). Logo PNG:
+  `docs/promo/assets/icon-192.png`; vector icon lives in `icons/icon.svg`.
 - Press kit: none yet — Workflow B, good first task

@@ -117,10 +117,9 @@ Status legend: 🟢 live · 🟡 ready to submit · 🔴 blocked (needs prep wor
 2. **Per-platform build flag** in `scripts/build.js` — inject the right SDK
    adapter; strip external links (donate/YouTube/GitHub) for Yandex.
    → same playbook: [steps/04-platform-adapter.md](steps/04-platform-adapter.md)
-3. **Capture kit** — screenshots ✅ (`docs/promo/screenshots/`, captured via
-   `tools/capture/capture.js`). Gameplay GIF ✅ + 20–30 s video master ✅
-   (`docs/promo/assets/`, captured via `tools/capture/record.js`). Still
-   missing: 16:9 cover art; 512×512 icon exists ✅. → [steps/00-capture-gif-cover.md](steps/00-capture-gif-cover.md)
+3. **Capture kit** — ✅ DONE: screenshots (`docs/promo/screenshots/`), gameplay
+   GIF + video master + 16:9 cover art (`docs/promo/assets/`); tooling in
+   `tools/capture/`. → [steps/00-capture-gif-cover.md](steps/00-capture-gif-cover.md)
 4. *(Later, if Yandex requires it)* minimal i18n layer for RU strings —
    scoped inside [steps/06-yandex-games.md](steps/06-yandex-games.md).
 

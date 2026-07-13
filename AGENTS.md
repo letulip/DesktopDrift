@@ -437,8 +437,10 @@ stays readable. No framework, no bundler.
     rollout plan — the map; its rollout table indexes the playbooks),
     `steps/NN-*.md` (one executable playbook per rollout step: what/how/when/who),
     `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
-    `SHORTS_PIPELINE.md` (YouTube Shorts workflow), `screenshots/` (store-listing
-    screenshots, desktop + mobile).
+    `BUILDER_AGENT.md` (standing prompt for the builder agent: git/worktree
+    protocol, task intake + report formats), `SHORTS_PIPELINE.md` (YouTube
+    Shorts workflow), `screenshots/` (store-listing screenshots, desktop +
+    mobile), `assets/` (cover art, gameplay GIF/video masters).
   - `tools/capture/` — Playwright screenshot-capture kit (scripted driving +
     contact sheets); regenerates `docs/promo/screenshots/`. See its README —
     Playwright is installed *outside* the repo, never as a project dependency.

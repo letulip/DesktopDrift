@@ -1,6 +1,7 @@
 # Step 00 — Finish the capture kit: gameplay GIF + cover art
 
-**Status:** GIF ✅ + video master ✅ (`docs/promo/assets/`); 16:9 cover art remains (owner)
+**Status:** ✅ DONE — GIF + video master + 16:9 cover art (`desktop-drift-thumbnail.png`,
+1672×941; owner has the source for exact-size re-exports), all in `docs/promo/assets/`
 **Blocks:** every listing below (each wants a cover; itch.io wants a GIF)
 **When:** first — before any Wave 1 submission. Effort: one session.
 **Who:** builder (tooling) + owner (final pick).
