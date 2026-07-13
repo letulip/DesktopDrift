@@ -120,23 +120,21 @@ export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeou
 export const tapThenGo = (href, ms = 100) => soundThenGo(href, 'tap', ms);
 
 // ── Continuous movement rustle ────────────────────────────────────────────────
-// A dry, filtered-noise "rolling on the table" texture whose volume + brightness follow the
-// car's speed. Routed straight to the output — NO reverb (the request was a *dry* rustle). This
-// is the game's only continuous voice: created lazily, updated per frame by movement(), and torn
-// down by stopMovement() when the race ends.
-let _moveSrc = null, _moveFilt = null, _moveGain = null, _moveLast = -1;
+// A soft, dry mechanical buzz — like a small RC car's motor — whose pitch, brightness and volume
+// follow the car's speed. Two detuned sawtooths → a lowpass, routed straight to the output (NO
+// reverb). The game's only continuous voice: created lazily, updated per frame by movement(),
+// and torn down by stopMovement() when the race ends.
+let _moveA = null, _moveB = null, _moveFilt = null, _moveGain = null, _moveLast = -1;
 
 const _ensureMove = (ctx) => {
-  if (_moveSrc) return;
-  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 2), ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  _moveSrc = ctx.createBufferSource();
-  _moveSrc.buffer = buf; _moveSrc.loop = true;
-  _moveFilt = ctx.createBiquadFilter(); _moveFilt.type = 'bandpass'; _moveFilt.frequency.value = 1600; _moveFilt.Q.value = 0.7;
+  if (_moveA) return;
   _moveGain = ctx.createGain(); _moveGain.gain.value = 0.0001;
-  _moveSrc.connect(_moveFilt); _moveFilt.connect(_moveGain); _moveGain.connect(ctx.destination);   // dry, no reverb
-  _moveSrc.start();
+  _moveFilt = ctx.createBiquadFilter(); _moveFilt.type = 'lowpass'; _moveFilt.frequency.value = 600; _moveFilt.Q.value = 1;
+  _moveA = ctx.createOscillator(); _moveA.type = 'sawtooth'; _moveA.frequency.value = 80;
+  _moveB = ctx.createOscillator(); _moveB.type = 'sawtooth'; _moveB.frequency.value = 80.6;
+  _moveA.connect(_moveFilt); _moveB.connect(_moveFilt);
+  _moveFilt.connect(_moveGain); _moveGain.connect(ctx.destination);   // dry, no reverb
+  _moveA.start(); _moveB.start();
 };
 
 // Per-frame movement update. `spd` is 0..1 (speed / top speed). Ramps the rustle's volume +
@@ -151,17 +149,21 @@ export const movement = (spd) => {
   if (Math.abs(s - _moveLast) < 0.01) return;
   _moveLast = s;
   const vol = gainForVolume(settings().volume);
-  const target = s < 0.03 ? 0.0001 : vol * (0.04 + 0.12 * s);   // soft — a texture beneath the SFX
-  _moveGain.gain.setTargetAtTime(target, ctx.currentTime, 0.09);
-  _moveFilt.frequency.setTargetAtTime(1400 + 2200 * s, ctx.currentTime, 0.09);   // brighter as it speeds up
+  const target = s < 0.03 ? 0.0001 : vol * (0.012 + 0.045 * s);   // very soft mechanical hum
+  const base = 80 + 170 * s;                                       // motor pitch rises with speed
+  const now = ctx.currentTime, tc = 0.08;
+  _moveGain.gain.setTargetAtTime(target, now, tc);
+  _moveA.frequency.setTargetAtTime(base, now, tc);
+  _moveB.frequency.setTargetAtTime(base * 1.008, now, tc);          // slight detune → mechanical grind
+  _moveFilt.frequency.setTargetAtTime(500 + 1600 * s, now, tc);
 };
 
 // Stop + free the rustle voice (race teardown / new race). Safe to call when nothing is running.
 export const stopMovement = () => {
-  if (!_moveSrc) return;
-  try { _moveSrc.stop(); } catch { /* already stopped */ }
-  try { _moveSrc.disconnect(); _moveFilt.disconnect(); _moveGain.disconnect(); } catch { /* noop */ }
-  _moveSrc = _moveFilt = _moveGain = null; _moveLast = -1;
+  if (!_moveA) return;
+  try { _moveA.stop(); _moveB.stop(); } catch { /* already stopped */ }
+  try { _moveA.disconnect(); _moveB.disconnect(); _moveFilt.disconnect(); _moveGain.disconnect(); } catch { /* noop */ }
+  _moveA = _moveB = _moveFilt = _moveGain = null; _moveLast = -1;
 };
 
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
