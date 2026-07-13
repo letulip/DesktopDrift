@@ -44,21 +44,6 @@
   <div class="grid" id="pad"></div>
 
   <div class="tweak">
-    <div class="cat">Movement sound (continuous)</div>
-    <div class="row">
-      <label>Style
-        <select id="mstyle">
-          <option value="buzz">buzz (AM brrr)</option>
-          <option value="hum">hum (low drone)</option>
-          <option value="putt">putt (low rumble)</option>
-        </select>
-      </label>
-      <label>Speed <input type="range" id="mspd" min="0" max="1" step="0.02" value="0"> <span id="mspdval">0.00</span></label>
-      <button id="mstop" style="flex:0 0 auto">■ Stop</button>
-    </div>
-  </div>
-
-  <div class="tweak">
     <div class="cat">Live tweak</div>
     <div class="row">
       <select id="pick"></select>
@@ -70,7 +55,7 @@
 
   <script type="module">
     import { settings, save } from '../js/store.js';
-    import { play, playParams, movement, stopMovement, setMoveStyle } from '../js/sound.js';
+    import { play, playParams } from '../js/sound.js';
     import { SFX } from '../js/sound-params.js';
 
     const s = settings();
@@ -100,13 +85,6 @@
     const showVol = () => { volval.textContent = (+vol.value).toFixed(2); };
     vol.value = s.volume ?? 0.65; showVol();
     vol.addEventListener('input', () => { s.volume = +vol.value; save(); showVol(); });
-
-    // Movement rustle — drag speed to audition the continuous rolling texture; stop frees it.
-    const mspd = document.getElementById('mspd'), mspdval = document.getElementById('mspdval');
-    mspd.addEventListener('input', () => { mspdval.textContent = (+mspd.value).toFixed(2); movement(+mspd.value); });
-    document.getElementById('mstop').addEventListener('click', () => { stopMovement(); mspd.value = 0; mspdval.textContent = '0.00'; });
-    // Switch style live, then re-apply the current speed so you hear it immediately.
-    document.getElementById('mstyle').addEventListener('change', (e) => { setMoveStyle(e.target.value); movement(+mspd.value); });
 
     // Live tweak — edit an SFX's JSON and re-play it via playParams (ad-hoc, not the table).
     const pick = document.getElementById('pick'), json = document.getElementById('json'), err = document.getElementById('err');
