@@ -1,6 +1,7 @@
 # Step 00 — Finish the capture kit: gameplay GIF + cover art
 
-**Status:** not started · **Blocks:** every listing below (each wants a cover; itch.io wants a GIF)
+**Status:** GIF ✅ + video master ✅ (`docs/promo/assets/`); 16:9 cover art remains (owner)
+**Blocks:** every listing below (each wants a cover; itch.io wants a GIF)
 **When:** first — before any Wave 1 submission. Effort: one session.
 **Who:** builder (tooling) + owner (final pick).
 
@@ -16,9 +17,9 @@ Three missing assets, reusable across all platforms:
 
 ## How
 
-1. **Video source:** extend `tools/capture/capture.js` — Playwright contexts accept
-   `recordVideo: { dir, size }`; run the existing scripted drives (green-study and
-   dev-desk gave the best frames) and keep the video instead of frames.
+1. **Video source:** done — `tools/capture/record.js` (sibling of `capture.js`):
+   Playwright contexts with `recordVideo: { dir, size }`, one 45 s scripted drive
+   each on green-study (seed 33) and dev-desk (seed 11), 1280×720 webm output.
    Alternative if quality disappoints: owner plays 60 s in a normal browser with
    QuickTime/OBS recording.
 2. **Cut the best 10–20 s** (a corner chain with visible combo popups):
@@ -33,6 +34,10 @@ Three missing assets, reusable across all platforms:
 
 ## Done when
 
-- `cover.gif` ≤ 3 MB, 630×500, loops cleanly.
-- `cover-1920x1080.png` master + per-platform downscales.
-- 20–30 s mp4 master saved for Shorts reuse.
+- [x] `cover.gif` ≤ 3 MB, 630×500, loops cleanly — `docs/promo/assets/cover-630x500.gif`
+      (10 s, 2.9 MB, fps 7 / 32 colors — full-screen scroll makes GIFs heavy;
+      lower fps + no dither was the only way under 3 MB at 630×500).
+- [ ] `cover-1920x1080.png` master + per-platform downscales — owner task.
+- [x] 20–30 s mp4 master saved for Shorts reuse — `docs/promo/assets/gameplay-master.mp4`
+      (26 s, 1280×720 H.264, 6.5 MB: green-study drift chain w/ combo popups,
+      then dev-desk coffee-cup corners).

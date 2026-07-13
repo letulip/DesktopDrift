@@ -122,5 +122,8 @@ or the agent posts with approval where the account is already logged in.
   2 mobile gameplay (780×1688), 6 UI pages. The `*-CROP-ME` file needs a 16:9
   crop of its left table area before use. Re-capture any time with
   `tools/capture/capture.js` (Playwright; see header comment).
-- Gameplay GIF / trailer: none yet
+- Gameplay GIF / video: `docs/promo/assets/` ✅ — `cover-630x500.gif` (10 s,
+  2.9 MB, itch.io cover slot) + `gameplay-master.mp4` (26 s, 1280×720, source
+  for Shorts/GIF cuts). Re-capture any time with `tools/capture/record.js`.
+  16:9 cover art: still none (owner task — see steps/00).
 - Press kit: none yet — Workflow B, good first task
