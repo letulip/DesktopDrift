@@ -119,6 +119,51 @@ export const sfx = {
 export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeout(() => { location.href = href; }, ms); };
 export const tapThenGo = (href, ms = 100) => soundThenGo(href, 'tap', ms);
 
+// ── Continuous movement rustle ────────────────────────────────────────────────
+// A dry, filtered-noise "rolling on the table" texture whose volume + brightness follow the
+// car's speed. Routed straight to the output — NO reverb (the request was a *dry* rustle). This
+// is the game's only continuous voice: created lazily, updated per frame by movement(), and torn
+// down by stopMovement() when the race ends.
+let _moveSrc = null, _moveFilt = null, _moveGain = null, _moveLast = -1;
+
+const _ensureMove = (ctx) => {
+  if (_moveSrc) return;
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 2), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  _moveSrc = ctx.createBufferSource();
+  _moveSrc.buffer = buf; _moveSrc.loop = true;
+  _moveFilt = ctx.createBiquadFilter(); _moveFilt.type = 'bandpass'; _moveFilt.frequency.value = 1600; _moveFilt.Q.value = 0.7;
+  _moveGain = ctx.createGain(); _moveGain.gain.value = 0.0001;
+  _moveSrc.connect(_moveFilt); _moveFilt.connect(_moveGain); _moveGain.connect(ctx.destination);   // dry, no reverb
+  _moveSrc.start();
+};
+
+// Per-frame movement update. `spd` is 0..1 (speed / top speed). Ramps the rustle's volume +
+// brightness toward the current speed with a short time-constant (self-smoothing, no zipper
+// noise). Cheap: skips redundant AudioParam writes when speed hasn't moved ~1%. Silent when
+// sound is off (ducks a running rustle) or nearly stopped.
+export const movement = (spd) => {
+  if (!_on()) { if (_moveGain && _ctx) _moveGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05); return; }
+  const ctx = _ensureCtx();
+  _ensureMove(ctx);
+  const s = Math.max(0, Math.min(1, spd || 0));
+  if (Math.abs(s - _moveLast) < 0.01) return;
+  _moveLast = s;
+  const vol = gainForVolume(settings().volume);
+  const target = s < 0.03 ? 0.0001 : vol * (0.04 + 0.12 * s);   // soft — a texture beneath the SFX
+  _moveGain.gain.setTargetAtTime(target, ctx.currentTime, 0.09);
+  _moveFilt.frequency.setTargetAtTime(1400 + 2200 * s, ctx.currentTime, 0.09);   // brighter as it speeds up
+};
+
+// Stop + free the rustle voice (race teardown / new race). Safe to call when nothing is running.
+export const stopMovement = () => {
+  if (!_moveSrc) return;
+  try { _moveSrc.stop(); } catch { /* already stopped */ }
+  try { _moveSrc.disconnect(); _moveFilt.disconnect(); _moveGain.disconnect(); } catch { /* noop */ }
+  _moveSrc = _moveFilt = _moveGain = null; _moveLast = -1;
+};
+
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
 // device isn't kept awake; resume on the next gesture or when the tab returns.
 export const suspend = () => { if (_ctx && _ctx.state === 'running') _ctx.suspend(); };
