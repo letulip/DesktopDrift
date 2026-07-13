@@ -38,7 +38,7 @@ const drawTrail = (ctx, color, cx, cy, s, M, phase) => {
 // { layout, anim, colors, speed } — or a legacy colour string, or null), a paint finish
 // (matte/metallic/pearl/chrome), and a trail colour (a fading drift trail behind the car).
 // `phase` (seconds) animates both the trail and any neon animation. null disables each.
-export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null, phase = 0) => {
+export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null, phase = 0, glass = null, outline = null) => {
   const W = cvs.width, H = cvs.height;
   const ctx = cvs.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -73,11 +73,12 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   paintBody(ctx, M._p2d, M.body, finish, M.vw, M.vh);
   ctx.lineJoin   = 'round';
   ctx.lineWidth  = 5;
-  ctx.strokeStyle = M.stroke;
+  ctx.strokeStyle = outline || M.stroke;   // equipped outline colour (or stock #222222)
   ctx.stroke(M._p2d);
   if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
   // Details (windows, headlights, tail-lights) go on TOP of the outline + panel lines so
   // edge-hugging lights aren't buried under the 5px body stroke or a panel-line stroke.
-  if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
+  // Glass tint recolours the dark #222222 window details (also recolours dark trim — same fill).
+  if (M.details) for (const d of M.details) { ctx.fillStyle = (glass && d.c === '#222222') ? glass : d.c; ctx.fill(d._p2d); }
   ctx.restore();
 };

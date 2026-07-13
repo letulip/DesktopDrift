@@ -95,11 +95,15 @@ let _carBody = null;
 let _carNeon = null;
 let _carFinish = null;          // equipped paint finish (matte/metallic/pearl/chrome) or null
 let _trailRgb  = null;          // "r,g,b" for skid marks, from the equipped trail colour, or null
-export const setCarPaint = (body, neon, finish, trail) => {
-  _carBody   = body ?? null;
-  _carNeon   = neon ?? null;
-  _carFinish = finish ?? null;
-  _trailRgb  = hexToRgbStr(trail);   // null when no trail equipped → falls back to theme skid
+let _carGlass  = null;          // equipped glass tint (recolours #222222 window details) or null
+let _carOutline = null;         // equipped outline colour (recolours the body stroke + panel lines) or null
+export const setCarPaint = (body, neon, finish, trail, glass, outline) => {
+  _carBody    = body ?? null;
+  _carNeon    = neon ?? null;
+  _carFinish  = finish ?? null;
+  _trailRgb   = hexToRgbStr(trail);   // null when no trail equipped → falls back to theme skid
+  _carGlass   = glass ?? null;
+  _carOutline = outline ?? null;
 };
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
@@ -302,11 +306,12 @@ const drawCar = (M) => {
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
     paintBody(ctx, M._p2d, _carBody ?? M.body, _carFinish, M.vw, M.vh);
-    ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = M.stroke;
+    ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = _carOutline || M.stroke;
     ctx.stroke(M._p2d);
     if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
     // Details on TOP of the outline + panel lines so edge lights aren't buried (see car-preview.js).
-    if (M.details) for (const d of M.details) { ctx.fillStyle = d.c; ctx.fill(d._p2d); }
+    // Glass tint recolours the dark #222222 window details (also recolours dark trim — same fill).
+    if (M.details) for (const d of M.details) { ctx.fillStyle = (_carGlass && d.c === '#222222') ? _carGlass : d.c; ctx.fill(d._p2d); }
     ctx.restore();
     return;
   }

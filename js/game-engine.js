@@ -330,7 +330,7 @@ export const startGame = (T, opts = {}) => {
   const look = opts.stock ? {} : carLook(S.carModel);   // per-car equipped look ({} = factory)
   // neon is a config object now; fall back to a solid config from the legacy neonColor.
   const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
-  setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null);
+  setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null, look.glassColor ?? null, look.outlineColor ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).

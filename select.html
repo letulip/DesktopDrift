@@ -110,7 +110,7 @@
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
-    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null, null, phase);
+    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null, null, phase, look.glassColor || null, look.outlineColor || null);
     M.body = orig;
   };
 

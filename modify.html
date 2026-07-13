@@ -45,6 +45,8 @@
         <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
         <button class="shop-tab" type="button" data-panel="neon">Neon FX</button>
         <button class="shop-tab" type="button" data-panel="trail">Trail</button>
+        <button class="shop-tab" type="button" data-panel="glass">Glass</button>
+        <button class="shop-tab" type="button" data-panel="outline">Outline</button>
       </div>
 
       <!-- Only the panels scroll; header + preview + tabs stay pinned above -->
@@ -78,6 +80,16 @@
       <!-- Trail colour (paid) -->
       <div class="cust-panel" data-panel="trail" hidden>
         <div id="shop-trail" class="shop-grid"></div>
+      </div>
+
+      <!-- Glass tint (paid) — recolours the dark windows -->
+      <div class="cust-panel" data-panel="glass" hidden>
+        <div id="shop-glass" class="shop-grid"></div>
+      </div>
+
+      <!-- Outline colour (paid) — recolours the body outline + panel lines -->
+      <div class="cust-panel" data-panel="outline" hidden>
+        <div id="shop-outline" class="shop-grid"></div>
       </div>
       </div><!-- /#panels -->
     </div>
@@ -128,6 +140,8 @@
       : defaultNeon(NEON_PALETTE[0].hex),
     finish:  look.finish ?? null,
     trail:   look.trailColor ?? null,
+    glass:   look.glassColor ?? null,
+    outline: look.outlineColor ?? null,
   };
 
   const itemFor = (kind, value) =>
@@ -152,7 +166,7 @@
   const neonAnimating = () => pending.neonOn && pending.neonCfg.anim !== 'none';
   const draw = () => {
     M.body = pending.body ?? factoryBody;   // stock colour when nothing custom is picked
-    drawCarPreview(previewCvs, M, neonNow(), pending.finish, trailNow(), phase);
+    drawCarPreview(previewCvs, M, neonNow(), pending.finish, trailNow(), phase, pending.glass, pending.outline);
   };
   const loop = (ts) => { phase = ts * 0.001; draw(); rafId = requestAnimationFrame(loop); };
   const redraw = () => {
@@ -312,7 +326,7 @@
   // ── Shop: finishes + trail colours (paid → cart) ──────────────────────────────
   // Tapping toggles the item into the pending look. Owned items apply for free;
   // unowned items go into the cart (checkmark) and are bought together on Apply.
-  const FIELD = { finish: 'finish', trail: 'trail' };   // catalog kind → pending field
+  const FIELD = { finish: 'finish', trail: 'trail', glass: 'glass', outline: 'outline' };   // catalog kind → pending field
   const shopCards = [];
   const applyBtn  = document.getElementById('applyBtn');
   const warnEl    = document.getElementById('buy-warning');
@@ -323,7 +337,7 @@
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'shop-card';
-      if (kind === 'trail') {
+      if (kind === 'trail' || kind === 'glass' || kind === 'outline') {   // paid colour categories → colour dot
         const dot = document.createElement('span');
         dot.className = 'shop-dot';
         dot.style.background = item.value;
@@ -387,8 +401,10 @@
     }
   };
 
-  buildGroup('finish', 'shop-finish');
-  buildGroup('trail',  'shop-trail');
+  buildGroup('finish',  'shop-finish');
+  buildGroup('trail',   'shop-trail');
+  buildGroup('glass',   'shop-glass');
+  buildGroup('outline', 'shop-outline');
 
   // ── Tabs: show one customization panel at a time (Colour / Neon / Trail) ──────
   const tabs   = [...document.querySelectorAll('.shop-tab')];
@@ -407,8 +423,12 @@
     const cart = [];
     const fItem = itemFor('finish', pending.finish);
     const tItem = itemFor('trail',  pending.trail);
+    const gItem = itemFor('glass',   pending.glass);
+    const oItem = itemFor('outline', pending.outline);
     if (fItem && !isOwned(fItem.id)) cart.push(fItem);
     if (tItem && !isOwned(tItem.id)) cart.push(tItem);
+    if (gItem && !isOwned(gItem.id)) cart.push(gItem);
+    if (oItem && !isOwned(oItem.id)) cart.push(oItem);
     for (const it of neonCartItems()) cart.push(it);           // carted neon layout / anim
     const total = cart.reduce((s, it) => s + it.price, 0);
     if (total > wallet()) { refresh(); return; }               // can't afford → show the warning
@@ -419,9 +439,11 @@
 
     garage().carIndex = carIdx;
     const lk = carLook(carIdx);     // write this car's own look
-    lk.bodyColor  = pending.body;
-    lk.finish     = pending.finish;
-    lk.trailColor = pending.trail;
+    lk.bodyColor    = pending.body;
+    lk.finish       = pending.finish;
+    lk.trailColor   = pending.trail;
+    lk.glassColor   = pending.glass;
+    lk.outlineColor = pending.outline;
     // Neon FX: only equip options we now own (free solid/none, or purchased above); a
     // still-locked layout/anim (e.g. left carted but not bought) falls back to the free one.
     if (pending.neonOn) {

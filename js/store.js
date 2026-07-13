@@ -333,14 +333,15 @@ export const buyCar = (id, price) => {
   return { ok: true };
 };
 
-// The per-car equipped look ({ bodyColor, neonColor, finish, trailColor }) for a car
-// index. Returns a live object — mutate the fields and call save(). Lazily created
-// with null defaults; purchases (owned) are shared across all cars, looks are not.
+// The per-car equipped look ({ bodyColor, neonColor, finish, trailColor, glassColor, outlineColor })
+// for a car index. Returns a live object — mutate the fields and call save(). Lazily created with
+// null defaults; purchases (owned) are shared across all cars, looks are not. New fields (glass/
+// outline) are additive — absent on old saves reads as null (stock) via `look.glassColor ?? null`.
 export const carLook = (carIndex) => {
   _ensure();
   if (!_s.garage.cars) _s.garage.cars = {};
   const key = String(carIndex);
-  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null, neon: null };
+  if (!_s.garage.cars[key]) _s.garage.cars[key] = { bodyColor: null, neonColor: null, finish: null, trailColor: null, glassColor: null, outlineColor: null, neon: null };
   return _s.garage.cars[key];
 };
 

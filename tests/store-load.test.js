@@ -32,7 +32,7 @@ test('v1→v2 migration: old global look moves onto the active car (per-car look
   assert.equal(g.carIndex, 3);
   assert.equal(g.bodyColor, undefined);            // no more top-level look fields
   assert.deepEqual(carLook(3),
-    { bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null, neon: null });
+    { bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null, neon: null });   // migrated look predates glass/outline (absent → read as null via ?? null)
   assert.equal(carLook(0).bodyColor, null);        // other cars start clean
 });
 
