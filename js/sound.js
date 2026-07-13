@@ -120,21 +120,37 @@ export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeou
 export const tapThenGo = (href, ms = 100) => soundThenGo(href, 'tap', ms);
 
 // ── Continuous movement rustle ────────────────────────────────────────────────
-// A soft, dry mechanical buzz — like a small RC car's motor — whose pitch, brightness and volume
-// follow the car's speed. Two detuned sawtooths → a lowpass, routed straight to the output (NO
-// reverb). The game's only continuous voice: created lazily, updated per frame by movement(),
-// and torn down by stopMovement() when the race ends.
-let _moveA = null, _moveB = null, _moveFilt = null, _moveGain = null, _moveLast = -1;
+// A continuous voice for the car rolling — its character is still being dialled in, so THREE dry,
+// very-soft styles are implemented and switchable: 'buzz' (an AM "brrr" motor), 'hum' (a low
+// drone) and 'putt' (a low rumble). The sound-lab exposes a picker (setMoveStyle); the game uses
+// _moveStyle. All follow speed (0..1) via movement(). Once one is chosen this collapses to it.
+let _mv = null, _moveLast = -1, _moveStyle = 'buzz';
 
-const _ensureMove = (ctx) => {
-  if (_moveA) return;
-  _moveGain = ctx.createGain(); _moveGain.gain.value = 0.0001;
-  _moveFilt = ctx.createBiquadFilter(); _moveFilt.type = 'lowpass'; _moveFilt.frequency.value = 600; _moveFilt.Q.value = 1;
-  _moveA = ctx.createOscillator(); _moveA.type = 'sawtooth'; _moveA.frequency.value = 80;
-  _moveB = ctx.createOscillator(); _moveB.type = 'sawtooth'; _moveB.frequency.value = 80.6;
-  _moveA.connect(_moveFilt); _moveB.connect(_moveFilt);
-  _moveFilt.connect(_moveGain); _moveGain.connect(ctx.destination);   // dry, no reverb
-  _moveA.start(); _moveB.start();
+const _hushMove = (ctx) => {
+  if (!_mv) return;
+  _mv.g.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.05);
+  if (_mv.modG) _mv.modG.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.05);
+};
+
+const _buildMove = (ctx, style) => {
+  const g  = ctx.createGain(); g.gain.value = 0.0001;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; lp.Q.value = 0.7;
+  lp.connect(g); g.connect(ctx.destination);   // dry, no reverb
+  const mv = { style, g, lp, oscs: [], modG: null, pitch: null, modRate: null };
+  if (style === 'hum') {                        // a soft low drone
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 90; o.connect(lp); o.start();
+    mv.oscs = [o]; mv.pitch = o.frequency;
+  } else if (style === 'putt') {                // a low square "putt-putt" rumble
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 45; o.connect(lp); o.start();
+    mv.oscs = [o]; mv.pitch = o.frequency;
+  } else {                                      // 'buzz' — a soft carrier amplitude-chopped into a "brrr"
+    const car = ctx.createOscillator(); car.type = 'triangle'; car.frequency.value = 170; car.connect(lp);
+    const mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.value = 30;
+    const modG = ctx.createGain(); modG.gain.value = 0.0001; mod.connect(modG); modG.connect(g.gain);
+    car.start(); mod.start();
+    mv.oscs = [car, mod]; mv.pitch = car.frequency; mv.modRate = mod.frequency; mv.modG = modG;
+  }
+  return mv;
 };
 
 // Per-frame movement update. `spd` is 0..1 (speed / top speed). Ramps the rustle's volume +
@@ -142,29 +158,37 @@ const _ensureMove = (ctx) => {
 // noise). Cheap: skips redundant AudioParam writes when speed hasn't moved ~1%. Silent when
 // sound is off (ducks a running rustle) or nearly stopped.
 export const movement = (spd) => {
-  if (!_on()) { if (_moveGain && _ctx) _moveGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05); return; }
+  if (!_on()) { if (_ctx) _hushMove(_ctx); return; }
   const ctx = _ensureCtx();
-  _ensureMove(ctx);
+  if (!_mv) _mv = _buildMove(ctx, _moveStyle);
   const s = Math.max(0, Math.min(1, spd || 0));
   if (Math.abs(s - _moveLast) < 0.01) return;
   _moveLast = s;
   const vol = gainForVolume(settings().volume);
-  const target = s < 0.03 ? 0.0001 : vol * (0.012 + 0.045 * s);   // very soft mechanical hum
-  const base = 80 + 170 * s;                                       // motor pitch rises with speed
+  const loud = s < 0.03 ? 0.0001 : vol * (0.008 + 0.02 * s);   // very soft
   const now = ctx.currentTime, tc = 0.08;
-  _moveGain.gain.setTargetAtTime(target, now, tc);
-  _moveA.frequency.setTargetAtTime(base, now, tc);
-  _moveB.frequency.setTargetAtTime(base * 1.008, now, tc);          // slight detune → mechanical grind
-  _moveFilt.frequency.setTargetAtTime(500 + 1600 * s, now, tc);
+  _mv.lp.frequency.setTargetAtTime(350 + 800 * s, now, tc);
+  if (_mv.style === 'buzz') {
+    _mv.g.gain.setTargetAtTime(loud * 0.5, now, tc);           // base; the modulator adds the other half
+    _mv.modG.gain.setTargetAtTime(loud * 0.5, now, tc);        // gain then chops between 0 and `loud`
+    _mv.pitch.setTargetAtTime(130 + 130 * s, now, tc);         // carrier pitch
+    _mv.modRate.setTargetAtTime(22 + 42 * s, now, tc);         // chop rate rises with speed
+  } else {
+    _mv.g.gain.setTargetAtTime(loud, now, tc);
+    _mv.pitch.setTargetAtTime(_mv.style === 'putt' ? 30 + 75 * s : 65 + 90 * s, now, tc);
+  }
 };
 
 // Stop + free the rustle voice (race teardown / new race). Safe to call when nothing is running.
 export const stopMovement = () => {
-  if (!_moveA) return;
-  try { _moveA.stop(); _moveB.stop(); } catch { /* already stopped */ }
-  try { _moveA.disconnect(); _moveB.disconnect(); _moveFilt.disconnect(); _moveGain.disconnect(); } catch { /* noop */ }
-  _moveA = _moveB = _moveFilt = _moveGain = null; _moveLast = -1;
+  if (!_mv) return;
+  try { for (const o of _mv.oscs) o.stop(); } catch { /* already stopped */ }
+  try { _mv.g.disconnect(); _mv.lp.disconnect(); if (_mv.modG) _mv.modG.disconnect(); } catch { /* noop */ }
+  _mv = null; _moveLast = -1;
 };
+
+// Dev/tuning: switch the movement style live (sound-lab); rebuilds the voice on the next update.
+export const setMoveStyle = (style) => { _moveStyle = style; stopMovement(); };
 
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
 // device isn't kept awake; resume on the next gesture or when the tab returns.
