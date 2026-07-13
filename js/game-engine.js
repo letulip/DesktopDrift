@@ -584,7 +584,7 @@ export const startGame = (T, opts = {}) => {
           if (unlockedNow.length) setTimeout(() => sfx.achieve(), 650);
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
-            ddk: isDDK(pps), unlocked: unlockedNow, carModel: S.carModel, look: carLook(S.carModel), trackName,
+            ddk: isDDK(pps), unlocked: unlockedNow, carModel: S.carModel, look: carLook(S.carModel), trackName: baseName, reversed: REVERSED,
             tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, cleanSweep: cleanSweepBonus, firstClear: firstClearBonus, finish: finishBonus, trophy: trophyBonus, unbroken: unbrokenBonus } });
           return;
         }

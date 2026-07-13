@@ -62,7 +62,7 @@ const crown = (ctx, cx, y, s) => {
 // Draw the full card. `data` = { pps, ddk, trackName, bestLap, carModel, look }. Async: waits for
 // the display font + the template image. Sizes the canvas to the card and returns it.
 export const renderShareCard = async (canvas, data) => {
-  const { pps, ddk, trackName, bestLap, carModel, look } = data;
+  const { pps, ddk, trackName, reversed, bestLap, carModel, look } = data;
   canvas.width = CARD.w; canvas.height = CARD.h;
   const ctx = canvas.getContext('2d');
 
@@ -109,10 +109,11 @@ export const renderShareCard = async (canvas, data) => {
   ctx.fillStyle = CARD.track.labelColor; ctx.font = `800 ${CARD.track.labelSize}px system-ui`;
   ctx.fillText('T R A C K', CARD.track.x, CARD.track.labelY);
   ctx.fillStyle = CARD.track.nameColor;
+  const name = (trackName || '') + (reversed ? ' ↺' : '');   // reversed → round arrow, like the track card
   let ns = CARD.track.nameSize; ctx.font = `800 ${ns}px Unbounded`;
-  const nw = ctx.measureText(trackName || '').width;
-  if (nw > CARD.track.maxW) { ns = ns * CARD.track.maxW / nw; ctx.font = `800 ${ns}px Unbounded`; }
-  ctx.fillText(trackName || '', CARD.track.x, CARD.track.nameY);
+  const nw = ctx.measureText(name).width;
+  if (nw > CARD.track.maxW) { ns = ns * CARD.track.maxW / nw; ctx.font = `800 ${ns}px Unbounded`; }   // safety only; base names fit at full size
+  ctx.fillText(name, CARD.track.x, CARD.track.nameY);
   ctx.fillStyle = CARD.track.lapColor; ctx.font = `700 ${CARD.track.lapSize}px system-ui`;
   ctx.fillText(bestLap != null ? `Best lap ${bestLap.toFixed(2)} s` : '', CARD.track.x, CARD.h - CARD.track.lapFromBottom);
   ctx.restore();

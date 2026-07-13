@@ -58,7 +58,7 @@ export const createRaceResults = () => {
   // tires: { pickup, cap, cleanSweep, firstClear, finish } — tire coins earned this race (optional)
   // ddk: true when pps ≥ 600 → the crown above the 5 stars
   // unlocked: [{ id, name, icon, reward }] — achievements unlocked this race (optional)
-  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked, carModel, look, trackName }) => {
+  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked, carModel, look, trackName, reversed }) => {
     const ppsRounded = Math.round(pps);
     // Star rating: 1 star per 100 PPS, max 5. At 600+ PPS a crown sits above the row (DDK).
     const filledStars = Math.min(5, Math.floor(ppsRounded / 100));
@@ -109,7 +109,7 @@ export const createRaceResults = () => {
     overlay.querySelector('#rr-best').textContent =
       bestLap != null ? `Best lap  ${bestLap.toFixed(2)} s` : '';
 
-    lastResult = { pps, ddk, trackName, bestLap, carModel, look };
+    lastResult = { pps, ddk, trackName, reversed, bestLap, carModel, look };
     overlay.classList.add('show');
   };
 
