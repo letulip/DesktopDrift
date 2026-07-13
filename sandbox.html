@@ -50,6 +50,6 @@
   import { startGame } from './js/game-engine.js';
   startGame(T, { stock: true });   // free test-drive: always the factory car, no tuning
 </script>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+<script type="module" src="./js/sw-update.js"></script>
 </body>
 </html>

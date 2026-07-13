@@ -674,14 +674,27 @@ The fetch handler serves the cached copy immediately (fast + offline) **and** in
 parallel re-fetches from network, overwriting the cache — so updated assets reach
 the player on the *next* load even if `CACHE` wasn't bumped (a forgotten bump
 self-heals). **Still bump `CACHE` on any asset change**: the version bump byte-changes
-`sw.js`, which triggers `skipWaiting`/`clients.claim` and guarantees the update on the
-*first* load, plus `addAll(ASSETS)` re-primes the precache. ASSETS lists every HTML page
-(incl. `tracks.html`, `green-study.html`), CSS, JS, the track SVG (`tracks/green-study.svg`),
+`sw.js` so the browser installs a fresh worker, and `addAll(ASSETS)` re-primes the
+precache. ASSETS lists every HTML page, CSS, JS, track SVGs, sounds, `share/template.png`,
 and icons. Individual `items/` SVGs are NOT precached (fetched + runtime-cached lazily).
+
+**Registration + update nudge (`js/sw-update.js`).** Every page loads this module
+(`<script type="module" src="./js/sw-update.js">`) instead of an inline `register`. It
+registers with `{ updateViaCache: 'none' }` (browser never serves a stale `sw.js` from the
+HTTP cache), calls `reg.update()` on every `visibilitychange`→visible (catches the iOS-PWA
+warm-resume case where a relaunch never cold-reloads), and when a fresh worker reaches
+`installed` **while an old one still controls the page** (`shouldNudge`, unit-tested) shows a
+bottom-centre "New version available — tap to update" toast. Tapping posts `{type:'SKIP_WAITING'}`
+to the waiting worker and reloads on `controllerchange` (only after the user opts in — never on
+first install, never mid-race). **`sw.js` no longer eagerly `skipWaiting()`s** — a new worker
+*waits* so the nudge can offer the switch; it activates only on that message. Offline-safe by
+construction: no network → no `updatefound` → no toast, the cached app runs untouched.
 
 > Why prod sometimes showed stale content before v31: four commits changed
 > `tracks.html` / `css/tracks.css` / `track-registry.js` without bumping `CACHE`,
 > so cache-first kept serving the old precached copies. SWR + the bump fixes it.
+> (Installed PWAs also lagged because iOS warm-resumes without cold-reloading — the
+> `js/sw-update.js` nudge + `visibilitychange` re-check now surfaces updates there.)
 
 ## Development rules
 
