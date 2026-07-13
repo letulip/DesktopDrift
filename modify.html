@@ -45,8 +45,6 @@
         <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
         <button class="shop-tab" type="button" data-panel="neon">Neon FX</button>
         <button class="shop-tab" type="button" data-panel="trail">Trail</button>
-        <button class="shop-tab" type="button" data-panel="glass">Glass</button>
-        <button class="shop-tab" type="button" data-panel="outline">Outline</button>
       </div>
 
       <!-- Only the panels scroll; header + preview + tabs stay pinned above -->
@@ -58,6 +56,14 @@
         <div class="finish-sub">
           <div class="cust-sublabel">Finish</div>
           <div id="shop-finish" class="shop-grid"></div>
+        </div>
+        <div class="finish-sub">
+          <div class="cust-sublabel">Glass tint</div>
+          <div id="shop-glass" class="shop-grid"></div>
+        </div>
+        <div class="finish-sub">
+          <div class="cust-sublabel">Outline</div>
+          <div id="shop-outline" class="shop-grid"></div>
         </div>
       </div>
 
@@ -80,16 +86,6 @@
       <!-- Trail colour (paid) -->
       <div class="cust-panel" data-panel="trail" hidden>
         <div id="shop-trail" class="shop-grid"></div>
-      </div>
-
-      <!-- Glass tint (paid) — recolours the dark windows -->
-      <div class="cust-panel" data-panel="glass" hidden>
-        <div id="shop-glass" class="shop-grid"></div>
-      </div>
-
-      <!-- Outline colour (paid) — recolours the body outline + panel lines -->
-      <div class="cust-panel" data-panel="outline" hidden>
-        <div id="shop-outline" class="shop-grid"></div>
       </div>
       </div><!-- /#panels -->
     </div>

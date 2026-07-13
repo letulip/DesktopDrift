@@ -72,7 +72,9 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   ctx.translate(-M.vw / 2, -M.vh / 2);
   paintBody(ctx, M._p2d, M.body, finish, M.vw, M.vh);
   ctx.lineJoin   = 'round';
-  ctx.lineWidth  = 5;
+  // Scale-aware so the outline is a constant ~2.5 device px regardless of preview size — a fixed
+  // lineWidth looked fat on the big modify preview (scaled up) and thin on the small carousel cards.
+  ctx.lineWidth  = 2.5 / s;
   ctx.strokeStyle = outline || M.stroke;   // equipped outline colour (or stock #222222)
   ctx.stroke(M._p2d);
   if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
