@@ -1,84 +1,73 @@
 // Procedural sound effects — a tiny Web Audio synth. Mirrors js/haptics.js: a settings-gated
 // wrapper that is safe to call from anywhere and silent when unsupported or turned off. There
-// are NO audio files — every SFX is synthesized on the fly from the pure table in sound-params.js
-// (toy-car arcade: soft discrete blips only, no engine drone / tyre skid, no per-frame loop).
+// are NO audio files — every SFX is synthesized on the fly from the pure table in sound-params.js.
+//
+// Voice recipe (soft & atmospheric, per the request): pure SINE oscillators with an EXPONENTIAL
+// bell envelope (fade-in + smooth decay — no clicks), routed through a gentle master lowpass and
+// a light procedural reverb tail. No harsh waveforms, no noise, no per-frame loop.
 import { settings } from './store.js';
-import { SFX, gainForVolume, clampVolume } from './sound-params.js';
+import { SFX, gainForVolume } from './sound-params.js';
 
 const _AC = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
 
-let _ctx = null;       // shared AudioContext — created lazily on first play/unlock (never at import)
-let _master = null;    // master gain node feeding the destination
-let _noiseBuf = null;  // cached white-noise buffer, reused by every noise voice
+let _ctx = null;   // shared AudioContext — created lazily on first play/unlock (never at import)
+let _bus = null;   // master gain: every voice connects here → lowpass → (dry + reverb) → out
 
 // True only when Web Audio exists AND sound is enabled in settings (default on).
 const _on = () => !!_AC && (settings().soundEnabled ?? true);
 
-const _ensureCtx = () => {
-  if (_ctx) return _ctx;
-  _ctx = new _AC();
-  _master = _ctx.createGain();
-  _master.gain.value = 1;
-  _master.connect(_ctx.destination);
-  return _ctx;
-};
-
-// One second of mono white noise, built once and shared (crash thud / cone clonk voices).
-const _noise = (ctx) => {
-  if (_noiseBuf) return _noiseBuf;
-  const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  _noiseBuf = buf;
+// A short procedural reverb impulse: exponentially-decaying stereo noise. Gives the chimes an
+// airy tail without any asset file (built once, reused by the convolver).
+const _impulse = (ctx, seconds = 1.0, decay = 3.4) => {
+  const len = Math.floor(ctx.sampleRate * seconds);
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+  }
   return buf;
 };
 
-// Schedule one voice-step (an oscillator or a noise burst) with an attack/release envelope.
-// `loud` is the resolved master loudness (0..1); the step's own gain scales it.
-const _step = (ctx, dest, st, t0, loud) => {
-  const peak  = loud * (st.gain ?? 0.2);
-  if (peak <= 0) return;
-  const start = t0 + (st.t ?? 0);
-  const a = st.a ?? 0.005, r = st.r ?? 0.06, dur = Math.max(st.a ?? 0.005, st.dur ?? 0.08);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(peak, start + a);
-  g.gain.setValueAtTime(peak, start + dur);
-  g.gain.linearRampToValueAtTime(0, start + dur + r);
-
-  let src;
-  if (st.type === 'noise') {
-    src = ctx.createBufferSource();
-    src.buffer = _noise(ctx);
-    if (st.lp) {
-      const f = ctx.createBiquadFilter();
-      f.type = 'lowpass'; f.frequency.value = st.lp;
-      src.connect(g); g.connect(f); f.connect(dest);
-    } else {
-      src.connect(g); g.connect(dest);
-    }
-  } else {
-    src = ctx.createOscillator();
-    src.type = st.type ?? 'sine';
-    src.frequency.setValueAtTime(st.f ?? 440, start);
-    if (st.f2) src.frequency.linearRampToValueAtTime(st.f2, start + dur);
-    src.connect(g); g.connect(dest);
-  }
-  src.start(start);
-  src.stop(start + dur + r + 0.02);
+const _ensureCtx = () => {
+  if (_ctx) return _ctx;
+  _ctx = new _AC();
+  // Bus → gentle lowpass (rounds off any harsh top) → destination (dry), plus a parallel
+  // convolver reverb send mixed in low for a soft, semi-atmospheric tail.
+  _bus = _ctx.createGain(); _bus.gain.value = 1;
+  const lp = _ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.4;
+  const conv = _ctx.createConvolver(); conv.buffer = _impulse(_ctx);
+  const wet = _ctx.createGain(); wet.gain.value = 0.16;   // subtle reverb mix
+  _bus.connect(lp);
+  lp.connect(_ctx.destination);                            // dry path
+  lp.connect(conv); conv.connect(wet); wet.connect(_ctx.destination);   // wet tail
+  return _ctx;
 };
 
-// Render a params object (an SFX-table entry or an ad-hoc one) through the master bus.
+// Render a params object (an SFX-table entry or an ad-hoc one) through the master bus. Each note
+// is a sine with an exponential attack + decay bell — the smooth, non-clicky envelope that keeps
+// the sounds gentle. `mag` (0..1) scales overall loudness (crash uses it).
 const _render = (sfx, mag) => {
   const ctx = _ensureCtx();
   if (ctx.state === 'suspended') ctx.resume();
   const loud = gainForVolume(settings().volume) * Math.max(0, Math.min(1, mag ?? 1));
+  if (loud <= 0) return;
   const t0 = ctx.currentTime + 0.001;
-  for (const st of sfx.steps) _step(ctx, _master, st, t0, loud);
+  const dur = sfx.dur ?? 0.2, a = sfx.a ?? 0.02;
+  const peak = Math.max(0.0002, loud * (sfx.gain ?? 0.1));
+  for (const [f, dt] of sfx.notes) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    o.connect(g); g.connect(_bus);
+    const t = t0 + (dt ?? 0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + a);        // gentle fade-in (no click)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + dur); // bell decay
+    o.start(t); o.stop(t + a + dur + 0.05);
+  }
 };
 
-// Play a named SFX. `mag` (0..1) optionally scales loudness (crash uses it so a harder hit is
-// a touch louder). Silent when sound is off/unsupported or the id is unknown.
+// Play a named SFX. `mag` (0..1) optionally scales loudness (crash so a harder hit is a touch
+// louder). Silent when sound is off/unsupported or the id is unknown.
 export const play = (id, mag = 1) => {
   if (!_on()) return;
   const sfx = SFX[id];
@@ -87,7 +76,7 @@ export const play = (id, mag = 1) => {
 
 // Play an ad-hoc params object (same shape as an SFX entry) — used by the sound-lab dev tool.
 export const playParams = (sfx, mag = 1) => {
-  if (!_on() || !sfx || !Array.isArray(sfx.steps)) return;
+  if (!_on() || !sfx || !Array.isArray(sfx.notes)) return;
   _render(sfx, mag);
 };
 
@@ -106,7 +95,7 @@ export const sfx = {
   cap:        () => play('cap'),
   checkpoint: () => play('checkpoint'),
   lap:        () => play('lap'),
-  crash:      (mag = 1) => play('crash', clampVolume(mag)),
+  crash:      (mag = 1) => play('crash', mag),
   cone:       () => play('cone'),
   transition: () => play('transition'),
   nearmiss:   () => play('nearmiss'),
@@ -117,8 +106,8 @@ export const sfx = {
   record:     () => play('record'),
 };
 
-// Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a
-// weak device isn't kept awake; resume on the next gesture or when the tab returns.
+// Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
+// device isn't kept awake; resume on the next gesture or when the tab returns.
 export const suspend = () => { if (_ctx && _ctx.state === 'running') _ctx.suspend(); };
 export const resume  = () => { if (_on() && _ctx && _ctx.state === 'suspended') _ctx.resume(); };
 

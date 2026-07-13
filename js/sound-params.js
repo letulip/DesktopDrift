@@ -1,52 +1,48 @@
 // Pure sound-effect parameters — no DOM, no AudioContext, fully unit-testable (mirrors the
 // pure/canvas split of neon.js / neon-draw.js). js/sound.js renders these with Web Audio.
 //
-// Each SFX is a small sequence of `steps`. A step is one voice — an oscillator or a noise
-// burst — with an attack/release envelope. All sounds are deliberately SOFT and short: this
-// is a toy-car arcade drifter, so no engine drone, no tyre screech — just gentle blips.
+// Design: soft, semi-atmospheric arcade SFX — "a seasoning, not a soundtrack". Every voice is a
+// pure SINE with an exponential bell envelope (the same recipe that sounds harmonious in the
+// sibling verb-quest project), and js/sound.js adds a gentle master lowpass + a light procedural
+// reverb tail. No harsh square/saw/noise waveforms, no 8-bit blips. Toy-car arcade: no engine
+// drone, no tyre skid — just gentle chimes fired at discrete events.
 //
-// Step shape:
-//   f     start frequency (Hz)                     type  'sine'|'triangle'|'square'|'sawtooth'|'noise'
-//   f2    optional end frequency → linear glide     gain  peak gain 0..1 (relative to master)
-//   t     start offset within the sound (s)         a     attack (s)   r  release (s)
-//   dur   sustain duration (s)                       lp    lowpass cutoff (Hz), noise steps only
+// SFX entry: { notes: [[freqHz, startOffsetSec], ...], dur, gain, a }
+//   dur  per-note decay length (s)     gain  peak gain 0..1 (kept soft)     a  attack/fade-in (s)
 
-// Discrete blip built from a short note sequence. `notes` is [freq, startOffset] pairs.
-const blip = (type, gain, dur, notes, a = 0.005, r = 0.06) =>
-  ({ steps: notes.map(([f, t]) => ({ type, f, t, dur, gain, a, r })) });
+const s = (notes, dur, gain, a = 0.02) => ({ notes, dur, gain, a });
 
 export const SFX = {
-  // ── UI / menu (Stage 1) ──────────────────────────────────────────────────
-  tap:    blip('sine',     0.16, 0.05, [[660, 0]]),                       // menu nav / start / back tap
-  flip:   { steps: [{ type: 'triangle', f: 520, f2: 660, t: 0, dur: 0.06, gain: 0.14, a: 0.004, r: 0.05 }] }, // carousel swish
-  select: blip('sine',     0.16, 0.06, [[587, 0], [784, 0.05]]),          // pick a car / swatch — up two-note
-  back:   blip('sine',     0.14, 0.06, [[523, 0], [392, 0.05]]),          // back — down two-note
-  buy:    blip('triangle', 0.16, 0.08, [[523, 0], [659, 0.07], [784, 0.14]]), // purchase — gentle arpeggio
-  deny:   { steps: [{ type: 'square', f: 160, t: 0, dur: 0.12, gain: 0.12, a: 0.005, r: 0.08, lp: 900 }] },   // can't afford — muted thunk
-  toggle: blip('sine',     0.14, 0.03, [[700, 0]]),                       // settings toggle click
+  // ── UI / menu (Stage 1) — quiet, short, warm ─────────────────────────────
+  tap:    s([[587, 0]], 0.13, 0.09),                          // menu nav / start / back tap
+  flip:   s([[523, 0], [640, 0.04]], 0.11, 0.07),             // carousel flip — soft page-turn
+  select: s([[659, 0], [988, 0.08]], 0.18, 0.09),             // pick a car / swatch — up a fifth
+  back:   s([[587, 0], [440, 0.08]], 0.18, 0.08),             // back — gentle down
+  buy:    s([[523, 0], [659, 0.09], [784, 0.18]], 0.28, 0.10), // purchase — soft major arpeggio
+  deny:   s([[330, 0], [247, 0.12]], 0.26, 0.10),             // can't afford — mellow down (no buzz)
+  toggle: s([[784, 0]], 0.10, 0.07),                          // settings toggle — tiny chime
 
   // ── Gameplay (Stage 2) ───────────────────────────────────────────────────
-  count:  blip('sine',     0.18, 0.09, [[440, 0]]),                       // countdown 3-2-1 pip
-  go:     { steps: [{ type: 'sine', f: 660, f2: 880, t: 0, dur: 0.16, gain: 0.2, a: 0.006, r: 0.1 }] },       // GO! — brighter
-  pickup: blip('triangle', 0.14, 0.05, [[880, 0], [1320, 0.04]]),         // tire-coin pickup — soft coin
-  cap:    blip('sine',     0.15, 0.07, [[659, 0], [988, 0.06], [1319, 0.12]]), // cola-cap collect — sparkle chime
-  checkpoint: blip('sine', 0.10, 0.03, [[990, 0]]),                       // checkpoint tick
-  lap:    blip('triangle', 0.15, 0.07, [[784, 0], [1047, 0.06]]),         // lap complete — soft chime
-  crash:  { steps: [{ type: 'noise', t: 0, dur: 0.14, gain: 0.3, a: 0.002, r: 0.1, lp: 420 }] },              // wall/prop — muted thud (mag-scaled)
-  cone:   { steps: [{ type: 'triangle', f: 300, t: 0, dur: 0.05, gain: 0.18, a: 0.002, r: 0.05 },
-                    { type: 'noise', t: 0, dur: 0.04, gain: 0.12, a: 0.002, r: 0.04, lp: 1400 }] },           // cone knock — light clonk
-  transition: blip('sine', 0.10, 0.04, [[1200, 0]]),                      // TRANSITION! blip
-  nearmiss:   blip('sine', 0.11, 0.04, [[1500, 0]]),                      // NEAR MISS! blip
-  bank:   blip('triangle', 0.13, 0.05, [[700, 0], [1050, 0.05]]),         // combo banked — soft coin
-  combobreak: { steps: [{ type: 'triangle', f: 440, f2: 220, t: 0, dur: 0.18, gain: 0.16, a: 0.004, r: 0.12 }] }, // combo lost — down slide
-  finish: blip('triangle', 0.17, 0.09, [[523, 0], [659, 0.08], [784, 0.16], [1047, 0.24]]), // race finish flourish
-  achieve: blip('sine',    0.17, 0.09, [[659, 0], [880, 0.08], [1175, 0.16]]), // achievement unlock chime
-  record: blip('triangle', 0.18, 0.09, [[784, 0], [988, 0.08], [1319, 0.16], [1568, 0.24]]), // new record — celebratory
+  count:  s([[440, 0]], 0.18, 0.10),                          // countdown 3-2-1 pip
+  go:     s([[660, 0], [988, 0.07]], 0.28, 0.13),             // GO! — brighter up
+  pickup: s([[880, 0]], 0.14, 0.08),                          // tire-coin pickup — soft high bell
+  cap:    s([[659, 0], [988, 0.08], [1319, 0.16]], 0.34, 0.10), // cola-cap collect — sparkle up
+  checkpoint: s([[988, 0]], 0.10, 0.06),                      // checkpoint — tiny tick
+  lap:    s([[784, 0], [1047, 0.09]], 0.26, 0.10),            // lap complete — soft chime
+  crash:  s([[150, 0], [104, 0.05]], 0.30, 0.16, 0.006),      // wall/prop — low sine "womp" (toy bump, mag-scaled)
+  cone:   s([[330, 0]], 0.13, 0.10),                          // cone knock — soft bonk
+  transition: s([[1047, 0]], 0.10, 0.06),                     // TRANSITION! — tiny sparkle
+  nearmiss:   s([[1319, 0]], 0.10, 0.06),                     // NEAR MISS! — tiny sparkle (higher)
+  bank:   s([[659, 0], [988, 0.07]], 0.20, 0.08),             // combo banked — soft coin
+  combobreak: s([[440, 0], [294, 0.12]], 0.30, 0.11),         // combo lost — mellow descent
+  finish: s([[523, 0], [659, 0.10], [784, 0.20], [1047, 0.32]], 0.40, 0.12), // race finish flourish
+  achieve: s([[659, 0], [880, 0.10], [1175, 0.20]], 0.34, 0.12),             // achievement chime
+  record: s([[784, 0], [988, 0.10], [1319, 0.20], [1568, 0.32]], 0.40, 0.13), // new record — celebratory
 };
 
 // ── Volume ───────────────────────────────────────────────────────────────────
-// The settings volume (0..1) maps to a perceptual gain via an exponential-ish curve so the
-// low end is quiet enough. The UI exposes three discrete levels (a button-row, no slider).
+// The settings volume (0..1) maps to a perceptual gain via a squared curve so the low end is
+// quiet enough. The UI exposes three discrete levels (a button-row, no slider).
 export const VOLUME_DEFAULT = 0.65;
 export const VOLUME_LEVELS  = { low: 0.35, med: 0.65, high: 1.0 };
 
@@ -71,10 +67,9 @@ export const levelForVolume = (v) => {
   return best;
 };
 
-// Total wall-clock length of an SFX (s) — when the last voice fully releases. Lets the renderer
-// know when nodes can be torn down. Empty/invalid → 0.
+// Total wall-clock length of an SFX (s) — when its last voice fully decays. Empty/invalid → 0.
 export const totalDuration = (sfx) => {
-  if (!sfx || !Array.isArray(sfx.steps) || sfx.steps.length === 0) return 0;
-  return Math.max(...sfx.steps.map(s =>
-    (s.t ?? 0) + Math.max(s.a ?? 0.005, s.dur ?? 0.08) + (s.r ?? 0.06)));
+  if (!sfx || !Array.isArray(sfx.notes) || sfx.notes.length === 0) return 0;
+  const dur = sfx.dur ?? 0.2;
+  return Math.max(...sfx.notes.map(([, t]) => (t ?? 0) + dur));
 };

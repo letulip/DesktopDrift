@@ -5,18 +5,19 @@ import {
   SFX, VOLUME_DEFAULT, VOLUME_LEVELS, clampVolume, gainForVolume, levelForVolume, totalDuration,
 } from '../js/sound-params.js';
 
-const VALID_TYPES = new Set(['sine', 'triangle', 'square', 'sawtooth', 'noise']);
-
-test('SFX: every entry is a non-empty sequence of well-formed steps', () => {
+test('SFX: every entry is a soft, well-formed sine chime (notes + gentle gain)', () => {
   const ids = Object.keys(SFX);
   assert.ok(ids.length >= 20, `expected the full catalog, got ${ids.length}`);
   for (const id of ids) {
     const sfx = SFX[id];
-    assert.ok(Array.isArray(sfx.steps) && sfx.steps.length > 0, `${id} has steps`);
-    for (const s of sfx.steps) {
-      assert.ok(VALID_TYPES.has(s.type), `${id} step type "${s.type}" is valid`);
-      assert.ok((s.gain ?? 0) > 0 && s.gain <= 1, `${id} gain in (0,1]`);
-      if (s.type !== 'noise') assert.ok(Number.isFinite(s.f) && s.f > 0, `${id} osc step has a frequency`);
+    assert.ok(Array.isArray(sfx.notes) && sfx.notes.length > 0, `${id} has notes`);
+    assert.ok(sfx.dur > 0, `${id} has a positive decay`);
+    assert.ok(sfx.gain > 0 && sfx.gain <= 0.2, `${id} gain is soft (0,0.2]`);   // kept gentle by design
+    for (const note of sfx.notes) {
+      assert.ok(Array.isArray(note) && note.length === 2, `${id} note is [freq, offset]`);
+      const [f, t] = note;
+      assert.ok(Number.isFinite(f) && f > 0, `${id} note frequency is positive`);
+      assert.ok(Number.isFinite(t) && t >= 0, `${id} note offset is >= 0`);
     }
   }
 });
