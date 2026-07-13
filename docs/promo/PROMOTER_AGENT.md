@@ -133,4 +133,9 @@ or the agent posts with approval where the account is already logged in.
   16:9 — owner has the source; ask for a native 1920×1080 re-export if a
   platform demands exact pixels, don't upscale). Logo PNG:
   `docs/promo/assets/icon-192.png`; vector icon lives in `icons/icon.svg`.
+- Cover art vertical: `docs/promo/assets/desktop-drift-mobile-thumbnail.png` ✅
+  (864×1821, ~1:2.1 — taller than every standard slot, so CROP per platform:
+  portrait covers ~2:3 (e.g. CrazyGames), Shorts/social 9:16. Composition has
+  safe margins for center crops; for exact-pixel slots ask the owner for a
+  native re-export instead of upscaling).
 - Press kit: none yet — Workflow B, good first task
