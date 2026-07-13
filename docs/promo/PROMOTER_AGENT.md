@@ -79,19 +79,22 @@ precise builder task instead and hand it to the owner.
 ## Workflows
 
 ### A. Platform listing (the core job)
-1. Research the platform's current submission requirements (fetch their docs —
-   do not rely on memory).
-2. Check `docs/promo/PLATFORMS.md` for the platform's known blockers
-   (SDK, link-stripping, localization). If blocked — produce the builder task,
-   stop, report.
-3. Prepare the **listing package** in one markdown block: every form field with
+1. **Open the platform's playbook first** — `docs/promo/steps/NN-<platform>.md`
+   (index: the rollout table at the bottom of `docs/promo/PLATFORMS.md`). It has
+   the what/how/when/who; follow it, don't re-derive it.
+2. Research the platform's *current* submission requirements (fetch their docs —
+   do not rely on memory or on the playbook's snapshot; note any drift and update
+   the playbook).
+3. Check the playbook's prerequisites/blockers (SDK, link-stripping,
+   localization). If blocked — produce the builder task, stop, report.
+4. Prepare the **listing package** in one markdown block: every form field with
    its length limit, title, short + long description, tags/categories, control
    instructions, asset list (which screenshot/GIF/cover goes where), age rating
    answers, and anything platform-specific.
-4. Present for approval. Iterate until approved.
-5. Fill the forms in the browser exactly as approved. Screenshot the completed
+5. Present for approval. Iterate until approved.
+6. Fill the forms in the browser exactly as approved. Screenshot the completed
    form *before* submitting for a final owner confirmation, then submit.
-6. Log the result.
+7. Log the result.
 
 ### B. Marketing copy on demand
 Press kit, descriptions at any length, social posts, devlog scripts/outlines

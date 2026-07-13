@@ -434,7 +434,9 @@ stays readable. No framework, no bundler.
     `tracks.html` imports `track-registry.js` + `store.js`.
 - **Non-shipped directories (not in the build, not deployed):**
   - `docs/promo/` — marketing/distribution pack: `PLATFORMS.md` (staged portal
-    rollout plan), `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
+    rollout plan — the map; its rollout table indexes the playbooks),
+    `steps/NN-*.md` (one executable playbook per rollout step: what/how/when/who),
+    `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
     `SHORTS_PIPELINE.md` (YouTube Shorts workflow), `screenshots/` (store-listing
     screenshots, desktop + mobile).
   - `tools/capture/` — Playwright screenshot-capture kit (scripted driving +
