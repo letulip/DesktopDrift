@@ -12,8 +12,8 @@ distribution channel for devlog updates, not just a listing.
 
 ## Prerequisites
 
-- Step 01's build zip (identical: `dist/` contents, SW registration stripped,
-  `index.html` at zip root).
+- Step 01's build zip (identical: `npm run build -- --platform=portal --zip` →
+  `dist-portal.zip`, `index.html` at zip root).
 - Step 00 assets: thumbnail (2:1 ~1000×500 works), header, screenshots ✅.
 
 ## How

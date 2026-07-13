@@ -9,6 +9,7 @@ items/raw
 # Build output
 dist/
 dist-*/
+dist*.zip
 
 # Node
 node_modules/

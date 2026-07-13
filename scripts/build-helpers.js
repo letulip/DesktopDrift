@@ -14,3 +14,9 @@ export const stripServiceWorker = (html) =>
 // (<a href="tracks.html">) and <link>/<meta> tags are untouched.
 export const stripExternalLinks = (html) =>
   html.replace(/[ \t]*<a\s[^>]*href="(?:https?:\/\/|donate\.html)[^"]*"[^>]*>[\s\S]*?<\/a>\n?/g, '');
+
+// Adapter source file for a platform build: 'platform-<name>.js', or null when
+// the default no-op js/platform.js ships unchanged — the default build and the
+// SDK-less 'portal' preset (Newgrounds/Game Jolt uploads need no adapter).
+export const adapterFileFor = (platform) =>
+  platform && platform !== 'portal' ? `platform-${platform}.js` : null;

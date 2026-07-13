@@ -1,7 +1,7 @@
 // Pure HTML-strip helpers used by the --platform build — scripts/build-helpers.js.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stripServiceWorker, stripExternalLinks } from '../scripts/build-helpers.js';
+import { stripServiceWorker, stripExternalLinks, adapterFileFor } from '../scripts/build-helpers.js';
 
 // ── stripServiceWorker ───────────────────────────────────────────────────────
 
@@ -62,4 +62,19 @@ test('keeps internal anchors and <link>/<meta> URLs', () => {
     '<a class="settings-link" href="settings.html">Settings</a>',
   ].join('\n');
   assert.equal(stripExternalLinks(html), html);
+});
+
+// ── adapterFileFor ───────────────────────────────────────────────────────────
+
+test('named platform maps to its adapter file', () => {
+  assert.equal(adapterFileFor('crazygames'), 'platform-crazygames.js');
+  assert.equal(adapterFileFor('yandex'), 'platform-yandex.js');
+});
+
+test('portal preset keeps the default no-op platform.js (no adapter)', () => {
+  assert.equal(adapterFileFor('portal'), null);
+});
+
+test('default build (no platform) uses no adapter', () => {
+  assert.equal(adapterFileFor(null), null);
 });
