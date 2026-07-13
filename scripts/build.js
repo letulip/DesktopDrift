@@ -79,7 +79,7 @@ for (const file of readdirSync(join(ROOT, 'css')).filter(f => f.endsWith('.css')
 mkdirSync(join(DIST, 'js'), { recursive: true });
 let jsCount = 0;
 for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js'))) {
-  if (PLATFORM && /^platform-/.test(file)) continue; // other adapters never ship
+  if (/^platform-/.test(file)) continue; // adapters never ship as standalone files (any build)
   // The adapter swap: dist-<name>/js/platform.js is built from the adapter source.
   const srcPath = PLATFORM && file === 'platform.js' ? ADAPTER : join(ROOT, 'js', file);
   const input = readFileSync(srcPath, 'utf8');

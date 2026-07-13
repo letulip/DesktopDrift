@@ -13,8 +13,13 @@ const _AC = typeof window !== 'undefined' && (window.AudioContext || window.webk
 let _ctx = null;   // shared AudioContext — created lazily on first play/unlock (never at import)
 let _bus = null;   // master gain: every voice connects here → lowpass → (dry + reverb) → out
 
-// True only when Web Audio exists AND sound is enabled in settings (default on).
-const _on = () => !!_AC && (settings().soundEnabled ?? true);
+// Runtime-only mute (platform ad breaks — see commercialBreak in js/platform.js).
+// A session flag, fully independent from the persisted soundEnabled setting.
+let _muted = false;
+
+// True only when Web Audio exists, no runtime mute, AND sound is enabled in
+// settings (default on).
+const _on = () => !!_AC && !_muted && (settings().soundEnabled ?? true);
 
 // A short procedural reverb impulse: exponentially-decaying stereo noise. Gives the chimes an
 // airy tail without any asset file (built once, reused by the convolver).
@@ -205,6 +210,15 @@ export const stopDrift = () => {
 // device isn't kept awake; resume on the next gesture or when the tab returns.
 export const suspend = () => { if (_ctx && _ctx.state === 'running') _ctx.suspend(); };
 export const resume  = () => { if (_on() && _ctx && _ctx.state === 'suspended') _ctx.resume(); };
+
+// Runtime mute switch for platform adapters (ad breaks): gates every new sound
+// via _on() (so nothing can auto-resume the context while muted) and suspends
+// the live context so already-playing layers fall silent too. Does NOT touch
+// persisted settings in store.js. Safe to call anywhere; never throws.
+export const setMuted = (m) => {
+  _muted = !!m;
+  if (_muted) suspend(); else resume();
+};
 
 // Unlock the AudioContext on the first user gesture (browsers block audio until then) and keep
 // it in step with tab visibility. Registered once at import; a no-op under Node/tests (no window).
