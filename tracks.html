@@ -51,7 +51,7 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records, collectedCaps, tireSwept, hasTrophy, wallet } from './js/store.js';
+  import { records, collectedCaps, tireSwept, hasTrophy, hasPerpetual, wallet } from './js/store.js';
   import { svgToCentreline, instanceId } from './js/track-util.js';
   import { isDDK } from './js/economy.js';
   import { initWalletHistory } from './js/wallet-history.js';
@@ -190,6 +190,14 @@
           trophy.textContent = '🏅';
           trophy.title = 'Participation Trophy — finished a race with just 1 PPS';
           badges.appendChild(trophy);
+        }
+        // Perpetual Motion — ♾️ badge once this instance has had an unbroken-drift finish.
+        if (hasPerpetual(inst)) {
+          const perp = document.createElement('span');
+          perp.className = 'track-perpetual';
+          perp.textContent = '♾️';
+          perp.title = 'Perpetual Motion — finished a race in one unbroken drift';
+          badges.appendChild(perp);
         }
         top.appendChild(badges);
       }
