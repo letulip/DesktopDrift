@@ -253,10 +253,12 @@ Small, mostly independent wins — slot into a phase as they fit.
 - [ ] **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
   server. *(Phase 2–3)*
 - [x] **Haptics** — vibrate on cone / crash (Vibration API, mobile) — **DONE** (settings toggle).
+- [x] **Sound (SFX)** — procedural Web Audio for menu + gameplay, plus a recorded cardboard-slide
+  drift sound (`js/sound.js` / `js/sound-params.js`; settings toggle + volume). **DONE.**
 - [ ] **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
 
 ## Parked / needs a decision
 
-- **Sound & music.** High ROI for an arcade racer, but **licensing is unresolved** — decide
-  on royalty-free or original assets before committing. Revisit later. When it lands it
-  subscribes to the Phase-2 event seam, so no engine changes are needed.
+- **Music / ambience.** SFX have shipped (see above). Background music is still open — the plan
+  is free Moby Gratis tracks, self-hosted, with a music toggle + ducking under the SFX. Revisit
+  later; it's independent of the SFX layer.

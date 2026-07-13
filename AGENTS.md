@@ -579,9 +579,43 @@ never crash). The cap fills with red along the exact arc the car sweeps (radial 
 - **Caveat:** persisted index = position in `collectibles`; reordering/removing caps in an
   SVG shifts existing saved flags. Keep cap order stable.
 
+### Sound (`js/sound.js` + `js/sound-params.js`)
+
+Procedural Web Audio, mirroring `haptics.js`: a settings-gated wrapper safe to call anywhere,
+silent when `settings().soundEnabled` is false or Web Audio is missing. One shared `AudioContext`,
+created lazily and **unlocked on the first user gesture** (capture-phase `pointerdown`/`keydown`/
+`touchend`); suspended on `visibilitychange` (tab hidden).
+
+- **`js/sound-params.js` (pure, unit-tested — `tests/sound-params.test.js`):** the `SFX` table
+  (each entry a short sine-only "bell" chime — `{ notes:[[freqHz, offsetSec],…], dur, gain, a }`)
+  plus volume maths: `gainForVolume` (squared perceptual curve), `clampVolume`, `VOLUME_LEVELS`
+  (low/med/high), `levelForVolume`. No DOM, no AudioContext.
+- **`js/sound.js` (browser-only):** renders those params (sine osc + exp attack/decay through a
+  gentle master lowpass + a light procedural-impulse reverb). `play(id, mag)` + named `sfx.*`
+  helpers are fired imperatively at event sites (game-engine + UI handlers), like the haptic
+  calls. A per-id throttle (`_MIN_GAP`) stops burst-prone sounds (pickup/cone/crash) machine-gunning.
+  `soundThenGo(href, id)` / `tapThenGo(href)` play a cue then defer navigation ~100 ms so it isn't
+  cut when the page (and its AudioContext) unloads — used by menu/back links.
+- **Aesthetic:** toy-car arcade → soft discrete blips only; **no** engine-drone / tyre-squeal
+  synth (a procedural continuous voice was tried and cut — it droned/fatigued). The one
+  continuous voice is the **drift sound** (`drift(sliding, slip, active)` / `stopDrift`, called
+  per frame from `game-engine.js`): two independent layers — a recorded cardboard-slide sample
+  (`sounds/drift.mp3`, looped, volume+pitch react to slip) while actually sliding, plus a
+  whisper-quiet band-passed noise "bed" that runs steadily while the combo counter is active
+  (`S.comboPoints >= 1`) to give the slide a continuous body.
+- **Settings:** `settings().soundEnabled` (default true) + `settings().volume` (0..1, default
+  0.65) — added to `defaults()`; the load-time merge fills them for old saves (no VERSION bump).
+  UI on `settings.html`: a Sound On/Off toggle + a Low/Med/High volume button-row.
+- **Assets:** the only bundled audio is `sounds/drift.mp3` (Pixabay — see `CREDITS.md`),
+  pre-cached in `sw.js` ASSETS (an SFX must be ready at event time — it can't wait for a first
+  network fetch). Everything else is synthesized (zero files). Dev tool: `tools/sound-lab.html`
+  (not shipped) auditions every SFX + live-tweaks params.
+- **Gotcha:** changing any sound code/asset needs a `sw.js` cache bump; a new sound module or
+  sample must also be added to `ASSETS`.
+
 ### Service Worker (`sw.js`)
 
-**Stale-while-revalidate** strategy. Current cache key: **`desktop-drift-v31`**.
+**Stale-while-revalidate** strategy. The cache key (`const CACHE`) is bumped on every asset change.
 The fetch handler serves the cached copy immediately (fast + offline) **and** in
 parallel re-fetches from network, overwriting the cache — so updated assets reach
 the player on the *next* load even if `CACHE` wasn't bumped (a forgotten bump
