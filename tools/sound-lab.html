@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Desktop Drift — Sound Lab (dev)</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 24px; background: #14110f; color: #eee;
+           font: 14px/1.5 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p.sub { margin: 0 0 20px; color: #999; font-size: 13px; }
+    .bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+           padding: 12px 14px; background: #201c19; border-radius: 10px; margin-bottom: 20px; }
+    .bar label { color: #bbb; font-size: 13px; }
+    input[type=range] { width: 180px; vertical-align: middle; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    button { font: 600 14px system-ui; padding: 12px 10px; border-radius: 8px; cursor: pointer;
+             border: 1.5px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: #eee;
+             transition: all .12s; }
+    button:hover { border-color: #ffb14d; color: #ffb14d; }
+    .cat { grid-column: 1 / -1; margin: 16px 0 2px; color: #ffb14d; font-size: 12px;
+           text-transform: uppercase; letter-spacing: .6px; }
+    .tweak { margin-top: 24px; }
+    .tweak textarea { width: 100%; min-height: 180px; box-sizing: border-box; resize: vertical;
+           background: #0c0a08; color: #cfe; border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
+           padding: 10px; font: 12px/1.4 ui-monospace, monospace; }
+    .tweak .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+    select { padding: 8px; border-radius: 8px; background: #201c19; color: #eee;
+             border: 1.5px solid rgba(255,255,255,.15); }
+    #err { color: #f77; font: 12px ui-monospace, monospace; min-height: 16px; }
+  </style>
+</head>
+<body>
+  <h1>🔊 Sound Lab <span style="color:#666;font-weight:400">— dev only, not shipped</span></h1>
+  <p class="sub">Click any sound to audition it. Tweak the JSON below and re-play to tune params, then copy values into <code>js/sound-params.js</code>.</p>
+
+  <div class="bar">
+    <label><input type="checkbox" id="enabled" checked> Sound enabled</label>
+    <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05"> <span id="volval"></span></label>
+  </div>
+
+  <div class="grid" id="pad"></div>
+
+  <div class="tweak">
+    <div class="cat">Live tweak</div>
+    <div class="row">
+      <select id="pick"></select>
+      <button id="apply" style="flex:0 0 auto">▶ Apply &amp; Play</button>
+      <span id="err"></span>
+    </div>
+    <textarea id="json" spellcheck="false"></textarea>
+  </div>
+
+  <script type="module">
+    import { settings, save } from '../js/store.js';
+    import { play, playParams } from '../js/sound.js';
+    import { SFX } from '../js/sound-params.js';
+
+    const s = settings();
+
+    // Group ids for a tidy pad (UI row vs gameplay row) — order mirrors the catalog comments.
+    const UI   = ['tap', 'flip', 'select', 'back', 'buy', 'deny', 'toggle'];
+    const GAME = ['count', 'go', 'pickup', 'cap', 'checkpoint', 'lap', 'crash', 'cone',
+                  'transition', 'nearmiss', 'bank', 'combobreak', 'finish', 'achieve', 'record'];
+
+    const pad = document.getElementById('pad');
+    const addCat = (t) => { const d = document.createElement('div'); d.className = 'cat'; d.textContent = t; pad.appendChild(d); };
+    const addBtn = (id) => {
+      const b = document.createElement('button');
+      b.textContent = id;
+      b.addEventListener('click', () => play(id, id === 'crash' ? 1 : undefined));
+      pad.appendChild(b);
+    };
+    addCat('UI / menu');  UI.forEach(addBtn);
+    addCat('Gameplay');   GAME.forEach(addBtn);
+
+    // Enabled toggle + volume — write straight to the same settings the game reads.
+    const enabled = document.getElementById('enabled');
+    enabled.checked = s.soundEnabled ?? true;
+    enabled.addEventListener('change', () => { s.soundEnabled = enabled.checked; save(); });
+
+    const vol = document.getElementById('vol'), volval = document.getElementById('volval');
+    const showVol = () => { volval.textContent = (+vol.value).toFixed(2); };
+    vol.value = s.volume ?? 0.65; showVol();
+    vol.addEventListener('input', () => { s.volume = +vol.value; save(); showVol(); });
+
+    // Live tweak — edit an SFX's JSON and re-play it via playParams (ad-hoc, not the table).
+    const pick = document.getElementById('pick'), json = document.getElementById('json'), err = document.getElementById('err');
+    for (const id of [...UI, ...GAME]) { const o = document.createElement('option'); o.value = id; o.textContent = id; pick.appendChild(o); }
+    const load = () => { json.value = JSON.stringify(SFX[pick.value], null, 2); err.textContent = ''; };
+    pick.addEventListener('change', load); load();
+    document.getElementById('apply').addEventListener('click', () => {
+      try { err.textContent = ''; playParams(JSON.parse(json.value), 1); }
+      catch (e) { err.textContent = e.message; }
+    });
+  </script>
+</body>
+</html>

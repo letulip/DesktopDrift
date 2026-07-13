@@ -26,7 +26,7 @@ const VERSION = 4;
 
 const defaults = () => ({
   version:      VERSION,
-  settings:     { units: 'kmh', haptics: true },
+  settings:     { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 },
   // garage: selected car + a PER-CAR equipped look (each car keeps its own body/neon/
   // finish/trail). cars is keyed by car index. Purchases (owned) stay account-wide.
   garage:       { carIndex: 0, cars: {} },

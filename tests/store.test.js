@@ -31,7 +31,7 @@ test('carLook: lazily returns a null-default look per car index', () => {
 });
 
 test('defaults: settings / records / achievements', () => {
-  assert.deepEqual(settings(), { units: 'kmh', haptics: true });
+  assert.deepEqual(settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 });
   assert.deepEqual(records(), {});
   assert.deepEqual(achievements(), {});
 });
@@ -114,7 +114,7 @@ test('mutate live object + save() persists correct JSON shape', () => {
   assert.equal(raw.garage.carIndex, 2);
   assert.equal(raw.garage.cars['2'].bodyColor, '#ff0000');
   assert.equal(raw.garage.cars['2'].neonColor, '#39FF14');
-  assert.deepEqual(raw.settings, { units: 'kmh', haptics: true });
+  assert.deepEqual(raw.settings, { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 });
 });
 
 // ── Shop: owned / grant / purchase + per-car looks ────────────────────────────
