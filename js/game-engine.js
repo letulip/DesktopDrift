@@ -608,7 +608,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.flashT > 0) S.flashT -= dt;
-    drift(drifting, Math.min(1, slip / 180));   // toy-car rev while sliding (loudness + pitch by slip)
+    drift(drifting, Math.min(1, slip / 180), S.comboPoints >= 1);   // slide sample reacts; static bed runs while the combo counter is active
     draw(toDisplaySpeed(speed));
   }
 
