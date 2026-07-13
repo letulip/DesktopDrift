@@ -23,8 +23,8 @@ test('SFX: every entry is a soft, well-formed sine chime (notes + gentle gain)',
 });
 
 test('SFX: the UI + gameplay ids the wiring depends on all exist', () => {
-  for (const id of ['tap', 'flip', 'select', 'back', 'buy', 'deny', 'toggle',
-                    'count', 'go', 'pickup', 'cap', 'checkpoint', 'lap', 'crash', 'cone',
+  for (const id of ['tap', 'flip', 'select', 'pick', 'back', 'buy', 'deny', 'toggle',
+                    'count', 'go', 'pickup', 'cap', 'checkpoint', 'crash', 'cone',
                     'finish', 'achieve', 'record']) {
     assert.ok(SFX[id], `SFX.${id} is defined`);
   }

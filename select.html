@@ -341,8 +341,9 @@
     }
     garage().carIndex = sel; save();
     const dirParam = reversed ? '&dir=rev' : '';
-    if (isZen) location.href = `game.html?track=${trackMeta.id}&mode=zen`;
-    else location.href = trackMeta ? `game.html?track=${trackMeta.id}${dirParam}` : 'sandbox.html';
+    const dest = isZen ? `game.html?track=${trackMeta.id}&mode=zen`
+                       : (trackMeta ? `game.html?track=${trackMeta.id}${dirParam}` : 'sandbox.html');
+    soundThenGo(dest, 'tap');   // tap, then start the race (deferred so the sound isn't cut)
   });
 
   // ── Initial render — each car shows its own per-car look ──────────────────────

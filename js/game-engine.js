@@ -591,7 +591,6 @@ export const startGame = (T, opts = {}) => {
         if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift();
         S.lapScoreStart = S.score;
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
-        sfx.lap();
         S.lapTime = 0; S.nextCp = 1;
         // prevFinishDot stays null until the next approach (reset below)
       } else {

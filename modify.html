@@ -194,7 +194,7 @@
       pending.body = (pending.body || '').toLowerCase() === entry.hex.toLowerCase() ? null : entry.hex;
       refreshBody();
       redraw();
-      sfx.select();
+      sfx.pick();
     });
     bodyPaletteEl.appendChild(el);
     return el;
@@ -263,7 +263,7 @@
           pending.neonOn = true;
           [...grid.children].forEach((c, k) => c.classList.toggle('sel', k === j));
           refresh(); redraw();
-          sfx.select();
+          sfx.pick();
         });
         grid.appendChild(sw);
       });
@@ -288,7 +288,7 @@
       const tag = document.createElement('span');
       tag.className = 'shop-card-tag';
       el.appendChild(tag);
-      el.addEventListener('click', () => { onPick(d.id); pending.neonOn = true; refresh(); redraw(); sfx.select(); });
+      el.addEventListener('click', () => { onPick(d.id); pending.neonOn = true; refresh(); redraw(); sfx.pick(); });
       cont.appendChild(el);
       neonCards[kind].push({ el, tag, item, id: d.id });
     }
@@ -357,7 +357,7 @@
         const f = FIELD[item.kind];
         pending[f] = pending[f] === item.value ? null : item.value;  // toggle
         refresh(); redraw();
-        sfx.select();
+        sfx.pick();
       });
       cont.appendChild(el);
       shopCards.push({ el, tag, item });

@@ -14,9 +14,10 @@ const s = (notes, dur, gain, a = 0.02) => ({ notes, dur, gain, a });
 
 export const SFX = {
   // ── UI / menu (Stage 1) — quiet, short, warm ─────────────────────────────
-  tap:    s([[587, 0]], 0.13, 0.09),                          // menu nav / start / back tap
+  tap:    s([[523, 0]], 0.11, 0.07),                          // menu nav / start / back tap — soft
   flip:   s([[523, 0], [640, 0.04]], 0.11, 0.07),             // carousel flip — soft page-turn
-  select: s([[659, 0], [988, 0.08]], 0.18, 0.09),             // pick a car / swatch — up a fifth
+  select: s([[659, 0], [988, 0.08]], 0.18, 0.09),             // pick a car — up a fifth
+  pick:   s([[660, 0]], 0.08, 0.05),                          // shop swatch pick — soft, unobtrusive tick
   back:   s([[587, 0], [440, 0.08]], 0.18, 0.08),             // back — gentle down
   buy:    s([[523, 0], [659, 0.09], [784, 0.18]], 0.28, 0.10), // purchase — soft major arpeggio
   deny:   s([[330, 0], [247, 0.12]], 0.26, 0.10),             // can't afford — mellow down (no buzz)
@@ -25,15 +26,14 @@ export const SFX = {
   // ── Gameplay (Stage 2) ───────────────────────────────────────────────────
   count:  s([[440, 0]], 0.18, 0.10),                          // countdown 3-2-1 pip
   go:     s([[660, 0], [988, 0.07]], 0.28, 0.13),             // GO! — brighter up
-  pickup: s([[880, 0]], 0.14, 0.08),                          // tire-coin pickup — soft high bell
+  pickup: s([[330, 0]], 0.13, 0.10),                          // tire pickup — a soft bonk (cone-hit character)
   cap:    s([[659, 0], [988, 0.08], [1319, 0.16]], 0.34, 0.10), // cola-cap collect — sparkle up
   checkpoint: s([[988, 0]], 0.10, 0.06),                      // checkpoint — tiny tick
-  lap:    s([[784, 0], [1047, 0.09]], 0.26, 0.10),            // lap complete — soft chime
   crash:  s([[150, 0], [104, 0.05]], 0.30, 0.16, 0.006),      // wall/prop — low sine "womp" (toy bump, mag-scaled)
-  cone:   s([[330, 0]], 0.13, 0.10),                          // cone knock — soft bonk
-  finish: s([[523, 0], [659, 0.10], [784, 0.20], [1047, 0.32]], 0.40, 0.12), // race finish flourish
+  cone:   s([[200, 0], [140, 0.04]], 0.18, 0.10, 0.006),      // cone knock — a light, soft thud (softened crash)
+  finish: s([[523, 0], [784, 0.10], [1047, 0.20], [1319, 0.20]], 0.6, 0.11, 0.012), // finish fanfare — "ta-da-DAAH"
   achieve: s([[659, 0], [880, 0.10], [1175, 0.20]], 0.34, 0.12),             // achievement chime
-  record: s([[784, 0], [988, 0.10], [1319, 0.20], [1568, 0.32]], 0.40, 0.13), // new record — celebratory
+  record: s([[523, 0], [784, 0.10], [1047, 0.20], [1319, 0.20], [1568, 0.34]], 0.65, 0.12, 0.012), // new record — bigger fanfare
 };
 
 // ── Volume ───────────────────────────────────────────────────────────────────
