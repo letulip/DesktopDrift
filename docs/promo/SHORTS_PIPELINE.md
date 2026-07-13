@@ -17,6 +17,10 @@ Owner's total time per short: ~3 minutes (play normally + one approval pass).
 
 ## 1. Capture — OBS replay buffer (recommended start)
 
+> **Ready vertical master:** `docs/promo/assets/gameplay-mobile-master.mp4`
+> (9:16, scripted drive via `tools/capture/record.js --mobile`) already exists —
+> use it as the first Short source before any OBS setup.
+
 - OBS Studio (free, macOS) → Settings → Output → enable **Replay Buffer** (60 s).
 - Play the game in the browser at 16:9 or, better, in a **narrow browser window
   (~9:16)** — the camera follows the car, so the game is natively

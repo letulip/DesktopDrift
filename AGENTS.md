@@ -441,9 +441,11 @@ stays readable. No framework, no bundler.
     protocol, task intake + report formats), `SHORTS_PIPELINE.md` (YouTube
     Shorts workflow), `screenshots/` (store-listing screenshots, desktop +
     mobile), `assets/` (cover art, gameplay GIF/video masters).
-  - `tools/capture/` — Playwright screenshot-capture kit (scripted driving +
-    contact sheets); regenerates `docs/promo/screenshots/`. See its README —
-    Playwright is installed *outside* the repo, never as a project dependency.
+  - `tools/capture/` — Playwright screenshot/video-capture kit (scripted driving +
+    contact sheets); regenerates `docs/promo/screenshots/` and the gameplay
+    video masters (`record.js`; `--mobile` = vertical 9:16 iPhone context).
+    See its README — Playwright is installed *outside* the repo, never as a
+    project dependency.
 
 ## Setup
 

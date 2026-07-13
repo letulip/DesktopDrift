@@ -125,7 +125,10 @@ or the agent posts with approval where the account is already logged in.
   `tools/capture/capture.js` (Playwright; see header comment).
 - Gameplay GIF / video: `docs/promo/assets/` ✅ — `cover-630x500.gif` (10 s,
   2.9 MB, itch.io cover slot) + `gameplay-master.mp4` (26 s, 1280×720, source
-  for Shorts/GIF cuts). Re-capture any time with `tools/capture/record.js`.
+  for Shorts/GIF cuts) + mobile 9:16 pair: `gameplay-mobile-master.mp4` (23 s,
+  780×1688, 2.1 MB, YouTube Shorts / vertical embeds) and `gameplay-mobile.gif`
+  (10 s, 480×1038, 2.3 MB, mobile-flavored social). Re-capture any time with
+  `tools/capture/record.js` (add `--mobile` for the vertical pair).
 - Cover art 16:9: `docs/promo/assets/desktop-drift-thumbnail.png` ✅ (1672×941,
   16:9 — owner has the source; ask for a native 1920×1080 re-export if a
   platform demands exact pixels, don't upscale). Logo PNG:
