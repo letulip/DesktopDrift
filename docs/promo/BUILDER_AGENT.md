@@ -70,8 +70,10 @@ if you can't, ask before coding.
 
 - Local serve: `python3 -m http.server 8777` from the repo root (8778+ if 8777
   is taken by another agent).
-- Playwright lives OUTSIDE the repo (session scratchpad or `/tmp` — never a
-  project dependency). Chromium cache persists in `~/Library/Caches/ms-playwright`.
+- Playwright lives OUTSIDE the repo — never a project dependency. In Claude Code
+  sessions install/reuse it in the session scratchpad dir (plain `/tmp` may be
+  sandbox-blocked). The chromium download persists across sessions in
+  `~/Library/Caches/ms-playwright`.
 - `ffmpeg` is at `/opt/homebrew/bin/ffmpeg`.
 - Capture tooling: `tools/capture/capture.js` (screenshots),
   `tools/capture/record.js` (video via `recordVideo`); both documented in
