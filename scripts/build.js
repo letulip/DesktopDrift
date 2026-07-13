@@ -38,7 +38,7 @@ if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
 
 // --- Copy asset directories verbatim ---
-for (const dir of ['fonts', 'icons', 'cars', 'items', 'objects', 'tracks']) {
+for (const dir of ['fonts', 'icons', 'cars', 'items', 'objects', 'tracks', 'sounds', 'share']) {
   const src = join(ROOT, dir);
   if (existsSync(src)) cpSync(src, join(DIST, dir), { recursive: true });
 }

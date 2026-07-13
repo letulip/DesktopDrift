@@ -251,6 +251,53 @@ canvas { display: block; }
   cursor: pointer; transition: background var(--ease), color var(--ease);
 }
 #rr-back:hover { background: rgba(255,255,255,.10); color: rgba(255,255,255,1); }
+/* Share — the promo hook: solid amber, sits on top so it clearly stands out */
+#rr-share {
+  padding: 14px 0; width: 100%; border-radius: 12px;
+  background: var(--accent); border: 1px solid var(--accent);
+  color: #20130a; font: 700 15px var(--font-body);
+  cursor: pointer; transition: filter var(--ease);
+}
+#rr-share:hover { filter: brightness(1.06); }
+
+/* --- Share result modal (js/share.js) --- */
+#shareOverlay {
+  position: fixed; inset: 0; z-index: 120;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(6, 8, 6, .72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  padding: 20px;
+}
+#shareOverlay.show { display: flex; }
+#share-box {
+  position: relative; width: min(92vw, 460px);
+  display: flex; flex-direction: column; gap: 14px; align-items: center;
+  background: var(--bg-raise, #2a2622); border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px; padding: 18px;
+}
+#share-close {
+  position: absolute; top: 8px; right: 10px; z-index: 1;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.8); font: 600 15px var(--font-body); cursor: pointer;
+}
+#share-close:hover { background: rgba(255,255,255,.16); }
+#share-preview { width: 100%; border-radius: 12px; overflow: hidden; }
+#share-canvas { display: block; width: 100%; height: auto; border-radius: 12px; }
+#share-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+#share-actions button {
+  flex: 1 1 auto; min-width: 120px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(255,255,255,.9); font: 600 14px var(--font-body); cursor: pointer;
+  transition: background var(--ease);
+}
+#share-actions button:hover { background: rgba(255,255,255,.12); }
+#share-actions .share-primary {
+  background: var(--accent); border-color: var(--accent); color: #20130a; font-weight: 700; flex-basis: 100%;
+}
+#share-actions .share-primary:hover { filter: brightness(1.06); }
+.share-loading, .share-err { color: rgba(255,255,255,.6); font: 13px var(--font-body); padding: 10px; }
+.share-err { color: #f88; }
+#share-hint { color: rgba(255,255,255,.5); font: 12px/1.4 var(--font-body); text-align: center; max-width: 340px; }
 
 /* --- Zen Drift: hide all HUD panels --- */
 body.zen #hud-left,
