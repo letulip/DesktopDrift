@@ -66,10 +66,22 @@ const _render = (sfx, mag) => {
   }
 };
 
+// Per-id minimum gap (ms) for sounds that can fire in rapid bursts during a race — keeps the
+// mix from turning into a machine-gun of blips (the over-saturation risk). Others are unthrottled.
+const _MIN_GAP = { transition: 110, nearmiss: 110, pickup: 70, cone: 90, crash: 90, checkpoint: 130 };
+const _lastAt = {};
+
 // Play a named SFX. `mag` (0..1) optionally scales loudness (crash so a harder hit is a touch
-// louder). Silent when sound is off/unsupported or the id is unknown.
+// louder). Silent when sound is off/unsupported, the id is unknown, or it's still within the
+// throttle window for a burst-prone sound.
 export const play = (id, mag = 1) => {
   if (!_on()) return;
+  const gap = _MIN_GAP[id];
+  if (gap != null) {
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    if (now - (_lastAt[id] || 0) < gap) return;
+    _lastAt[id] = now;
+  }
   const sfx = SFX[id];
   if (sfx) _render(sfx, mag);
 };

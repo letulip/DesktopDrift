@@ -17,6 +17,7 @@ import {
 } from './scoring.js';
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
+import { sfx } from './sound.js';
 import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
@@ -122,6 +123,7 @@ export const startGame = (T, opts = {}) => {
     if (S.comboPoints >= 1) {
       if (!ZEN) S.score += Math.round(S.comboPoints);
       flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
+      sfx.bank();
     }
     S.comboPoints = 0; S.driftTime = 0;
   };
@@ -167,6 +169,7 @@ export const startGame = (T, opts = {}) => {
           tiresEarned += c.value;
           runTirePickups++;
           flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
+          sfx.pickup();
         }
         continue;
       }
@@ -188,6 +191,7 @@ export const startGame = (T, opts = {}) => {
           runCaps++;
         }
         flash('CAP! +' + CAP_TIRE_VALUE + ' tires', '#ff9999');
+        sfx.cap();
         capCollect(INSTANCE, c.capId ?? i);
       }
     }
@@ -201,6 +205,7 @@ export const startGame = (T, opts = {}) => {
   let driftZoneRef   = 0;     // nearIdx at the last zone reset
   let driftZoneTimer = 0;     // seconds the car has been in the same zone while drifting
   let driftZoned     = false; // true once stall fired; ref frozen at stall-start until car exits
+  let cdBeep         = 0;     // last countdown integer that beeped, so 3→2→1 each pip once
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -209,6 +214,7 @@ export const startGame = (T, opts = {}) => {
     if (dx * dx + dy * dy >= rr * rr) return;
     c.knocked = true;
     hapticCone();
+    sfx.cone();
     const d = Math.hypot(dx, dy) || 1;
     c.vx = car.vx * 0.6 - (dx / d) * 80;
     c.vy = car.vy * 0.6 - (dy / d) * 80;
@@ -375,7 +381,9 @@ export const startGame = (T, opts = {}) => {
 
     if (S.startCd > 0) {
       S.startCd -= dt;
-      if (S.startCd <= 0) S.goT = 1.0;
+      const cd = Math.ceil(Math.max(0, S.startCd));
+      if (cd >= 1 && cd !== cdBeep) { cdBeep = cd; sfx.count(); }   // 3-2-1 pips (one per number)
+      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); }               // GO!
       draw(0);
       return;
     }
@@ -408,8 +416,10 @@ export const startGame = (T, opts = {}) => {
     // Wall + prop collision response — pure mutators in js/collision.js. They mutate
     // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
     // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
-    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); runCrashes++; }
-    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); runCrashes++; }
+    const wallHit = resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts);
+    if (wallHit > 120) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (wallHit - 120) / 400)); burnCombo('WALL!'); runCrashes++; }
+    const propHit = resolveProps(car, props, CR, bodyPts);
+    if (propHit > 100) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (propHit - 100) / 400)); burnCombo('CRASH!'); runCrashes++; }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
@@ -417,7 +427,7 @@ export const startGame = (T, opts = {}) => {
     nearIdx = _nearIdx;
     const onTrack  = distTrk < TRACK_HALF + 90;
 
-    if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) burnCombo('OFF TRACK!');
+    if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) { burnCombo('OFF TRACK!'); sfx.combobreak(); }
     if (S.nearMissCd > 0) S.nearMissCd -= dt;
 
     if (drifting && onTrack && S.crashCd <= 0) {
@@ -438,12 +448,12 @@ export const startGame = (T, opts = {}) => {
         const sgn = slipSign(vS);
         if (sgn !== 0) {
           if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
+            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff'); sfx.transition();
           }
           S.lastSlipSign = sgn;
         }
         if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
-          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a'); sfx.nearmiss();
         }
         S.mult = comboMult(S.multBuild);
         if (S.mult >= MULT_MAX) runTimeAt8 += dt;   // time held at the ceiling (flow-1/2)
@@ -460,7 +470,7 @@ export const startGame = (T, opts = {}) => {
         // too — you keep the points you earned, but the flow reward resets. A genuinely
         // seamless flick (grace < 0.5s, nothing banks) still builds through, so clean
         // drift-chaining is unaffected; only a real break drops the multiplier.
-        if (onTrack) { bankPoints(); resetMult(); } else burnCombo('OFF TRACK!');
+        if (onTrack) { bankPoints(); resetMult(); } else { burnCombo('OFF TRACK!'); sfx.combobreak(); }
       }
       // Safety net: a stop that built a multiplier but no bankable points still clears it
       // after a sustained non-drift stretch (a quick flick never reaches this).
@@ -567,6 +577,10 @@ export const startGame = (T, opts = {}) => {
 
           raceFinished = true;
           stop();
+          // Finish sting: a new record gets the bigger celebration, otherwise the finish flourish;
+          // any achievement unlocked this run chimes in shortly after so it doesn't collide.
+          if (isNewRecord) sfx.record(); else sfx.finish();
+          if (unlockedNow.length) setTimeout(() => sfx.achieve(), 650);
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
             ddk: isDDK(pps), unlocked: unlockedNow,
@@ -578,6 +592,7 @@ export const startGame = (T, opts = {}) => {
         if (TOTAL_LAPS === 0 && S.lapScores.length > 3) S.lapScores.shift();
         S.lapScoreStart = S.score;
         flash('LAP ' + S.lapTime.toFixed(2) + ' s', '#9dff8f');
+        sfx.lap();
         S.lapTime = 0; S.nextCp = 1;
         // prevFinishDot stays null until the next approach (reset below)
       } else {
