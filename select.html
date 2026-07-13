@@ -58,6 +58,7 @@
   import { flushAchievementToasts, showAchievementToasts } from './js/ach-toast.js';
   import { syncStateAchievements } from './js/ach-sync.js';
   import { speedRating, handlingRating, accRating } from './js/car-stats.js';
+  import { sfx, tapThenGo, soundThenGo } from './js/sound.js';
 
   const params    = new URLSearchParams(location.search);
   const trackId   = params.get('track');                          // e.g. 'green-study'
@@ -74,6 +75,10 @@
 
   // Back button leads to track list (if we came from there) or to the main menu
   document.getElementById('backLink').href = isZen ? 'zen.html' : trackMeta ? 'tracks.html' : 'index.html';
+  document.getElementById('backLink').addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault(); soundThenGo(e.currentTarget.getAttribute('href'), 'back');
+  });
 
   document.getElementById('mode-title').textContent =
     trackMeta ? trackMeta.name : mode === 'sandbox' ? 'Sandbox' : 'Time Attack';
@@ -163,7 +168,7 @@
       gear.href      = modifyHref(i);
       gear.title     = 'Modify';
       gear.setAttribute('aria-label', 'Modify');
-      gear.addEventListener('click', (e) => e.stopPropagation());      // don't trigger card select
+      gear.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); tapThenGo(gear.getAttribute('href')); });  // tap → open modify
       gear.addEventListener('pointerdown', (e) => e.stopPropagation()); // don't start a carousel drag (which captures the pointer + eats the link click)
       card.appendChild(gear);
     }
@@ -280,6 +285,7 @@
     disarm();                              // switching cars cancels a pending buy-confirm
     if (i === sel) { layout(); return; }
     sel = i;
+    sfx.select();                          // soft cue when the chosen car changes
     garage().carIndex = i; save();
     layout();
   };
@@ -318,14 +324,15 @@
     // Locked (paid, unowned, gated mode) → buy it here instead of racing (two-tap confirm).
     if (carLocked(sel)) {
       const car = CARS[sel];
-      if (wallet() < car.price) { updateCTA(); return; }            // can't afford → nothing (price stays)
+      if (wallet() < car.price) { sfx.deny(); updateCTA(); return; }  // can't afford → soft deny, price stays
       if (!buyArmed) {                                              // 1st tap → arm "Confirm buy?"
-        buyArmed = true; updateCTA();
+        buyArmed = true; updateCTA(); sfx.tap();
         armTimer = setTimeout(() => { buyArmed = false; updateCTA(); }, 3000);   // auto-cancel
         return;
       }
       disarm();                                                     // 2nd tap → commit
       if (!buyCar(car.id, car.price).ok) { updateCTA(); return; }
+      sfx.buy();
       showAchievementToasts(syncStateAchievements());               // celebrate New Wheels / Full Garage
       walletEl.textContent = wallet();                              // reflect price paid − any reward
       rebuildOrder();                                               // the just-bought car joins the owned group

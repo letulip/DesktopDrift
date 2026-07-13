@@ -114,6 +114,11 @@ export const sfx = {
   record:     () => play('record'),
 };
 
+// Navigate to `href` after a soft cue, deferring the unload just long enough for the sound to be
+// heard — an AudioContext dies with its page, so an un-deferred nav would cut the sound off.
+export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeout(() => { location.href = href; }, ms); };
+export const tapThenGo = (href, ms = 100) => soundThenGo(href, 'tap', ms);
+
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
 // device isn't kept awake; resume on the next gesture or when the tab returns.
 export const suspend = () => { if (_ctx && _ctx.state === 'running') _ctx.suspend(); };

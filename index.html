@@ -94,6 +94,17 @@ try {
   }
 } catch {}
 </script>
+<script type="module">
+  import { tapThenGo } from './js/sound.js';
+  // Soft tap on every menu item; navigation is briefly deferred so the sound isn't cut by unload.
+  for (const a of document.querySelectorAll('#menu a[href]')) {
+    a.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+      e.preventDefault();
+      tapThenGo(a.getAttribute('href'));
+    });
+  }
+</script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
 </body>
 </html>
