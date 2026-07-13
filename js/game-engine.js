@@ -3,7 +3,7 @@ import { car, S, keys, pointers, initCar } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept, markTrophy,
+import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept, markTrophy, markPerpetual,
          stats, wallet, owned, ownedCars, achUnlocked, achUnlock, achSetProgress } from './store.js';
 import { finishPayout, starsForPps, isDDK, isOnePps, ONE_PPS_BONUS, UNBROKEN_BONUS, FIRST_CLEAR_BONUS } from './economy.js';
 import { evaluate, buildContent, flattenRecords } from './achievements.js';
@@ -535,6 +535,7 @@ export const startGame = (T, opts = {}) => {
             if (comboUnbroken) {
               unbrokenBonus = UNBROKEN_BONUS;
               addTires(unbrokenBonus, `${trackName} — Perpetual Motion`);
+              markPerpetual(INSTANCE);   // ♾️ badge on the track card (idempotent, set once)
             }
           }
 

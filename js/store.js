@@ -282,6 +282,22 @@ export const markTrophy = (instanceId) => {
   return true;
 };
 
+// Perpetual Motion — track INSTANCES where the player once finished in one unbroken drift.
+// Drives the ♾️ badge on the track card. The tire reward for it is repeatable and paid per-race
+// by the engine (UNBROKEN_BONUS); this list is just the earned-badge marker, like trophies.
+export const hasPerpetual = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.perpetuals)) st.perpetuals = [];
+  return st.perpetuals.includes(instanceId);
+};
+export const markPerpetual = (instanceId) => {
+  const st = stats();
+  if (!Array.isArray(st.perpetuals)) st.perpetuals = [];
+  if (st.perpetuals.includes(instanceId)) return false;   // already earned → badge unchanged
+  st.perpetuals.push(instanceId); save();
+  return true;
+};
+
 // Record a track instance (trackId, or trackId:mode later) as finished. Returns true the
 // FIRST time it's recorded (→ award the first-clear bonus), false if already cleared.
 export const markCleared = (instanceId) => {

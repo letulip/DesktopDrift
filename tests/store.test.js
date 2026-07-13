@@ -15,7 +15,7 @@ import { installLocalStorage } from './helpers.js';
 const store = installLocalStorage();
 
 const { settings, garage, records, achievements, save, stats, collectedCaps, capCollect,
-        wallet, addTires, tireSwept, markTireSwept, hasTrophy, markTrophy,
+        wallet, addTires, tireSwept, markTireSwept, hasTrophy, markTrophy, hasPerpetual, markPerpetual,
         owned, isOwned, grant, carLook, purchase, ledger, recordTxn, markCleared,
         achAll, achUnlocked, achUnlock, achSetProgress } =
   await import('../js/store.js');
@@ -58,6 +58,14 @@ test('hasTrophy / markTrophy: per-instance 1-PPS badge marker, idempotent', () =
   assert.equal(hasTrophy('green-study'), true);
   assert.equal(markTrophy('green-study'), false);     // already earned → badge unchanged
   assert.equal(hasTrophy('green-study:rev'), false);  // reversed is a separate instance
+});
+
+test('hasPerpetual / markPerpetual: per-instance unbroken-drift badge marker, idempotent', () => {
+  assert.equal(hasPerpetual('green-study'), false);
+  assert.equal(markPerpetual('green-study'), true);      // first unbroken-drift run → badge earned
+  assert.equal(hasPerpetual('green-study'), true);
+  assert.equal(markPerpetual('green-study'), false);     // already earned → badge unchanged
+  assert.equal(hasPerpetual('green-study:rev'), false);  // reversed is a separate instance
 });
 
 test('tireSwept / markTireSwept: per-track clean-sweep flag, first-time only', () => {
