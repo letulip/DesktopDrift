@@ -23,7 +23,7 @@ const renderCar = (carModel, look) => {
   const orig = M.body;
   M.body = (look && look.bodyColor) || orig;
   drawCarPreview(c, M, (look && (look.neon ?? (look.neonColor || null))) || null,
-    (look && look.finish) || null, (look && look.trailColor) || null, 0,
+    (look && look.finish) || null, null, 0,   // no drift trail — the template already has baked skid marks
     (look && look.glassColor) || null, (look && look.outlineColor) || null);
   M.body = orig;
   return c;

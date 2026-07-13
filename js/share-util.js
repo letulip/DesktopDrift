@@ -30,6 +30,7 @@ const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').re
 // Download filename for the PNG, e.g. "desktop-drift-breakfast-boulevard-685pps.png".
 export const shareFilename = ({ trackName, pps }) => `desktop-drift-${slug(trackName)}-${Math.round(pps || 0)}pps.png`;
 
-// Which action to lead with: native share sheet when the browser can share the PNG file
-// (mobile), otherwise the download + copy-link fallback (desktop).
-export const pickShareMethod = ({ canShareFiles }) => (canShareFiles ? 'share' : 'download');
+// Which action to lead with. The native share sheet only works reliably on touch devices —
+// desktop browsers often report canShare(files) yet do nothing — so require BOTH file-share
+// capability AND a coarse (touch) pointer; otherwise use the desktop download + copy-link path.
+export const pickShareMethod = ({ canShareFiles, coarsePointer }) => (canShareFiles && coarsePointer ? 'share' : 'download');

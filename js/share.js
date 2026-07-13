@@ -5,7 +5,7 @@
 // Download PNG + Copy link (desktop). Styles — css/sandbox.css (#shareOverlay).
 // ─────────────────────────────────────────────────────────────────────────────
 import { renderShareCard } from './share-card.js';
-import { buildShareText, shareFilename, SHARE_URL } from './share-util.js';
+import { buildShareText, shareFilename, pickShareMethod, SHARE_URL } from './share-util.js';
 import { sfx } from './sound.js';
 
 export const createShareModal = () => {
@@ -50,15 +50,17 @@ export const createShareModal = () => {
   const buildActions = (data) => {
     const file = new File([blob], shareFilename(data), { type: 'image/png' });
     const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+    const coarsePointer = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    const useShare = pickShareMethod({ canShareFiles, coarsePointer }) === 'share';   // native sheet on touch only
 
     const btns = [];
-    if (canShareFiles) btns.push('<button id="share-do" class="share-primary">↗ Share</button>');
+    if (useShare) btns.push('<button id="share-do" class="share-primary">↗ Share</button>');
     btns.push('<button id="share-dl">⬇ Download</button>');
     btns.push('<button id="share-copy">🔗 Copy link</button>');
     actions.innerHTML = btns.join('');
     hint.textContent = 'Post it anywhere — the QR takes people straight to the game.';
 
-    if (canShareFiles) overlay.querySelector('#share-do').addEventListener('click', async () => {
+    if (useShare) overlay.querySelector('#share-do').addEventListener('click', async () => {
       sfx.tap();
       try { await navigator.share({ files: [file], text: buildShareText(data), url: SHARE_URL }); }
       catch (e) { /* user dismissed the share sheet — nothing to do */ }

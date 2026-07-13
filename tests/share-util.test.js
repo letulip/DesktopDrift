@@ -44,7 +44,9 @@ test('shareFilename: slugged, safe, .png', () => {
   assert.equal(shareFilename({ trackName: '', pps: 0 }), 'desktop-drift-run-0pps.png');   // empty name → safe fallback
 });
 
-test('pickShareMethod: native share when files are shareable, else download', () => {
-  assert.equal(pickShareMethod({ canShareFiles: true }), 'share');
-  assert.equal(pickShareMethod({ canShareFiles: false }), 'download');
+test('pickShareMethod: native share only when files are shareable AND touch-primary', () => {
+  assert.equal(pickShareMethod({ canShareFiles: true, coarsePointer: true }), 'share');
+  assert.equal(pickShareMethod({ canShareFiles: true, coarsePointer: false }), 'download');   // desktop → reliable download path
+  assert.equal(pickShareMethod({ canShareFiles: false, coarsePointer: true }), 'download');
+  assert.equal(pickShareMethod({ canShareFiles: false, coarsePointer: false }), 'download');
 });
