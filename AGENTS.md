@@ -432,6 +432,20 @@ stays readable. No framework, no bundler.
     `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
     (car previews + colour palette + persistence + track routing).
     `tracks.html` imports `track-registry.js` + `store.js`.
+- **Non-shipped directories (not in the build, not deployed):**
+  - `docs/promo/` — marketing/distribution pack: `PLATFORMS.md` (staged portal
+    rollout plan — the map; its rollout table indexes the playbooks),
+    `steps/NN-*.md` (one executable playbook per rollout step: what/how/when/who),
+    `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
+    `BUILDER_AGENT.md` (standing prompt for the builder agent: git/worktree
+    protocol, task intake + report formats), `SHORTS_PIPELINE.md` (YouTube
+    Shorts workflow), `screenshots/` (store-listing screenshots, desktop +
+    mobile), `assets/` (cover art, gameplay GIF/video masters).
+  - `tools/capture/` — Playwright screenshot/video-capture kit (scripted driving +
+    contact sheets); regenerates `docs/promo/screenshots/` and the gameplay
+    video masters (`record.js`; `--mobile` = vertical 9:16 iPhone context).
+    See its README — Playwright is installed *outside* the repo, never as a
+    project dependency.
 
 ## Setup
 
