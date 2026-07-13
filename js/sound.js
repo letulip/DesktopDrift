@@ -190,12 +190,15 @@ export const stopMovement = () => {
 // Dev/tuning: switch the movement style live (sound-lab); rebuilds the voice on the next update.
 export const setMoveStyle = (style) => { _moveStyle = style; stopMovement(); };
 
-// ── Drift sound (a real recorded toy-car rev, looped while the car is sliding) ─
-// The one sampled voice: a tiny mp3, decoded lazily, looped ONLY while drifting — volume + pitch
-// track the slide intensity. Tied to an action (the slide), so it never becomes a constant drone.
-// Path is resolved from this module's URL so it works from any page (game + tools/).
+// ── Drift sound: a slide sample layered over a whisper-quiet static bed ────────
+// Two layers, both looped ONLY while drifting: (1) the recorded cardboard slide (sounds/drift.mp3)
+// whose volume + pitch react to the slide, and (2) a very quiet band-passed noise bed that fills
+// the sample's loop gaps so the slide reads as continuous. Tied to the action, never a drone.
+// Path resolved from this module's URL so it works from any page (game + tools/).
 const DRIFT_URL = new URL('../sounds/drift.mp3', import.meta.url).href;
-let _driftBuf = null, _driftLoad = null, _driftSrc = null, _driftGain = null, _driftLast = -1;
+let _driftBuf = null, _driftLoad = null, _driftLast = -1;
+let _driftSrc = null, _driftGain = null;      // slide-sample layer
+let _bedSrc = null, _bedGain = null;          // static-bed layer
 
 const _loadDrift = (ctx) => {
   if (_driftBuf || _driftLoad) return;
@@ -203,11 +206,23 @@ const _loadDrift = (ctx) => {
     .then(b => { _driftBuf = b; }).catch(() => { _driftLoad = null; });
 };
 
-// Per-frame drift update. `on` = the car is drifting; `slip` = 0..1 slide intensity. Starts the
-// looping rev on the first sliding frame, tracks volume + pitch to slip, fades out + stops when
-// the slide ends. Silent when sound is off; a no-op until the sample has decoded.
+// 2s of looping white noise for the quiet static bed.
+const _bedBuffer = (ctx) => {
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 2), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+};
+
+// Per-frame drift update. `on` = the car is drifting; `slip` = 0..1 slide intensity. Starts both
+// layers on the first sliding frame, tracks volume + pitch to slip, fades out + stops when the
+// slide ends. Silent when sound is off; a no-op until the sample has decoded.
 export const drift = (on, slip = 0) => {
-  if (!_on()) { if (_driftGain && _ctx) _driftGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05); return; }
+  if (!_on()) {
+    if (_ctx) { if (_driftGain) _driftGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05);
+                if (_bedGain) _bedGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05); }
+    return;
+  }
   const ctx = _ensureCtx();
   if (!_driftBuf) { _loadDrift(ctx); return; }
   const s = Math.max(0, Math.min(1, slip || 0));
@@ -217,27 +232,33 @@ export const drift = (on, slip = 0) => {
       _driftGain = ctx.createGain(); _driftGain.gain.value = 0.0001; _driftGain.connect(ctx.destination);   // dry
       _driftSrc = ctx.createBufferSource(); _driftSrc.buffer = _driftBuf; _driftSrc.loop = true;
       _driftSrc.connect(_driftGain); _driftSrc.start();
+      // whisper-quiet static bed under the slide (band-passed noise fills the loop gaps)
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.5;
+      _bedGain = ctx.createGain(); _bedGain.gain.value = 0.0001; bp.connect(_bedGain); _bedGain.connect(ctx.destination);
+      _bedSrc = ctx.createBufferSource(); _bedSrc.buffer = _bedBuffer(ctx); _bedSrc.loop = true; _bedSrc.connect(bp); _bedSrc.start();
       _driftLast = -1;
     }
     if (Math.abs(s - _driftLast) >= 0.02) {
       _driftLast = s;
       const vol = gainForVolume(settings().volume);
-      _driftGain.gain.setTargetAtTime(vol * (0.1 + 0.25 * s), now, 0.06);
-      _driftSrc.playbackRate.setTargetAtTime(0.9 + 0.4 * s, now, 0.08);   // harder slide → higher rev
+      _driftGain.gain.setTargetAtTime(vol * (0.1 + 0.25 * s), now, 0.06);      // slide sample reacts
+      _driftSrc.playbackRate.setTargetAtTime(0.9 + 0.4 * s, now, 0.08);        // harder slide → higher
+      _bedGain.gain.setTargetAtTime(vol * (0.012 + 0.018 * s), now, 0.12);     // static bed: whisper-quiet
     }
   } else if (_driftSrc) {
-    const src = _driftSrc, g = _driftGain;
-    _driftSrc = null; _driftGain = null; _driftLast = -1;
-    g.gain.setTargetAtTime(0.0001, now, 0.06);
-    try { src.stop(now + 0.25); } catch (e) { /* already stopped */ }
+    const src = _driftSrc, g = _driftGain, bs = _bedSrc, bg = _bedGain;
+    _driftSrc = _driftGain = _bedSrc = _bedGain = null; _driftLast = -1;
+    g.gain.setTargetAtTime(0.0001, now, 0.06); bg.gain.setTargetAtTime(0.0001, now, 0.06);
+    try { src.stop(now + 0.25); bs.stop(now + 0.25); } catch (e) { /* already stopped */ }
   }
 };
 
-// Hard-stop the drift loop (race teardown / new race).
+// Hard-stop both drift layers (race teardown / new race).
 export const stopDrift = () => {
-  if (!_driftSrc) return;
-  try { _driftSrc.stop(); _driftSrc.disconnect(); _driftGain.disconnect(); } catch (e) { /* noop */ }
-  _driftSrc = _driftGain = null; _driftLast = -1;
+  if (!_driftSrc && !_bedSrc) return;
+  try { if (_driftSrc) { _driftSrc.stop(); _driftSrc.disconnect(); _driftGain.disconnect(); } } catch (e) { /* noop */ }
+  try { if (_bedSrc) { _bedSrc.stop(); _bedSrc.disconnect(); _bedGain.disconnect(); } } catch (e) { /* noop */ }
+  _driftSrc = _driftGain = _bedSrc = _bedGain = null; _driftLast = -1;
 };
 
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
