@@ -1,29 +1,29 @@
-<svg width="1152" height="1152" viewBox="0 0 1152 1152" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="576" cy="576" r="576" fill="url(#paint0_linear_62_1378)"/>
+<svg width="438" height="438" viewBox="0 0 438 438" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="219" cy="219" r="219" fill="url(#paint0_linear_62_1378)"/>
 <g filter="url(#filter0_d_62_1378)">
-<circle cx="576" cy="576" r="362" fill="#F9F5F6"/>
+<circle cx="219" cy="219" r="138" fill="#F9F5F6"/>
 </g>
-<circle cx="576" cy="576" r="292" fill="#DDC388"/>
-<circle cx="576" cy="576" r="259" fill="url(#paint1_radial_62_1378)"/>
-<ellipse cx="736.458" cy="722.057" rx="53.4857" ry="51.4286" fill="#DDC388"/>
-<ellipse cx="737.702" cy="723.486" rx="24.96" ry="24" fill="#522A10"/>
-<path d="M855.772 588.343C855.772 642.877 819.852 687.086 775.543 687.086C731.234 687.086 695.314 642.877 695.314 588.343C695.314 533.809 731.234 487.543 775.543 487.543C878.4 487.543 855.772 504 855.772 588.343Z" fill="#DDC388"/>
-<ellipse cx="746.204" cy="622" rx="24.96" ry="24" fill="#522A10"/>
-<ellipse cx="777.054" cy="545.892" rx="31.1246" ry="30.1783" fill="#522A10"/>
-<circle cx="804.341" cy="606.857" r="30.8571" fill="#DDC388"/>
-<circle cx="805.588" cy="608.286" r="14.4" fill="#522A10"/>
-<ellipse cx="349.714" cy="524.571" rx="53.4857" ry="51.4286" fill="#DDC388"/>
-<ellipse cx="350.96" cy="526" rx="24.96" ry="24" fill="#522A10"/>
-<circle cx="619.2" cy="771.429" r="84.3429" fill="#DDC388"/>
-<circle cx="620.444" cy="772.857" r="51.4286" fill="#522A10"/>
-<circle cx="347.658" cy="466.971" r="30.8571" fill="#DDC388"/>
-<circle cx="348.902" cy="468.4" r="14.4" fill="#522A10"/>
-<circle cx="713.83" cy="783.771" r="30.8571" fill="#DDC388"/>
-<circle cx="715.074" cy="785.2" r="14.4" fill="#522A10"/>
-<rect x="773" y="654" width="50" height="70" fill="#DDC388"/>
-<path d="M37 528C37 525.239 39.2386 523 42 523H216.52V625H42C39.2386 625 37 622.761 37 620V528Z" fill="#F9F5F6"/>
+<circle cx="219" cy="219" r="111" fill="#DDC388"/>
+<circle cx="219" cy="219" r="98" fill="url(#paint1_radial_62_1378)"/>
+<ellipse cx="280.008" cy="274.532" rx="20.3357" ry="19.5536" fill="#DDC388"/>
+<path d="M325.372 223.693C325.372 244.427 311.715 261.236 294.869 261.236C278.022 261.236 264.365 244.427 264.365 223.693C264.365 202.959 278.022 185.368 294.869 185.368C333.976 185.368 325.372 191.625 325.372 223.693Z" fill="#DDC388"/>
+<circle cx="305.818" cy="230.732" r="11.7321" fill="#DDC388"/>
+<ellipse cx="132.965" cy="199.446" rx="20.3357" ry="19.5536" fill="#DDC388"/>
+<circle cx="235.425" cy="293.304" r="32.0679" fill="#DDC388"/>
+<circle cx="132.183" cy="177.546" r="11.7321" fill="#DDC388"/>
+<circle cx="271.404" cy="297.996" r="11.7321" fill="#DDC388"/>
+<circle cx="133.707" cy="177.475" r="5.475" fill="#522A10"/>
+<ellipse cx="134.49" cy="199.375" rx="9.49" ry="9.125" fill="#522A10"/>
+<circle cx="272.93" cy="297.925" r="5.475" fill="#522A10"/>
+<circle cx="236.95" cy="293.232" r="19.5536" fill="#522A10"/>
+<ellipse cx="281.533" cy="274.461" rx="9.49" ry="9.125" fill="#522A10"/>
+<circle cx="307.344" cy="230.661" r="5.475" fill="#522A10"/>
+<ellipse cx="284.765" cy="235.875" rx="9.49" ry="9.125" fill="#522A10"/>
+<ellipse cx="296.496" cy="206.938" rx="11.8338" ry="11.474" fill="#522A10"/>
+<rect x="294" y="249" width="19" height="26" fill="#DDC388"/>
+<path d="M14 204C14 201.239 16.2386 199 19 199H82V238H19C16.2386 238 14 235.761 14 233V204Z" fill="#F9F5F6"/>
 <defs>
-<filter id="filter0_d_62_1378" x="189" y="214" width="749" height="764" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter0_d_62_1378" x="56" y="81" width="301" height="316" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
 <feFlood flood-opacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feOffset dx="-25" dy="40"/>
@@ -32,11 +32,11 @@
 <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_62_1378"/>
 <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_62_1378" result="shape"/>
 </filter>
-<linearGradient id="paint0_linear_62_1378" x1="960.686" y1="158.4" x2="164.571" y2="968.914" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint0_linear_62_1378" x1="365.261" y1="60.225" x2="62.5714" y2="368.389" gradientUnits="userSpaceOnUse">
 <stop offset="0.5" stop-color="#D8DDE0"/>
 <stop offset="0.5001" stop-color="#C5CAD0"/>
 </linearGradient>
-<radialGradient id="paint1_radial_62_1378" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(576 576) rotate(90) scale(259)">
+<radialGradient id="paint1_radial_62_1378" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(219 219) rotate(90) scale(98)">
 <stop stop-color="#7D4934"/>
 <stop offset="1" stop-color="#522A10"/>
 </radialGradient>

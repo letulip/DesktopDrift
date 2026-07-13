@@ -226,6 +226,14 @@ stays readable. No framework, no bundler.
     `?surface=bake`). If you ever revisit it, gate it to strong GPUs only; don't make it the
     default. The real per-frame win is **off-screen culling** of props/collectibles (`_inView`
     in `draw()`): the camera zooms on the car, so most items aren't visible — skip them.
+    Culling alone was NOT enough on cafe-marble (winding layout clusters the coffee/donut items,
+    so several stay on-screen at once). The durable Mali fix is `initItems()` **pre-rendering
+    oversized item art once into a ≤`TEX_CAP`(512) canvas, deduped by `imgSrc`** — the source SVGs
+    are 1152² but items draw ~170 px, so the raw textures were minified ~6.7×/frame with no
+    mipmaps; the downscale cuts resident texture memory ~20× and the per-frame sample cost. Props
+    carry a cached `o._portrait` flag (a downscaled canvas has no `naturalWidth`). Also: the main
+    2d context is `{ alpha:false }` (canvas is repainted opaque every frame), and a `?dpr=1|1.25|1.5`
+    override (`_dprCap`, sticky) shrinks the backbuffer for on-device Mali A/B.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
     `achievements()`, `stats()` (live objects — mutate then call `save()`), plus

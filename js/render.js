@@ -7,7 +7,10 @@ import { bakeSurfaceDims } from './track-surface.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
-export const ctx    = canvas.getContext('2d');
+// alpha:false — draw() repaints the whole viewport opaque every frame (floor fillRect), so the
+// canvas never needs a transparent layer. Opaque compositing is cheaper at the exact stage where
+// the Mali scanline garbage appears, and costs nothing visually.
+export const ctx    = canvas.getContext('2d', { alpha: false });
 const miniEl = document.getElementById('mini');
 const mctx   = miniEl.getContext('2d');
 
@@ -34,13 +37,24 @@ let _prevScore     = -1;
 let _prevLapScoresLen = -1;
 let _prevWallet    = -1;
 
+// Per-device DPR cap (default 1.5). ?dpr=1|1.25|1.5 overrides for on-device A/B (sticks in
+// localStorage). Lowering it shrinks the canvas backbuffer — DPR 1.5→1.0 = 2.25× fewer fragments
+// AND 2.25× less tiler write-out (the buffer whose stale tiles show as scanline garbage on Mali).
+const _dprCap = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('dpr');
+    if (q === '1' || q === '1.25' || q === '1.5') localStorage.setItem('dd-dpr', q);
+    return parseFloat(localStorage.getItem('dd-dpr')) || 1.5;
+  } catch { return 1.5; }
+})();
+
 export let W, H, DPR;
 export const resize = () => {
   // Cap at 1.5 instead of 2: ~1.78× fewer fragment ops on DPR=2 devices;
   // on DPR=3 (iPhone / Android flagships) it also gives a sharper result
   // (2× exact upscale vs the 1.5× non-integer upscale of cap=2).
   // Visual difference is imperceptible for flat vector content in motion.
-  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  DPR = Math.min(window.devicePixelRatio || 1, _dprCap);
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
@@ -309,14 +323,45 @@ const drawCar = (M) => {
   rrect(-hl * 0.9,  hw * 0.30, hl * 0.06, hw * 0.42, 2); ctx.fill();
 }
 
-// Pre-load SVG images for props (called once from game-engine.js at startup)
+// Pre-load + downscale item art (called once from game-engine.js at startup).
+// The source SVGs are large — the coffee/doughnut art is 1152² — yet items draw at ~170px, so the
+// raw textures were minified ~6.7× EVERY frame with no mipmaps. That per-frame texture bandwidth
+// (× the translucent gradient blend) is what tips budget Mali GPUs into scanline corruption on
+// prop-heavy tracks (cafe-marble/dev-desk). Fix: rasterize each unique image ONCE into a small
+// canvas (deduped by imgSrc) and hand it to every prop that uses it — ~20× less resident texture
+// memory and a far cheaper per-frame sample. o._portrait caches the tall/wide flag (a canvas has
+// no naturalWidth, so drawProp can't probe it live). The cache persists across tracks.
+const TEX_CAP = 512;                  // max texture side — items never draw larger than this
+const _texCache = new Map();          // imgSrc -> { img, portrait }
+
 export const initItems = (propList) => {
+  const pending = new Map();          // imgSrc -> props awaiting this (not yet cached) texture
   for (const o of propList) {
     if (!o.imgSrc) continue;
+    const hit = _texCache.get(o.imgSrc);
+    if (hit) { o.img = hit.img; o._portrait = hit.portrait; continue; }
+    if (!pending.has(o.imgSrc)) pending.set(o.imgSrc, []);
+    pending.get(o.imgSrc).push(o);
+  }
+  for (const [src, props] of pending) {
     const img = new Image();
-    img.onload  = () => { o.img = img; };
+    img.onload = () => {
+      const portrait = img.naturalHeight > img.naturalWidth;
+      const maxDim = Math.max(img.naturalWidth, img.naturalHeight);
+      let tex = img;
+      if (maxDim > TEX_CAP) {          // downscale oversized art once
+        const s = TEX_CAP / maxDim;
+        const cv = document.createElement('canvas');
+        cv.width  = Math.max(1, Math.round(img.naturalWidth  * s));
+        cv.height = Math.max(1, Math.round(img.naturalHeight * s));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        tex = cv;
+      }
+      _texCache.set(src, { img: tex, portrait });
+      for (const o of props) { o.img = tex; o._portrait = portrait; }
+    };
     img.onerror = () => { /* fall back to procedural render */ };
-    img.src = o.imgSrc;
+    img.src = src;
   }
 }
 
@@ -340,7 +385,7 @@ const drawProp = (o) => {
   if (o.img) {
     const fw = o.hl > 0 ? (o.hl + o.r) * 2 : o.r * 2;
     const fh = o.r * 2;
-    if (o.img.naturalHeight > o.img.naturalWidth) {
+    if (o._portrait) {   // precomputed in initItems (a downscaled canvas has no naturalWidth)
       ctx.rotate(Math.PI / 2);
       ctx.drawImage(o.img, -fh / 2, -fw / 2, fh, fw);
     } else {
