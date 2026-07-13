@@ -9,6 +9,7 @@
 
 import { sfx, soundThenGo } from './sound.js';
 import { commercialBreak } from './platform.js';
+import { createShareModal } from './share.js';
 
 export const createRaceResults = () => {
   const overlay = document.createElement('div');
@@ -22,6 +23,7 @@ export const createRaceResults = () => {
       <div id="rr-laps"></div>
       <div id="rr-best"></div>
       <div id="rr-actions">
+        <button id="rr-share">↗ Share result</button>
         <button id="rr-restart">↺ Race Again</button>
         <button id="rr-back">Back to tracks</button>
       </div>
@@ -41,13 +43,22 @@ export const createRaceResults = () => {
     soundThenGo('tracks.html', 'back');
   });
 
+  // Share the result — a branded score card. The modal is built lazily on first use.
+  let shareModal = null, lastResult = null;
+  overlay.querySelector('#rr-share').addEventListener('click', () => {
+    sfx.tap();
+    if (!lastResult) return;
+    shareModal ||= createShareModal();
+    shareModal.show(lastResult);
+  });
+
   // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked })
   // lapScores: [{ n, pts, t }]  — n = lap number, pts = lap score, t = lap time (s)
   // pps: points per second (race efficiency)
   // tires: { pickup, cap, cleanSweep, firstClear, finish } — tire coins earned this race (optional)
   // ddk: true when pps ≥ 600 → the crown above the 5 stars
   // unlocked: [{ id, name, icon, reward }] — achievements unlocked this race (optional)
-  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked }) => {
+  const show = ({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked, carModel, look, trackName }) => {
     const ppsRounded = Math.round(pps);
     // Star rating: 1 star per 100 PPS, max 5. At 600+ PPS a crown sits above the row (DDK).
     const filledStars = Math.min(5, Math.floor(ppsRounded / 100));
@@ -98,11 +109,12 @@ export const createRaceResults = () => {
     overlay.querySelector('#rr-best').textContent =
       bestLap != null ? `Best lap  ${bestLap.toFixed(2)} s` : '';
 
+    lastResult = { pps, ddk, trackName, bestLap, carModel, look };
     overlay.classList.add('show');
   };
 
   // destroy() is called from stop() when the game restarts on top of a live instance
-  const destroy = () => { overlay.remove(); };
+  const destroy = () => { if (shareModal) shareModal.destroy(); overlay.remove(); };
 
   return { show, destroy };
 };

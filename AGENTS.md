@@ -646,6 +646,27 @@ created lazily and **unlocked on the first user gesture** (capture-phase `pointe
 - **Gotcha:** changing any sound code/asset needs a `sw.js` cache bump; a new sound module or
   sample must also be added to `ASSETS`.
 
+### Share result (`js/share.js` + `js/share-card.js` + `js/share-util.js`)
+
+Client-only "share your score" from the race-results screen — no backend. A **template PNG**
+(`share/template.png`, 1080², all static art + a baked QR) is drawn onto a canvas, then a
+**dynamic layer** on top: the player's actual car (via `drawCarPreview`, sized by measuring its
+solid bbox → 140px body, RIGHT-rear corner anchored, per `CARD` in `share-util.js`), the PPS
+number, DDK crown (600+), stars, track name (auto-shrunk to fit) + best lap.
+
+- `js/share-util.js` — pure, unit-tested (`tests/share-util.test.js`): `CARD` layout config,
+  `buildShareText`, `shareFilename`, `litStars`, `pickShareMethod`, `SHARE_URL`.
+- `js/share-card.js` — browser: `renderShareCard(canvas, data)` + `loadTemplate()`; reuses
+  `car-preview.js`, imports `config.js` (Path2D) so it is browser-only.
+- `js/share.js` — browser: `createShareModal()` (mirrors `confirm-exit.js`) — card preview +
+  native Web Share (`navigator.canShare({ files })` → `navigator.share`, mobile) OR Download +
+  Copy link (desktop). Wired from `race-results.js` (`#rr-share`); the engine passes
+  `carModel / look / trackName` into `show()`.
+- **Build gotcha (important):** `scripts/build.js` copies only a fixed dir list to `dist/`, so a
+  shipped asset dir that isn't in it never reaches production. `share/` (and `sounds/`) had to be
+  ADDED to that loop. Any new shipped asset dir must go in **both** `scripts/build.js` and the
+  `sw.js` `ASSETS` list.
+
 ### Service Worker (`sw.js`)
 
 **Stale-while-revalidate** strategy. The cache key (`const CACHE`) is bumped on every asset change.
