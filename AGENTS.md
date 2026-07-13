@@ -432,6 +432,14 @@ stays readable. No framework, no bundler.
     `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
     (car previews + colour palette + persistence + track routing).
     `tracks.html` imports `track-registry.js` + `store.js`.
+- **Non-shipped directories (not in the build, not deployed):**
+  - `docs/promo/` — marketing/distribution pack: `PLATFORMS.md` (staged portal
+    rollout plan), `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
+    `SHORTS_PIPELINE.md` (YouTube Shorts workflow), `screenshots/` (store-listing
+    screenshots, desktop + mobile).
+  - `tools/capture/` — Playwright screenshot-capture kit (scripted driving +
+    contact sheets); regenerates `docs/promo/screenshots/`. See its README —
+    Playwright is installed *outside* the repo, never as a project dependency.
 
 ## Setup
 
