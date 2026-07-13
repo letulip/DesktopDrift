@@ -1,14 +1,30 @@
 #!/usr/bin/env node
 // Build script: minifies js/ and css/, copies everything else → dist/
+// `--platform=<name>` builds a portal variant into dist-<name>/ instead:
+// swaps js/platform.js for js/platform-<name>.js, strips SW registration and
+// external links from HTML, prunes SEO files. No flag (or --platform=none)
+// keeps the default build byte-identical.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, cpSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import { minify as terserMinify } from 'terser';
 import CleanCSS from 'clean-css';
+import { stripServiceWorker, stripExternalLinks } from './build-helpers.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = join(ROOT, 'dist');
+const platformArg = process.argv.find(a => a.startsWith('--platform='));
+const platformVal = platformArg ? platformArg.slice('--platform='.length) : 'none';
+const PLATFORM = platformVal === 'none' ? null : platformVal;
+const DIST = join(ROOT, PLATFORM ? `dist-${PLATFORM}` : 'dist');
+
+// A platform build swaps js/platform.js for the named adapter — fail fast if
+// the adapter does not exist (adapters land one per promo step, no stubs).
+const ADAPTER = PLATFORM ? join(ROOT, 'js', `platform-${PLATFORM}.js`) : null;
+if (PLATFORM && !existsSync(ADAPTER)) {
+  console.error(`build: --platform=${PLATFORM} needs js/platform-${PLATFORM}.js — adapter not found`);
+  process.exit(1);
+}
 
 // --- Clean dist ---
 if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
@@ -20,15 +36,22 @@ for (const dir of ['fonts', 'icons', 'cars', 'items', 'objects', 'tracks']) {
   if (existsSync(src)) cpSync(src, join(DIST, dir), { recursive: true });
 }
 
-// --- Copy root static files verbatim ---
-for (const file of ['manifest.json', 'robots.txt', 'sitemap.xml']) {
+// --- Copy root static files verbatim (platform builds prune SEO files) ---
+const staticFiles = PLATFORM ? ['manifest.json'] : ['manifest.json', 'robots.txt', 'sitemap.xml'];
+for (const file of staticFiles) {
   const src = join(ROOT, file);
   if (existsSync(src)) cpSync(src, join(DIST, file));
 }
 
-// --- Copy HTML files verbatim ---
+// --- Copy HTML files (platform builds: prune SEO verification pages, strip SW + external links) ---
 for (const file of readdirSync(ROOT).filter(f => f.endsWith('.html'))) {
-  cpSync(join(ROOT, file), join(DIST, file));
+  if (PLATFORM && /^(google|yandex_)/.test(file)) continue; // SEO verification pages
+  if (PLATFORM) {
+    const html = stripExternalLinks(stripServiceWorker(readFileSync(join(ROOT, file), 'utf8')));
+    writeFileSync(join(DIST, file), html);
+  } else {
+    cpSync(join(ROOT, file), join(DIST, file));
+  }
 }
 
 // Accumulate minified content for the SW cache-buster hash.
@@ -56,7 +79,10 @@ for (const file of readdirSync(join(ROOT, 'css')).filter(f => f.endsWith('.css')
 mkdirSync(join(DIST, 'js'), { recursive: true });
 let jsCount = 0;
 for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js'))) {
-  const input = readFileSync(join(ROOT, 'js', file), 'utf8');
+  if (PLATFORM && /^platform-/.test(file)) continue; // other adapters never ship
+  // The adapter swap: dist-<name>/js/platform.js is built from the adapter source.
+  const srcPath = PLATFORM && file === 'platform.js' ? ADAPTER : join(ROOT, 'js', file);
+  const input = readFileSync(srcPath, 'utf8');
   const result = await terserMinify(input, { module: true, compress: true, mangle: true });
   if (result.error) {
     console.error(`JS error in js/${file}:`, result.error);
@@ -81,4 +107,4 @@ const swResult = await terserMinify(swPatched, { compress: true, mangle: true })
 if (swResult.error) { console.error('JS error in sw.js:', swResult.error); process.exit(1); }
 writeFileSync(join(DIST, 'sw.js'), swResult.code);
 
-console.log(`Built dist/  (${jsCount + 1} JS files, ${cssCount} CSS files, cache=desktop-drift-${contentHash})`);
+console.log(`Built ${PLATFORM ? `dist-${PLATFORM}` : 'dist'}/  (${jsCount + 1} JS files, ${cssCount} CSS files, cache=desktop-drift-${contentHash})`);

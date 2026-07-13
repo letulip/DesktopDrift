@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { sfx, soundThenGo } from './sound.js';
+import { commercialBreak } from './platform.js';
 
 export const createRaceResults = () => {
   const overlay = document.createElement('div');
@@ -31,7 +32,10 @@ export const createRaceResults = () => {
   // Buttons scoped to their own overlay (not global getElementById)
   overlay.querySelector('#rr-restart').addEventListener('click', () => {
     sfx.tap();
-    setTimeout(() => location.reload(), 100); // reload game.html?track=<id> — clean start
+    // Canonical interstitial slot (race is over, engine already stopped): a real
+    // adapter shows an ad here; the default resolves immediately.
+    commercialBreak().then(() =>
+      setTimeout(() => location.reload(), 100)); // reload game.html?track=<id> — clean start
   });
   overlay.querySelector('#rr-back').addEventListener('click', () => {
     soundThenGo('tracks.html', 'back');

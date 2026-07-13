@@ -169,6 +169,15 @@ stays readable. No framework, no bundler.
     per-lap times (best lap highlighted) and a "Back to tracks" button → `tracks.html`.
     All queries are scoped to its own overlay element. Returns `{ show, destroy }`.
     Styled in `css/sandbox.css` (`#rr-*`, `.rr-sub`). Shown by `game-engine.js` on the final lap of a fixed-lap race.
+  - `js/platform.js` — **platform adapter seam**, the ONLY platform file game code
+    imports (contract at the top of the file): `init()`, `gameplayStart()` (after the
+    countdown), `gameplayStop()` (race finish + exit-to-menu), `commercialBreak()`
+    (Promise; awaited on the results-screen restart — a real adapter shows an
+    interstitial and must mute sound while it runs), `happyMoment()` (new record).
+    This default file is the no-op adapter; `npm run build -- --platform=<name>`
+    swaps it for `js/platform-<name>.js` (error if missing — no committed stubs).
+    Contract test: `tests/platform.test.js`; HTML-strip helpers for platform builds
+    live in `scripts/build-helpers.js` (tested in `tests/build-helpers.test.js`).
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
@@ -425,7 +434,7 @@ stays readable. No framework, no bundler.
     over touch when non-zero. Called once per `frame()`. Unit-tested in `tests/input.test.js`.
   - **Dependency order (no circular deps):**
     `store.js` / `track-util.js` / `scoring.js` / `collision.js` / `input.js` /
-    `economy.js` / `cola.js` / `track-registry.js` (no imports) →
+    `economy.js` / `cola.js` / `track-registry.js` / `platform.js` (no imports) →
     `physics.js` → `config.js` → `items.js` → `track*.js` →
     (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
@@ -467,6 +476,7 @@ stays readable. No framework, no bundler.
 | install | `npm install` | Installs `terser` + `clean-css` devDeps. |
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Serves source directly — no build needed for local dev. |
 | build | `npm run build` | `scripts/build.js` → `dist/`. Copies asset dirs verbatim; minifies `css/*.css` (CleanCSS lvl 2) and `js/*.js` + `sw.js` (Terser, `module:true`). Not needed for local dev — source is served directly. |
+| platform build | `npm run build -- --platform=<name>` | Portal variant → `dist-<name>/` (git-ignored): swaps `js/platform.js` for `js/platform-<name>.js` (error if missing), strips SW registration + external links from HTML, prunes SEO files (`google*.html`, `yandex_*.html`, `sitemap.xml`, `robots.txt`). No flag (or `--platform=none`) = default build, byte-identical. |
 | test | `npm test` | `node --test tests/*.test.js`. Must be green before every commit. |
 | syntax check | `node --check js/*.js && echo OK` | Run before every commit (all ES modules). |
 

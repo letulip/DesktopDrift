@@ -22,6 +22,7 @@ import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
+import { gameplayStart, gameplayStop, happyMoment } from './platform.js';
 
 // Physics constants bundle passed to the pure stepCar() each frame (built once).
 const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
@@ -311,7 +312,7 @@ export const startGame = (T, opts = {}) => {
     const wasAlreadyPaused = pause.isPaused();
     pause.pause();
     confirmExit.show({
-      onExit:    () => { location.href = 'index.html'; },
+      onExit:    () => { gameplayStop(); location.href = 'index.html'; },
       onRestart: () => { location.reload(); },
       onCancel:  () => { if (!wasAlreadyPaused) pause.resume(); },
     });
@@ -382,7 +383,7 @@ export const startGame = (T, opts = {}) => {
       S.startCd -= dt;
       const cd = Math.ceil(Math.max(0, S.startCd));
       if (cd >= 1 && cd !== cdBeep) { cdBeep = cd; sfx.count(); }   // 3-2-1 pips (one per number)
-      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); }               // GO!
+      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); gameplayStart(); }   // GO!
       draw(0);
       return;
     }
@@ -576,9 +577,10 @@ export const startGame = (T, opts = {}) => {
 
           raceFinished = true;
           stop();
+          gameplayStop();
           // Finish sting: a new record gets the bigger celebration, otherwise the finish flourish;
           // any achievement unlocked this run chimes in shortly after so it doesn't collide.
-          if (isNewRecord) sfx.record(); else sfx.finish();
+          if (isNewRecord) { sfx.record(); happyMoment(); } else sfx.finish();
           if (unlockedNow.length) setTimeout(() => sfx.achieve(), 650);
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
