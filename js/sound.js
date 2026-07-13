@@ -168,7 +168,7 @@ export const drift = (sliding, slip = 0, active = false) => {
     }
     if (Math.abs(s - _driftLast) >= 0.02) {
       _driftLast = s;
-      _driftGain.gain.setTargetAtTime(vol * (0.1 + 0.25 * s), now, 0.06);
+      _driftGain.gain.setTargetAtTime(vol * (0.05 + 0.13 * s), now, 0.06);   // kept in line with the SFX so it doesn't drown them
       _driftSrc.playbackRate.setTargetAtTime(0.9 + 0.4 * s, now, 0.08);   // harder slide → higher
     }
   } else if (_driftSrc) {
