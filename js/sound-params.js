@@ -31,10 +31,6 @@ export const SFX = {
   lap:    s([[784, 0], [1047, 0.09]], 0.26, 0.10),            // lap complete — soft chime
   crash:  s([[150, 0], [104, 0.05]], 0.30, 0.16, 0.006),      // wall/prop — low sine "womp" (toy bump, mag-scaled)
   cone:   s([[330, 0]], 0.13, 0.10),                          // cone knock — soft bonk
-  transition: s([[1047, 0]], 0.10, 0.06),                     // TRANSITION! — tiny sparkle
-  nearmiss:   s([[1319, 0]], 0.10, 0.06),                     // NEAR MISS! — tiny sparkle (higher)
-  bank:   s([[659, 0], [988, 0.07]], 0.20, 0.08),             // combo banked — soft coin
-  combobreak: s([[440, 0], [294, 0.12]], 0.30, 0.11),         // combo lost — mellow descent
   finish: s([[523, 0], [659, 0.10], [784, 0.20], [1047, 0.32]], 0.40, 0.12), // race finish flourish
   achieve: s([[659, 0], [880, 0.10], [1175, 0.20]], 0.34, 0.12),             // achievement chime
   record: s([[784, 0], [988, 0.10], [1319, 0.20], [1568, 0.32]], 0.40, 0.13), // new record — celebratory

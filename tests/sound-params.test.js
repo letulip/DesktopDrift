@@ -7,7 +7,7 @@ import {
 
 test('SFX: every entry is a soft, well-formed sine chime (notes + gentle gain)', () => {
   const ids = Object.keys(SFX);
-  assert.ok(ids.length >= 20, `expected the full catalog, got ${ids.length}`);
+  assert.ok(ids.length >= 15, `expected the full catalog, got ${ids.length}`);
   for (const id of ids) {
     const sfx = SFX[id];
     assert.ok(Array.isArray(sfx.notes) && sfx.notes.length > 0, `${id} has notes`);
@@ -25,7 +25,7 @@ test('SFX: every entry is a soft, well-formed sine chime (notes + gentle gain)',
 test('SFX: the UI + gameplay ids the wiring depends on all exist', () => {
   for (const id of ['tap', 'flip', 'select', 'back', 'buy', 'deny', 'toggle',
                     'count', 'go', 'pickup', 'cap', 'checkpoint', 'lap', 'crash', 'cone',
-                    'transition', 'nearmiss', 'bank', 'combobreak', 'finish', 'achieve', 'record']) {
+                    'finish', 'achieve', 'record']) {
     assert.ok(SFX[id], `SFX.${id} is defined`);
   }
 });

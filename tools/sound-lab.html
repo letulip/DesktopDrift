@@ -63,7 +63,7 @@
     // Group ids for a tidy pad (UI row vs gameplay row) — order mirrors the catalog comments.
     const UI   = ['tap', 'flip', 'select', 'back', 'buy', 'deny', 'toggle'];
     const GAME = ['count', 'go', 'pickup', 'cap', 'checkpoint', 'lap', 'crash', 'cone',
-                  'transition', 'nearmiss', 'bank', 'combobreak', 'finish', 'achieve', 'record'];
+                  'finish', 'achieve', 'record'];
 
     const pad = document.getElementById('pad');
     const addCat = (t) => { const d = document.createElement('div'); d.className = 'cat'; d.textContent = t; pad.appendChild(d); };

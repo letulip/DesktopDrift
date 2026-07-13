@@ -123,7 +123,6 @@ export const startGame = (T, opts = {}) => {
     if (S.comboPoints >= 1) {
       if (!ZEN) S.score += Math.round(S.comboPoints);
       flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
-      sfx.bank();
     }
     S.comboPoints = 0; S.driftTime = 0;
   };
@@ -427,7 +426,7 @@ export const startGame = (T, opts = {}) => {
     nearIdx = _nearIdx;
     const onTrack  = distTrk < TRACK_HALF + 90;
 
-    if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) { burnCombo('OFF TRACK!'); sfx.combobreak(); }
+    if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) burnCombo('OFF TRACK!');
     if (S.nearMissCd > 0) S.nearMissCd -= dt;
 
     if (drifting && onTrack && S.crashCd <= 0) {
@@ -448,12 +447,12 @@ export const startGame = (T, opts = {}) => {
         const sgn = slipSign(vS);
         if (sgn !== 0) {
           if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff'); sfx.transition();
+            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
           }
           S.lastSlipSign = sgn;
         }
         if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
-          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a'); sfx.nearmiss();
+          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
         }
         S.mult = comboMult(S.multBuild);
         if (S.mult >= MULT_MAX) runTimeAt8 += dt;   // time held at the ceiling (flow-1/2)
@@ -470,7 +469,7 @@ export const startGame = (T, opts = {}) => {
         // too — you keep the points you earned, but the flow reward resets. A genuinely
         // seamless flick (grace < 0.5s, nothing banks) still builds through, so clean
         // drift-chaining is unaffected; only a real break drops the multiplier.
-        if (onTrack) { bankPoints(); resetMult(); } else { burnCombo('OFF TRACK!'); sfx.combobreak(); }
+        if (onTrack) { bankPoints(); resetMult(); } else burnCombo('OFF TRACK!');
       }
       // Safety net: a stop that built a multiplier but no bankable points still clears it
       // after a sustained non-drift stretch (a quick flick never reaches this).

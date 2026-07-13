@@ -68,7 +68,7 @@ const _render = (sfx, mag) => {
 
 // Per-id minimum gap (ms) for sounds that can fire in rapid bursts during a race — keeps the
 // mix from turning into a machine-gun of blips (the over-saturation risk). Others are unthrottled.
-const _MIN_GAP = { transition: 110, nearmiss: 110, pickup: 70, cone: 90, crash: 90, checkpoint: 130 };
+const _MIN_GAP = { pickup: 70, cone: 90, crash: 90, checkpoint: 130 };
 const _lastAt = {};
 
 // Play a named SFX. `mag` (0..1) optionally scales loudness (crash so a harder hit is a touch
@@ -109,10 +109,6 @@ export const sfx = {
   lap:        () => play('lap'),
   crash:      (mag = 1) => play('crash', mag),
   cone:       () => play('cone'),
-  transition: () => play('transition'),
-  nearmiss:   () => play('nearmiss'),
-  bank:       () => play('bank'),
-  combobreak: () => play('combobreak'),
   finish:     () => play('finish'),
   achieve:    () => play('achieve'),
   record:     () => play('record'),
