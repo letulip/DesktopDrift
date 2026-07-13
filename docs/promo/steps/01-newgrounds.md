@@ -17,12 +17,11 @@ feature (editorially curated — quality + novelty of the tabletop theme is the 
 
 ## How
 
-1. **Build the upload zip** — `npm run build`, then zip the `dist/` contents so
-   `index.html` sits at the zip root.
-   - **Strip the SW registration** for the portal build (uploads are served from
-     Newgrounds' CDN in an iframe; a failing/odd SW is noise we don't need). Until
-     the per-platform build flag exists (Step 04), delete the one-line
-     `serviceWorker.register` script blocks from the built HTML files by hand.
+1. **Build the upload zip** — `npm run build -- --platform=portal --zip` →
+   `dist-portal/` + `dist-portal.zip` with `index.html` at the zip root, SW
+   registration and external links stripped, SEO files pruned (uploads are
+   served from Newgrounds' CDN in an iframe; a failing/odd SW is noise we
+   don't need).
    - Everything else is relative-path static — works as-is in their iframe.
 2. **Create the project** (Project System → Games): upload zip, set an embed size
    (1280×720, "fit to screen" enabled — the game is fullscreen-responsive).
@@ -37,12 +36,12 @@ feature (editorially curated — quality + novelty of the tabletop theme is the 
 
 ## Gotchas
 
-- Test the zip locally before upload: `cd dist && python3 -m http.server` — the
-  build must run from a plain static serve with no SW.
+- Test the zip locally before upload: `cd dist-portal && python3 -m http.server` —
+  the build must run from a plain static serve with no SW.
 - localStorage works in their iframe but can be partitioned — progress is
   per-platform, that's expected and fine (mention profile export in the description).
-- Don't upload a `dist/` that still contains `google*/yandex*` verification files
-  or `sitemap.xml` — harmless but sloppy; prune from the zip.
+- `google*/yandex*` verification files and `sitemap.xml`/`robots.txt` are pruned
+  by the portal build automatically — nothing to strip by hand.
 
 ## Done when
 
