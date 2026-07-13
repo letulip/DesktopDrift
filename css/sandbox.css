@@ -144,9 +144,9 @@ canvas { display: block; }
 #confirmExitBtn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
 
 /* --- Race results (js/race-results.js) --- */
-/* z-index 60 — above all pause/exit overlays */
+/* z-index 110 — above the HUD (#hud is z-index 100) and all pause/exit overlays */
 #raceResultsOverlay {
-  position: fixed; inset: 0; z-index: 60;
+  position: fixed; inset: 0; z-index: 110;
   display: none; align-items: center; justify-content: center;
   background: rgba(8,10,14,.88);
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);

@@ -784,8 +784,12 @@ export const draw = (speed) => {
     _prevLapScoresLen = S.lapScores.length;
   }
 
-  const w = wallet();
-  if (w !== _prevWallet) { _hudWallet.textContent = w; _prevWallet = w; }
+  // #wallet is a Time-Attack-only widget — absent in sandbox.html. Guard so draw() doesn't throw
+  // on the null ref every frame (which aborted before drawMini() → blank minimap in sandbox).
+  if (_hudWallet) {
+    const w = wallet();
+    if (w !== _prevWallet) { _hudWallet.textContent = w; _prevWallet = w; }
+  }
 
   if (S.comboPoints > 0) { _hudCombo.style.opacity = 1; _hudCombo.textContent = '+' + Math.round(S.comboPoints) + '   ×' + S.mult.toFixed(1); }
   else _hudCombo.style.opacity = 0;

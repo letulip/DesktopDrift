@@ -40,7 +40,7 @@
   import { TRACKS } from './js/track-registry.js';
   import { CATALOG } from './js/shop-catalog.js';
   import { buildContent, buildCatalog, CATEGORY_ORDER } from './js/achievements.js';
-  import { achAll } from './js/store.js';
+  import { achAll, wallet } from './js/store.js';
   import { syncStateAchievements } from './js/ach-sync.js';
 
   // Retroactive sweep: unlock + credit anything already earned by the current save (cleared
@@ -114,9 +114,13 @@
     body.appendChild(el('div', 'ach-name', def.name));
     body.appendChild(el('div', 'ach-desc', def.desc));
     if (def.bar) {
+      // Wallet ladders ('wealth') are non-monotonic — spending tires lowers the balance — but stored
+      // progress latches to the peak. Show the LIVE wallet on a locked wealth bar so it reflects the
+      // current balance (e.g. 300 / 1000), not the historical max. (Unlock still uses live wallet.)
+      const barVal = (!unlocked && def.category === 'wealth') ? wallet() : progress;
       body.appendChild(unlocked
         ? renderBar(def.target, def.target, def.fmt, true)
-        : renderBar(progress, def.target, def.fmt, false));
+        : renderBar(barVal, def.target, def.fmt, false));
     }
     card.appendChild(body);
 

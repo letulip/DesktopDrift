@@ -127,6 +127,8 @@ test('flow tiers key off timeAt8', () => {
   assert.ok(firing({ run: { ...RUN, timeAt8: 10 } }).has('flow-1'));
   assert.ok(!firing({ run: { ...RUN, timeAt8: 10 } }).has('flow-2'));
   assert.ok(firing({ run: { ...RUN, timeAt8: 30 } }).has('flow-2'));
+  assert.ok(!firing({ run: { ...RUN, timeAt8: 30 } }).has('flow-3'));   // 60s tier
+  assert.ok(firing({ run: { ...RUN, timeAt8: 60 } }).has('flow-3'));
 });
 
 test('perpetual needs a finished, unbroken run', () => {
@@ -158,6 +160,15 @@ test('big-spender / fashionista / well-rounded on the purchase-eval (run:null)',
 test('glass-cannon: 5 stars AND 15+ near misses', () => {
   assert.ok(!firing({ run: { ...RUN, stars: 5, nearMisses: 14 } }).has('glass-cannon'));
   assert.ok(firing({ run: { ...RUN, stars: 5, nearMisses: 15 } }).has('glass-cannon'));
+});
+
+test('crash gags: fire per-race at 5/10/20/40, graduated, run-only', () => {
+  assert.equal(firing({ run: { ...RUN, crashes: 4 } }).has('crash-5'), false);
+  assert.ok(firing({ run: { ...RUN, crashes: 5 } }).has('crash-5'));
+  assert.equal(firing({ run: { ...RUN, crashes: 5 } }).has('crash-10'), false);
+  const f40 = firing({ run: { ...RUN, crashes: 40 } });
+  assert.ok(f40.has('crash-5') && f40.has('crash-10') && f40.has('crash-20') && f40.has('crash-40'));  // one messy race unlocks all
+  assert.equal(firing({ run: null }).has('crash-5'), false);                                            // not reconstructable
 });
 
 test('untouchable: finished with zero crashes', () => {
