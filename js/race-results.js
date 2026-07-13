@@ -57,7 +57,7 @@ export const createRaceResults = () => {
 
     // Tire earnings breakdown (hidden when nothing was earned, e.g. Zen).
     const t = tires || { pickup: 0, cap: 0, cleanSweep: 0, firstClear: 0, finish: 0 };
-    const tireTotal = t.pickup + (t.cap || 0) + (t.cleanSweep || 0) + t.firstClear + t.finish + (t.trophy || 0);
+    const tireTotal = t.pickup + (t.cap || 0) + (t.cleanSweep || 0) + t.firstClear + t.finish + (t.trophy || 0) + (t.unbroken || 0);
     const tireParts = [];
     if (t.pickup)     tireParts.push(`pickups +${t.pickup}`);
     if (t.cap)        tireParts.push(`cola cap +${t.cap}`);
@@ -65,6 +65,7 @@ export const createRaceResults = () => {
     if (t.firstClear) tireParts.push(`first clear +${t.firstClear}`);
     if (t.finish)     tireParts.push(`finish +${t.finish}`);
     if (t.trophy)     tireParts.push(`🏅 trophy +${t.trophy}`);
+    if (t.unbroken)   tireParts.push(`♾️ unbroken +${t.unbroken}`);
     overlay.querySelector('#rr-tires').innerHTML = tireTotal > 0
       ? `<span class="rr-tires-total">🛞 +${tireTotal} tires</span>` +
         `<span class="rr-tires-parts">${tireParts.join(' · ')}</span>`
