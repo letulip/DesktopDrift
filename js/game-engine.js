@@ -17,7 +17,7 @@ import {
 } from './scoring.js';
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
-import { sfx, movement, stopMovement } from './sound.js';
+import { sfx, stopMovement } from './sound.js';
 import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
@@ -376,7 +376,7 @@ export const startGame = (T, opts = {}) => {
     if (dt > 0.05) dt = 0.05;
 
     // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
-    if (pause.isPaused()) { movement(0); return; }   // hush the rustle while paused
+    if (pause.isPaused()) return;
 
     if (S.startCd > 0) {
       S.startCd -= dt;
@@ -608,7 +608,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.flashT > 0) S.flashT -= dt;
-    movement(speed / P.maxSpeed);   // dry rustle tracks how fast the car is rolling
+    // movement(speed / P.maxSpeed);  // ← movement sound OFF in-game while we find a real sample
     draw(toDisplaySpeed(speed));
   }
 
