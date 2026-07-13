@@ -178,6 +178,12 @@ stays readable. No framework, no bundler.
     swaps it for `js/platform-<name>.js` (error if missing — no committed stubs).
     Contract test: `tests/platform.test.js`; HTML-strip helpers for platform builds
     live in `scripts/build-helpers.js` (tested in `tests/build-helpers.test.js`).
+    First real adapter: `js/platform-crazygames.js` (CrazyGames SDK v3 — injects the
+    SDK script at runtime, self-inits at import since game code never calls `init()`,
+    silent no-op off-platform, mutes ads via `sound.js setMuted()`; test:
+    `tests/platform-crazygames.test.js`). Adapter files ship ONLY inside their own
+    `--platform` build (as `platform.js`) — never as standalone files in any dist,
+    and never in `sw.js` ASSETS.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
@@ -621,6 +627,8 @@ created lazily and **unlocked on the first user gesture** (capture-phase `pointe
   calls. A per-id throttle (`_MIN_GAP`) stops burst-prone sounds (pickup/cone/crash) machine-gunning.
   `soundThenGo(href, id)` / `tapThenGo(href)` play a cue then defer navigation ~100 ms so it isn't
   cut when the page (and its AudioContext) unloads — used by menu/back links.
+  `setMuted(bool)` is a runtime-only mute for platform ad breaks (gates `_on()` + suspends the
+  context; never touches persisted settings) — used by `js/platform-crazygames.js`.
 - **Aesthetic:** toy-car arcade → soft discrete blips only; **no** engine-drone / tyre-squeal
   synth (a procedural continuous voice was tried and cut — it droned/fatigued). The one
   continuous voice is the **drift sound** (`drift(sliding, slip, active)` / `stopDrift`, called
