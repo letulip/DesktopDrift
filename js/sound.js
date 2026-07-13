@@ -190,6 +190,56 @@ export const stopMovement = () => {
 // Dev/tuning: switch the movement style live (sound-lab); rebuilds the voice on the next update.
 export const setMoveStyle = (style) => { _moveStyle = style; stopMovement(); };
 
+// ── Drift sound (a real recorded toy-car rev, looped while the car is sliding) ─
+// The one sampled voice: a tiny mp3, decoded lazily, looped ONLY while drifting — volume + pitch
+// track the slide intensity. Tied to an action (the slide), so it never becomes a constant drone.
+// Path is resolved from this module's URL so it works from any page (game + tools/).
+const DRIFT_URL = new URL('../sounds/drift.mp3', import.meta.url).href;
+let _driftBuf = null, _driftLoad = null, _driftSrc = null, _driftGain = null, _driftLast = -1;
+
+const _loadDrift = (ctx) => {
+  if (_driftBuf || _driftLoad) return;
+  _driftLoad = fetch(DRIFT_URL).then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a))
+    .then(b => { _driftBuf = b; }).catch(() => { _driftLoad = null; });
+};
+
+// Per-frame drift update. `on` = the car is drifting; `slip` = 0..1 slide intensity. Starts the
+// looping rev on the first sliding frame, tracks volume + pitch to slip, fades out + stops when
+// the slide ends. Silent when sound is off; a no-op until the sample has decoded.
+export const drift = (on, slip = 0) => {
+  if (!_on()) { if (_driftGain && _ctx) _driftGain.gain.setTargetAtTime(0.0001, _ctx.currentTime, 0.05); return; }
+  const ctx = _ensureCtx();
+  if (!_driftBuf) { _loadDrift(ctx); return; }
+  const s = Math.max(0, Math.min(1, slip || 0));
+  const now = ctx.currentTime;
+  if (on && s > 0.02) {
+    if (!_driftSrc) {
+      _driftGain = ctx.createGain(); _driftGain.gain.value = 0.0001; _driftGain.connect(ctx.destination);   // dry
+      _driftSrc = ctx.createBufferSource(); _driftSrc.buffer = _driftBuf; _driftSrc.loop = true;
+      _driftSrc.connect(_driftGain); _driftSrc.start();
+      _driftLast = -1;
+    }
+    if (Math.abs(s - _driftLast) >= 0.02) {
+      _driftLast = s;
+      const vol = gainForVolume(settings().volume);
+      _driftGain.gain.setTargetAtTime(vol * (0.1 + 0.25 * s), now, 0.06);
+      _driftSrc.playbackRate.setTargetAtTime(0.9 + 0.4 * s, now, 0.08);   // harder slide → higher rev
+    }
+  } else if (_driftSrc) {
+    const src = _driftSrc, g = _driftGain;
+    _driftSrc = null; _driftGain = null; _driftLast = -1;
+    g.gain.setTargetAtTime(0.0001, now, 0.06);
+    try { src.stop(now + 0.25); } catch (e) { /* already stopped */ }
+  }
+};
+
+// Hard-stop the drift loop (race teardown / new race).
+export const stopDrift = () => {
+  if (!_driftSrc) return;
+  try { _driftSrc.stop(); _driftSrc.disconnect(); _driftGain.disconnect(); } catch (e) { /* noop */ }
+  _driftSrc = _driftGain = null; _driftLast = -1;
+};
+
 // Suspend/resume the shared context. Suspend on pause / tab-hide / engine teardown so a weak
 // device isn't kept awake; resume on the next gesture or when the tab returns.
 export const suspend = () => { if (_ctx && _ctx.state === 'running') _ctx.suspend(); };
