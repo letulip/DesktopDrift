@@ -28,17 +28,20 @@ Decisions that hold the whole thing together — settle these as they come up, d
    ```
    {
      version,
-     settings:     { units: 'kmh' | 'mph', ... },
-     garage:       { carIndex, bodyColor, unlocks: [] },
+     settings:     { units: 'kmh' | 'mph', haptics },
+     garage:       { carIndex, cars: { [carIndex]: <per-car look> } },
      records:      { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } },
-     achievements: { [id]: { unlocked, progress } }
+     achievements: { [id]: { unlocked, progress } },
+     wallet, ledger, owned, ownedCars,
+     stats:        { caps, tires, tiresSwept, trophies, cleared, runs, driftSecs }
    }
    ```
+   *(Illustrative — the authoritative shape is `store.defaults()` in `js/store.js`.)*
    `bestPPS` — Points Per Second (effectiveness of a ride). `time` grows endlessly, `score` only while drifting. `bestPPSTotal` and `bestPPSTime` — points and time of the run, where record PPS was achieved(to display on a card).
 2. **Data-driven content.** Tracks, achievements, colour palettes and (later) tuning specs
    are plain data tables. Logic stays generic; content is just data. Cars and items already
    follow this pattern — extend it.
-3. **Track registry — `tracks/registry.js`.** One list of every track with metadata
+3. **Track registry — `js/track-registry.js`** (shipped). One list of every track with metadata
    (id, name, mode, thumbnail, difficulty). Drives the selection screen, previews, and the
    `records` keys.
 4. **Event seam in `game-engine.js`** — introduce *only* when Phase 2 starts. A tiny
@@ -116,7 +119,7 @@ in-run bonuses / sound actually need it. Then:
 
 - [ ] **Tracks** - more tracks. *(Reversed variants shipped — see Phase 2.5 D2; more tracks ongoing.)*
 - [x] **Achievements** — data table of definitions + `store` flags/progress. **DONE** —
-      47 achievements (visible + hidden) via a pure `evaluate(ctx)` called at race finish +
+      60+ achievements (visible + hidden, scales with track count) via a pure `evaluate(ctx)` called at race finish +
       on purchase (pull-model, no event bus); results toast, dedicated `achievements.html`,
       tire rewards, ladders (drift/races/wallet), and the **DDK** 6-star crown (600+ PPS)
       per instance + **Absolute DDK**. Detail: `docs/plans/achievements.md`.
@@ -158,8 +161,8 @@ one; per-track badge). Tires are the *currency* sibling (easy proximity pickup).
 - **New cars** (Phase 3 content): the aspirational long-tail. See "Cars".
 
 ### Economy maths (anchored to current content; tune by feel, ratios > absolutes)
-Content scope = **14 track instances** = 7 tracks (3 live: green-study, steel-kitchen,
-workbench; +3 coming; +1 idea) × forward & **reversed** mode.
+Content scope = **12 track instances** = 6 tracks (all live: green-study, steel-kitchen,
+workbench, cafe-marble, dev-desk, dining-oak) × forward & **reversed** mode.
 
 | Faucet | Starting value | Total over 14 |
 |---|---|---|
@@ -199,13 +202,17 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
   aspirational flex, ~2,000).
 
 ### Phasing (ship incrementally). Detail plans: `docs/plans/economy.md`, `docs/plans/shop.md`.
-- [x] **A** — tire pickup + persistent `wallet` + HUD counter. **DONE** (1 tire = 1 coin;
-      one-time per-track pickups; HUD + menu counter; per-race history).
+- [x] **A** — tire pickup + persistent `wallet` + HUD counter. **DONE** — tires now **respawn
+      every race** (migration v4); one-time-ness moved to `tiresSwept` (clean-sweep badge);
+      repeatable finish payout (2–12 by stars) + first-clear bonus (+20) + 1-PPS participation
+      trophy (+5); HUD + menu counter; per-race history.
 - [x] **B** — shop + cosmetics. **DONE** — a per-car **`modify.html`** (gear on each car card):
       body colour, neon, paint finishes, drift-trail colour; cart + buy; **purchases
       account-wide, looks per-car**; wallet history (tap the counter); first-clear bonus
       (economy.md Phase D1). *Remaining: liveries/wheels to fill the catalog (D4).*
-- [ ] **C** — new cars + per-car records.
+- [x] **C (cars)** — new cars in the tire shop. **DONE** — 6 paid cars + 2 free starters,
+      bought in the `select.html` coverflow carousel (`buyCar` / `ownedCars`, ownership gate).
+- [ ] **C (records)** — per-car records (deferred; records still keyed by track/mode only).
 - [ ] **D** — cars classes and mods
 - [x] **D2 (reversed)** — reversed track variants + per-track unlock gate. **DONE.**
       `reverseTrack` + `instanceId` `:rev` keying + `game.html?dir=rev` + `tracks.html` 3★ gate
@@ -217,10 +224,10 @@ the completionist tail funded by finish payouts. First car is deliberately cheap
 
 ## Phase 3 — Content
 
-- [ ] **Track registry** (spine #3) + **collision validator**: a dev-time check that flags
-      any prop whose collider overlaps the drivable corridor
-      (`distance-to-centerline < TRACK_HALF + margin`). Turns "eyeball it" into an automated
-      guard and eliminates the prop-blocks-the-racing-line bug class.
+- [x] **Track registry** (spine #3) `js/track-registry.js` + **collision validator**
+      `tools/check-item-clearance.js` (flags any prop whose collider overlaps the drivable
+      corridor, `distance-to-centerline < TRACK_HALF + margin`). **DONE** — plus a bonus visual
+      `tools/collider-tuner.html`. *Note: the validator is a manual CLI check, not in `npm test`.*
 - [x] **New track: "around the plates"** — author the SVG, place props, run the validator.
 - [x] **Zen drift mode** + transitions between locations (larger, content-heavy creative
       feature).
@@ -241,10 +248,11 @@ Only once competition is actually wanted. Not a near-term goal.
 
 Small, mostly independent wins — slot into a phase as they fit.
 
+- [x] **Profile sync** — export / import your full save as a code or file (`settings.html`, `js/profile-io.js`). **DONE.**
 - [ ] **Share result** — screenshot + Web Share API. Social without a backend. *(Phase 1–2)*
 - [ ] **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
   server. *(Phase 2–3)*
-- [ ] **Haptics** — vibrate on cone / crash (Vibration API, mobile). *(Phase 1, cheap)*
+- [x] **Haptics** — vibrate on cone / crash (Vibration API, mobile) — **DONE** (settings toggle).
 - [ ] **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
 
 ## Parked / needs a decision

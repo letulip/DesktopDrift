@@ -272,6 +272,20 @@
   btnNormal.addEventListener('click', () => setMode(false));
   btnReversed.addEventListener('click', () => setMode(true));
 
+  // Swipe left/right anywhere on the screen flips direction (mirrors the toggle). Cards scroll
+  // vertically, so a clear horizontal swipe is unambiguous; passive listeners keep scroll smooth.
+  const swipeZone = document.getElementById('track-select');
+  let _sx = 0, _sy = 0;
+  const SWIPE_MIN = 60;
+  swipeZone.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; _sx = t.clientX; _sy = t.clientY; }, { passive: true });
+  swipeZone.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0], dx = t.clientX - _sx, dy = t.clientY - _sy;
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) return;   // must be a clear horizontal swipe
+    const reversedNow = btnReversed.classList.contains('is-active');
+    if (dx < 0 && !reversedNow) setMode(true);    // swipe left  → Reversed
+    if (dx > 0 &&  reversedNow) setMode(false);   // swipe right → Normal
+  }, { passive: true });
+
   renderCards(false);
 </script>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>

@@ -1,6 +1,8 @@
 // Shop cosmetics catalog — pure data, no side-effects.
 // kind:'finish'       → value is a finish name used by drawCar/drawPreview.
 // kind:'trail'        → value is a hex color applied to skid/trail marks.
+// kind:'glass'        → value is a hex color recolouring the car's dark windows (#222222 details).
+// kind:'outline'      → value is a hex color recolouring the car's body outline + panel lines.
 // kind:'neon-layout'  → value is a neon.js LAYOUT id (unlocks that zone layout).
 // kind:'neon-anim'    → value is a neon.js ANIM id (unlocks that animation).
 // Free palettes (PALETTE, NEON_PALETTE) + the default solid/static neon stay free (not listed).
@@ -20,6 +22,38 @@ export const CATALOG = [
   { id: 'trail-viola',   name: 'Viola',   price: 40, kind: 'trail', value: '#CC44FF' },
   { id: 'trail-rosa',    name: 'Rosa',    price: 40, kind: 'trail', value: '#FF44CC' },
   { id: 'trail-acqua',   name: 'Acqua',   price: 40, kind: 'trail', value: '#44FFCC' },
+
+  // Glass tint — recolours the car's dark windows (the #222222 details)
+  { id: 'glass-smoke',   name: 'Smoke',   price: 40, kind: 'glass', value: '#3a3f47' },
+  { id: 'glass-slate',   name: 'Slate',   price: 40, kind: 'glass', value: '#566275' },
+  { id: 'glass-azure',   name: 'Azure',   price: 40, kind: 'glass', value: '#2f6fb0' },
+  { id: 'glass-sky',     name: 'Sky',     price: 40, kind: 'glass', value: '#4aa3e0' },
+  { id: 'glass-teal',    name: 'Teal',    price: 40, kind: 'glass', value: '#2f9e9e' },
+  { id: 'glass-jade',    name: 'Jade',    price: 40, kind: 'glass', value: '#1f8f6a' },
+  { id: 'glass-mint',    name: 'Mint',    price: 40, kind: 'glass', value: '#4fbf8f' },
+  { id: 'glass-lime',    name: 'Lime',    price: 40, kind: 'glass', value: '#6fae3a' },
+  { id: 'glass-amber',   name: 'Amber',   price: 40, kind: 'glass', value: '#c8912f' },
+  { id: 'glass-gold',    name: 'Gold',    price: 40, kind: 'glass', value: '#d4a828' },
+  { id: 'glass-ember',   name: 'Ember',   price: 40, kind: 'glass', value: '#c85a2a' },
+  { id: 'glass-crimson', name: 'Crimson', price: 40, kind: 'glass', value: '#c0304a' },
+  { id: 'glass-rose',    name: 'Rose',    price: 40, kind: 'glass', value: '#b0446a' },
+  { id: 'glass-violet',  name: 'Violet',  price: 40, kind: 'glass', value: '#6a4fb0' },
+
+  // Outline colour — recolours the car's body outline + panel lines
+  { id: 'outline-white',   name: 'White',   price: 40, kind: 'outline', value: '#e8e8e8' },
+  { id: 'outline-silver',  name: 'Silver',  price: 40, kind: 'outline', value: '#b8bcc4' },
+  { id: 'outline-ink',     name: 'Ink',     price: 40, kind: 'outline', value: '#101418' },
+  { id: 'outline-crimson', name: 'Crimson', price: 40, kind: 'outline', value: '#d02240' },
+  { id: 'outline-red',     name: 'Red',     price: 40, kind: 'outline', value: '#e83a2a' },
+  { id: 'outline-orange',  name: 'Orange',  price: 40, kind: 'outline', value: '#e06a20' },
+  { id: 'outline-gold',    name: 'Gold',    price: 40, kind: 'outline', value: '#e0b020' },
+  { id: 'outline-lime',    name: 'Lime',    price: 40, kind: 'outline', value: '#7ad048' },
+  { id: 'outline-green',   name: 'Green',   price: 40, kind: 'outline', value: '#30b050' },
+  { id: 'outline-teal',    name: 'Teal',    price: 40, kind: 'outline', value: '#20b0a0' },
+  { id: 'outline-azure',   name: 'Azure',   price: 40, kind: 'outline', value: '#2f8fd0' },
+  { id: 'outline-blue',    name: 'Blue',    price: 40, kind: 'outline', value: '#3a5ce8' },
+  { id: 'outline-violet',  name: 'Violet',  price: 40, kind: 'outline', value: '#8a5cf0' },
+  { id: 'outline-magenta', name: 'Magenta', price: 40, kind: 'outline', value: '#d048b0' },
 
   // Neon FX — zone layouts (solid stays free/unlisted) — see docs/plans/neon.md
   { id: 'neon-layout-longitudinal',   name: 'Left / Right',       price:  80, kind: 'neon-layout', value: 'longitudinal'    },

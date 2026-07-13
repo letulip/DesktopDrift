@@ -30,6 +30,11 @@ export const isDDK   = (pps) => (pps || 0) >= DDK_PPS;
 export const ONE_PPS_BONUS = 5;
 export const isOnePps = (pps) => Math.round(pps || 0) === 1;
 
+// Perpetual Motion — a repeatable per-race bonus for finishing in one unbroken drift (the same
+// feat as the one-time 'perpetual' achievement, reward 75). A hard skill feat, so it stays worth
+// repeating; paid on top of the finish payout, like the 1-PPS trophy + clean-sweep pattern.
+export const UNBROKEN_BONUS = 30;
+
 // ── Car ownership gate (see docs/plans/cars.md) ───────────────────────────────
 // Sandbox is a free test-drive of every car; Time Attack / Zen (races) require OWNING the
 // car — bought in the garage carousel. The two starter cars are always owned (free).

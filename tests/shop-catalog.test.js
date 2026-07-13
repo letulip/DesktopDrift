@@ -17,7 +17,7 @@ describe('CATALOG invariants', () => {
   });
 
   it('all kinds are known', () => {
-    const valid = new Set(['finish', 'trail', 'neon-layout', 'neon-anim']);
+    const valid = new Set(['finish', 'trail', 'glass', 'outline', 'neon-layout', 'neon-anim']);
     for (const item of CATALOG) {
       assert.ok(valid.has(item.kind), `${item.id}: unknown kind '${item.kind}'`);
     }

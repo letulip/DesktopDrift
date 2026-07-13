@@ -27,7 +27,7 @@ test('defaults: garage (selected car + empty per-car looks)', () => {
 });
 
 test('carLook: lazily returns a null-default look per car index', () => {
-  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null, neon: null });
+  assert.deepEqual(carLook(0), { bodyColor: null, neonColor: null, finish: null, trailColor: null, glassColor: null, outlineColor: null, neon: null });
 });
 
 test('defaults: settings / records / achievements', () => {
