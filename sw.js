@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v202';
+const CACHE = 'desktop-drift-v203';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -72,6 +72,7 @@ const ASSETS = [
   'js/track-dev-desk.js',
   'js/track-dining-oak.js',
   'js/haptics.js',
+  'js/sw-update.js',
   'js/sound.js',
   'js/sound-params.js',
   'sounds/drift.mp3',
@@ -112,7 +113,14 @@ const ASSETS = [
 // Pre-cache all static assets on install
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-  self.skipWaiting(); // activate immediately without waiting for old tabs to close
+  // NB: no eager skipWaiting — a fresh worker stays in "waiting" so the page (js/sw-update.js)
+  // can show a "new version" nudge and the user chooses when to switch, instead of the page
+  // being reloaded out from under them. The waiting worker activates on the message below.
+});
+
+// The update nudge (js/sw-update.js) asks the waiting worker to take over now.
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // Delete old caches when a new SW takes over
@@ -128,8 +136,8 @@ self.addEventListener('activate', e => {
 // Stale-while-revalidate: serve from cache instantly (fast + offline), but IN THE
 // BACKGROUND always fetch from the network and overwrite the cache. This way fresh
 // code reaches the player on the NEXT load even if the CACHE bump was forgotten —
-// a forgotten bump self-heals. (Bumping is still useful: it guarantees the update
-// on the FIRST load via skipWaiting.)
+// a forgotten bump self-heals. (Bumping is still useful: it installs a fresh worker
+// and re-primes the precache; js/sw-update.js then nudges the player to switch to it.)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (!e.request.url.startsWith(BASE)) return; // ignore cross-origin

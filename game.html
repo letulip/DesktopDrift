@@ -80,6 +80,6 @@
   if (reversed) T = reverseTrack(T);
   startGame(T, { initItems: true, zen: isZen, reversed });
 </script>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+<script type="module" src="./js/sw-update.js"></script>
 </body>
 </html>
