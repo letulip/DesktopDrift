@@ -17,6 +17,7 @@ import {
 } from './scoring.js';
 import { stepSweep } from './cola.js';
 import { hapticCone, hapticCrash } from './haptics.js';
+import { sfx, drift, stopDrift } from './sound.js';
 import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
@@ -167,6 +168,7 @@ export const startGame = (T, opts = {}) => {
           tiresEarned += c.value;
           runTirePickups++;
           flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
+          sfx.pickup();
         }
         continue;
       }
@@ -188,6 +190,7 @@ export const startGame = (T, opts = {}) => {
           runCaps++;
         }
         flash('CAP! +' + CAP_TIRE_VALUE + ' tires', '#ff9999');
+        sfx.cap();
         capCollect(INSTANCE, c.capId ?? i);
       }
     }
@@ -201,6 +204,7 @@ export const startGame = (T, opts = {}) => {
   let driftZoneRef   = 0;     // nearIdx at the last zone reset
   let driftZoneTimer = 0;     // seconds the car has been in the same zone while drifting
   let driftZoned     = false; // true once stall fired; ref frozen at stall-start until car exits
+  let cdBeep         = 0;     // last countdown integer that beeped, so 3→2→1 each pip once
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -209,6 +213,7 @@ export const startGame = (T, opts = {}) => {
     if (dx * dx + dy * dy >= rr * rr) return;
     c.knocked = true;
     hapticCone();
+    sfx.cone();
     const d = Math.hypot(dx, dy) || 1;
     c.vx = car.vx * 0.6 - (dx / d) * 80;
     c.vy = car.vy * 0.6 - (dy / d) * 80;
@@ -371,11 +376,13 @@ export const startGame = (T, opts = {}) => {
     if (dt > 0.05) dt = 0.05;
 
     // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
-    if (pause.isPaused()) return;
+    if (pause.isPaused()) { drift(false, 0); return; }   // hush the drift rev while paused
 
     if (S.startCd > 0) {
       S.startCd -= dt;
-      if (S.startCd <= 0) S.goT = 1.0;
+      const cd = Math.ceil(Math.max(0, S.startCd));
+      if (cd >= 1 && cd !== cdBeep) { cdBeep = cd; sfx.count(); }   // 3-2-1 pips (one per number)
+      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); }               // GO!
       draw(0);
       return;
     }
@@ -408,8 +415,10 @@ export const startGame = (T, opts = {}) => {
     // Wall + prop collision response — pure mutators in js/collision.js. They mutate
     // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
     // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
-    if (resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts) > 120) { hapticCrash(); burnCombo('WALL!'); runCrashes++; }
-    if (resolveProps(car, props, CR, bodyPts) > 100) { hapticCrash(); burnCombo('CRASH!'); runCrashes++; }
+    const wallHit = resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts);
+    if (wallHit > 120) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (wallHit - 120) / 400)); burnCombo('WALL!'); runCrashes++; }
+    const propHit = resolveProps(car, props, CR, bodyPts);
+    if (propHit > 100) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (propHit - 100) / 400)); burnCombo('CRASH!'); runCrashes++; }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
@@ -567,6 +576,10 @@ export const startGame = (T, opts = {}) => {
 
           raceFinished = true;
           stop();
+          // Finish sting: a new record gets the bigger celebration, otherwise the finish flourish;
+          // any achievement unlocked this run chimes in shortly after so it doesn't collide.
+          if (isNewRecord) sfx.record(); else sfx.finish();
+          if (unlockedNow.length) setTimeout(() => sfx.achieve(), 650);
           document.getElementById('score').textContent = totalScore;
           raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
             ddk: isDDK(pps), unlocked: unlockedNow,
@@ -595,6 +608,7 @@ export const startGame = (T, opts = {}) => {
     }
 
     if (S.flashT > 0) S.flashT -= dt;
+    drift(drifting, Math.min(1, slip / 180), S.comboPoints >= 1);   // slide sample reacts; static bed runs while the combo counter is active
     draw(toDisplaySpeed(speed));
   }
 
@@ -602,6 +616,7 @@ export const startGame = (T, opts = {}) => {
   // stop() makes the engine reentrant: removes all listeners, cancels the loop,
   // and destroys its UI components. Foundation for restart / results-screen / ghost.
   const stop = () => {
+    stopDrift();
     cancelAnimationFrame(rafId);
     for (const [t, type, h, o] of listeners) t.removeEventListener(type, h, o);
     listeners.length = 0;

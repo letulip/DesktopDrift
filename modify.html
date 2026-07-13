@@ -111,6 +111,7 @@
   import { drawCarPreview } from './js/car-preview.js';
   import { LAYOUTS, ANIMS, defaultNeon } from './js/neon.js';
   import { initWalletHistory } from './js/wallet-history.js';
+  import { sfx, soundThenGo } from './js/sound.js';
 
   const params = new URLSearchParams(location.search);
   const carIdx = Math.max(0, Math.min(parseInt(params.get('car'), 10) || 0, CARS.length - 1));
@@ -121,6 +122,10 @@
   const back = new URLSearchParams(params); back.delete('car');
   const backHref = 'select.html' + (back.toString() ? '?' + back.toString() : '');
   document.getElementById('backLink').href = backHref;
+  document.getElementById('backLink').addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault(); soundThenGo(e.currentTarget.getAttribute('href'), 'back');
+  });
 
   document.getElementById('car-name').textContent = M.name;
 
@@ -189,6 +194,7 @@
       pending.body = (pending.body || '').toLowerCase() === entry.hex.toLowerCase() ? null : entry.hex;
       refreshBody();
       redraw();
+      sfx.pick();
     });
     bodyPaletteEl.appendChild(el);
     return el;
@@ -257,6 +263,7 @@
           pending.neonOn = true;
           [...grid.children].forEach((c, k) => c.classList.toggle('sel', k === j));
           refresh(); redraw();
+          sfx.pick();
         });
         grid.appendChild(sw);
       });
@@ -281,7 +288,7 @@
       const tag = document.createElement('span');
       tag.className = 'shop-card-tag';
       el.appendChild(tag);
-      el.addEventListener('click', () => { onPick(d.id); pending.neonOn = true; refresh(); redraw(); });
+      el.addEventListener('click', () => { onPick(d.id); pending.neonOn = true; refresh(); redraw(); sfx.pick(); });
       cont.appendChild(el);
       neonCards[kind].push({ el, tag, item, id: d.id });
     }
@@ -293,7 +300,7 @@
   });
   buildNeonSelector(ANIMS, 'neon-anim', 'neon-anim', (id) => { pending.neonCfg.anim = id; });
 
-  neonBtn.addEventListener('click', () => { pending.neonOn = !pending.neonOn; refresh(); redraw(); });
+  neonBtn.addEventListener('click', () => { pending.neonOn = !pending.neonOn; refresh(); redraw(); sfx.tap(); });
 
   // Reflect the pending neon config onto the panel (toggle, card states, dim when off).
   const refreshNeonGroup = (kind, current) => {
@@ -350,6 +357,7 @@
         const f = FIELD[item.kind];
         pending[f] = pending[f] === item.value ? null : item.value;  // toggle
         refresh(); redraw();
+        sfx.pick();
       });
       cont.appendChild(el);
       shopCards.push({ el, tag, item });
@@ -407,6 +415,7 @@
   const panels = [...document.querySelectorAll('.cust-panel')];
   for (const tab of tabs) {
     tab.addEventListener('click', () => {
+      sfx.tap();
       tabs.forEach(t => t.classList.toggle('is-active', t === tab));
       panels.forEach(p => { p.hidden = p.dataset.panel !== tab.dataset.panel; });
       activeTab = tab.dataset.panel;
@@ -456,7 +465,8 @@
     }
     lk.neonColor = null;   // `neon` is now authoritative; clear the legacy field
     save();
-    location.href = backHref;
+    // Buy → soft "cha-ching", plain apply → gentle confirm; defer nav so the sound is heard.
+    soundThenGo(backHref, cart.length ? 'buy' : 'select', cart.length ? 130 : 100);
   });
 
   // (Shop-driven achievements are reconciled by syncStateAchievements() on buy — see

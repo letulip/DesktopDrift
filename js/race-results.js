@@ -7,6 +7,8 @@
 // document — to avoid collisions with IDs in other instances (tests, hot-reload).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { sfx, soundThenGo } from './sound.js';
+
 export const createRaceResults = () => {
   const overlay = document.createElement('div');
   overlay.id = 'raceResultsOverlay';
@@ -28,10 +30,11 @@ export const createRaceResults = () => {
 
   // Buttons scoped to their own overlay (not global getElementById)
   overlay.querySelector('#rr-restart').addEventListener('click', () => {
-    location.reload(); // reload game.html?track=<id> — clean start
+    sfx.tap();
+    setTimeout(() => location.reload(), 100); // reload game.html?track=<id> — clean start
   });
   overlay.querySelector('#rr-back').addEventListener('click', () => {
-    location.href = 'tracks.html';
+    soundThenGo('tracks.html', 'back');
   });
 
   // show({ score, bestLap, lapScores, isNewRecord, pps, totalTime, tires, ddk, unlocked })
