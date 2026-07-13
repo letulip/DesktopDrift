@@ -306,7 +306,9 @@ const drawCar = (M) => {
     ctx.scale(M.flip ? -s : s, s);
     ctx.translate(-M.vw / 2, -M.vh / 2);
     paintBody(ctx, M._p2d, _carBody ?? M.body, _carFinish, M.vw, M.vh);
-    ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = _carOutline || M.stroke;
+    // Thin outline to match the shop/carousel previews (car-preview.js). s ≈ 0.19 for every car
+    // (len≈78 / vw≈417), so a flat value is fine here — a literal 2.5/s would render fat instead.
+    ctx.lineJoin = 'round'; ctx.lineWidth = 2.5; ctx.strokeStyle = _carOutline || M.stroke;
     ctx.stroke(M._p2d);
     if (M._lines) for (const lp of M._lines) ctx.stroke(lp);
     // Details on TOP of the outline + panel lines so edge lights aren't buried (see car-preview.js).
