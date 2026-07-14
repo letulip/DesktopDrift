@@ -3,6 +3,7 @@
 // pure helpers live in js/share-util.js; the car is rendered with the game's own drawCarPreview.
 import { CARS } from './config.js';
 import { drawCarPreview } from './car-preview.js';
+import { preloadEmotion } from './emotion-overlay.js';
 import { CARD, litStars } from './share-util.js';
 
 // Template resolved from this module's URL so it works from any page. Cached after first load.
@@ -17,14 +18,17 @@ export const loadTemplate = () => (_tplLoad ||= new Promise((res, rej) => {
 
 // Render the player's car (with its equipped look) to an offscreen canvas — same recipe as
 // select.html's drawCard: override M.body, pass the look through drawCarPreview, then restore.
-const renderCar = (carModel, look) => {
+const renderCar = async (carModel, look) => {
   const c = document.createElement('canvas'); c.width = 560; c.height = 340;
   const M = CARS[Math.max(0, Math.min(carModel ?? 0, CARS.length - 1))];
   const orig = M.body;
   M.body = (look && look.bodyColor) || orig;
+  const glass = (look && look.glassColor) || null, emotion = (look && look.emotion) || null;
+  // Await the emotion overlay before drawing — the canvas is read synchronously by carBBox().
+  if (emotion) await preloadEmotion(M.id, emotion, M.body, glass);
   drawCarPreview(c, M, (look && (look.neon ?? (look.neonColor || null))) || null,
     (look && look.finish) || null, null, 0,   // no drift trail — the template already has baked skid marks
-    (look && look.glassColor) || null, (look && look.outlineColor) || null);
+    glass, (look && look.outlineColor) || null, emotion);
   M.body = orig;
   return c;
 };
@@ -68,7 +72,7 @@ export const renderShareCard = async (canvas, data) => {
 
   await document.fonts.load('800 100px Unbounded');
   const tpl = _tpl || await loadTemplate();
-  const carC = renderCar(carModel, look);
+  const carC = await renderCar(carModel, look);
 
   ctx.clearRect(0, 0, CARD.w, CARD.h);
   ctx.drawImage(tpl, 0, 0, CARD.w, CARD.h);

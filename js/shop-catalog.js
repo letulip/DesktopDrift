@@ -3,6 +3,7 @@
 // kind:'trail'        → value is a hex color applied to skid/trail marks.
 // kind:'glass'        → value is a hex color recolouring the car's dark windows (#222222 details).
 // kind:'outline'      → value is a hex color recolouring the car's body outline + panel lines.
+// kind:'expression'   → value is an emotion id → cars/emotions/<carId>-<value>.svg face overlay (Flair → Moods).
 // kind:'neon-layout'  → value is a neon.js LAYOUT id (unlocks that zone layout).
 // kind:'neon-anim'    → value is a neon.js ANIM id (unlocks that animation).
 // Free palettes (PALETTE, NEON_PALETTE) + the default solid/static neon stay free (not listed).
@@ -54,6 +55,20 @@ export const CATALOG = [
   { id: 'outline-blue',    name: 'Blue',    price: 40, kind: 'outline', value: '#3a5ce8' },
   { id: 'outline-violet',  name: 'Violet',  price: 40, kind: 'outline', value: '#8a5cf0' },
   { id: 'outline-magenta', name: 'Magenta', price: 40, kind: 'outline', value: '#d048b0' },
+
+  // Flair → Moods — windshield eye/expression overlays (cars/emotions/<carId>-<value>.svg). None (no
+  // face) is the free default and is not a catalog item. Owned account-wide, equipped per car.
+  { id: 'emo-angry',      name: 'Angry',   price: 40, kind: 'expression', value: 'angry'      },
+  { id: 'emo-bored',      name: 'Bored',   price: 40, kind: 'expression', value: 'bored'      },
+  { id: 'emo-evil',       name: 'Evil',    price: 40, kind: 'expression', value: 'evil'       },
+  { id: 'emo-joy',        name: 'Joy',     price: 40, kind: 'expression', value: 'joy'        },
+  { id: 'emo-lol',        name: 'LOL',     price: 40, kind: 'expression', value: 'lol'        },
+  { id: 'emo-love',       name: 'Love',    price: 40, kind: 'expression', value: 'love'       },
+  { id: 'emo-puzzled',    name: 'Puzzled', price: 40, kind: 'expression', value: 'puzzled'    },
+  { id: 'emo-questioned', name: 'Curious', price: 40, kind: 'expression', value: 'questioned' },
+  { id: 'emo-sleep',      name: 'Sleepy',  price: 40, kind: 'expression', value: 'sleep'      },
+  { id: 'emo-smug',       name: 'Smug',    price: 40, kind: 'expression', value: 'smug'       },
+  { id: 'emo-tired',      name: 'Tired',   price: 40, kind: 'expression', value: 'tired'      },
 
   // Neon FX — zone layouts (solid stays free/unlisted) — see docs/plans/neon.md
   { id: 'neon-layout-longitudinal',   name: 'Left / Right',       price:  80, kind: 'neon-layout', value: 'longitudinal'    },

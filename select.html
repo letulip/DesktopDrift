@@ -53,6 +53,7 @@
   import { ownedFirstOrder } from './js/car-order.js';
   import { garage, save, wallet, carLook, carOwned, buyCar } from './js/store.js';
   import { drawCarPreview, CANVAS_W, CANVAS_H } from './js/car-preview.js';
+  import { onEmotionReady } from './js/emotion-overlay.js';
   import { initWalletHistory } from './js/wallet-history.js';
   import { TRACKS } from './js/track-registry.js';
   import { flushAchievementToasts, showAchievementToasts } from './js/ach-toast.js';
@@ -115,7 +116,7 @@
     const look = carLook(i);
     const orig = M.body;
     M.body = look.bodyColor || orig;
-    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null, null, phase, look.glassColor || null, look.outlineColor || null);
+    drawCarPreview(cards[i].cvs, M, look.neon ?? (look.neonColor || null), look.finish || null, null, phase, look.glassColor || null, look.outlineColor || null, look.emotion || null);
     M.body = orig;
   };
 
@@ -348,6 +349,8 @@
 
   // ── Initial render — each car shows its own per-car look ──────────────────────
   CARS.forEach((M, i) => drawCard(M, i));
+  // Emotion overlays load async; repaint the cards once a bitmap arrives (animated cards self-repaint).
+  onEmotionReady(() => CARS.forEach((M, i) => drawCard(M, i)));
   layout();   // position the coverflow around the saved car
 
   // Live loop: re-draw only the cards whose neon animates, so pulse/rainbow/flow

@@ -1,6 +1,6 @@
 import { CARS, TABLE as TABLE_CFG, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
-import { canvas, W, draw, initItems, initRender, setCarPaint } from './render.js';
+import { canvas, W, draw, initItems, initRender, setCarPaint, setCarEmotion } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
 import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept, markTrophy, markPerpetual,
@@ -337,6 +337,7 @@ export const startGame = (T, opts = {}) => {
   // neon is a config object now; fall back to a solid config from the legacy neonColor.
   const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
   setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null, look.glassColor ?? null, look.outlineColor ?? null);
+  setCarEmotion(look.expression ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).

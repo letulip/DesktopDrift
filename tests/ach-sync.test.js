@@ -20,8 +20,8 @@ installLocalStorage({
   'desktop-drift': JSON.stringify({
     version: 2,
     wallet: 600,
-    // one item from every shop section (finish/trail/glass/outline/neon-layout/neon-anim) → well-rounded
-    owned: ['finish-matte', 'trail-mint', 'trail-oro', 'glass-smoke', 'outline-white', 'neon-layout-per-zone', 'neon-anim-pulse'],
+    // one item from every shop section (finish/trail/glass/outline/expression/neon-layout/neon-anim) → well-rounded
+    owned: ['finish-matte', 'trail-mint', 'trail-oro', 'glass-smoke', 'outline-white', 'emo-joy', 'neon-layout-per-zone', 'neon-anim-pulse'],
     stats: { caps, tires: {}, cleared, runs: 0, driftSecs: 0 },
     records: { [FIRST]: { timeattack: { bestPPS: 640, bestPPSTotal: 20000, bestPPSTime: 31 } } },
     achievements: {},

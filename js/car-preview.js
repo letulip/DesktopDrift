@@ -6,6 +6,7 @@
 import { paintBody, hexToRgbStr } from './finish.js';
 import { drawNeon } from './neon-draw.js';
 import { defaultNeon } from './neon.js';
+import { preloadEmotion, getEmotionBitmap } from './emotion-overlay.js';
 
 export const CANVAS_W = 240;   // default card resolution (taller than the car so the neon fits)
 export const CANVAS_H = 140;
@@ -38,7 +39,7 @@ const drawTrail = (ctx, color, cx, cy, s, M, phase) => {
 // { layout, anim, colors, speed } — or a legacy colour string, or null), a paint finish
 // (matte/metallic/pearl/chrome), and a trail colour (a fading drift trail behind the car).
 // `phase` (seconds) animates both the trail and any neon animation. null disables each.
-export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null, phase = 0, glass = null, outline = null) => {
+export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null, phase = 0, glass = null, outline = null, emotion = null) => {
   const W = cvs.width, H = cvs.height;
   const ctx = cvs.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -83,4 +84,12 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   // Glass tint recolours the dark #222222 window details (also recolours dark trim — same fill).
   if (M.details) for (const d of M.details) { ctx.fillStyle = (glass && d.c === '#222222') ? glass : d.c; ctx.fill(d._p2d); }
   ctx.restore();
+
+  // Moods: equipped emotion face over the car, in canvas space (no flip — art is final-oriented). The
+  // overlay bitmap is async; inline preload warms it and one-shot previews repaint via onEmotionReady.
+  if (emotion) {
+    preloadEmotion(M.id, emotion, M.body, glass);
+    const emo = getEmotionBitmap(M.id, emotion, M.body, glass);
+    if (emo) ctx.drawImage(emo, cx - s * M.vw / 2, cy - s * M.vh / 2, s * M.vw, s * M.vh);
+  }
 };
