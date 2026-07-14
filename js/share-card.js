@@ -24,12 +24,12 @@ const renderCar = async (carModel, look) => {
   const orig = M.body;
   M.body = (look && look.bodyColor) || orig;
   const glass = (look && look.glassColor) || null, emotion = (look && look.expression) || null;
-  const finish = (look && look.finish) || null;
+  const finish = (look && look.finish) || null, outline = (look && look.outlineColor) || null;
   // Await the emotion overlay before drawing — the canvas is read synchronously by carBBox().
-  if (emotion) await preloadEmotion(M.id, emotion, M.body, glass, finish);
+  if (emotion) await preloadEmotion(M.id, emotion, M.body, glass, finish, outline);
   drawCarPreview(c, M, (look && (look.neon ?? (look.neonColor || null))) || null,
     finish, null, 0,   // no drift trail — the template already has baked skid marks
-    glass, (look && look.outlineColor) || null, emotion);
+    glass, outline, emotion);
   M.body = orig;
   return c;
 };

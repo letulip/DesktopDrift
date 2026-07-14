@@ -12,11 +12,12 @@
 export const EMOTIONS = ['angry', 'bored', 'evil', 'joy', 'lol', 'love', 'puzzled', 'questioned', 'sleep', 'smug', 'tired'];
 
 // Pure (unit-tested): cache key + the placeholder recolour.
-export const emotionKey = (carId, emotion, body, tint, finish) => `${carId}|${emotion}|${body || ''}|${tint || ''}|${finish || ''}`;
+export const emotionKey = (carId, emotion, body, tint, finish, outline) => `${carId}|${emotion}|${body || ''}|${tint || ''}|${finish || ''}|${outline || ''}`;
 
-export const recolorEmotion = (svgText, body, tint) => {
-  let s = svgText.replace(/#d9d9d9/gi, body || '#d9d9d9');   // body colour (always)
-  if (tint) s = s.replace(/#3b97d3/gi, tint);               // eye colour follows the glass tint (only if equipped)
+export const recolorEmotion = (svgText, body, tint, outline) => {
+  let s = svgText.replace(/#d9d9d9/gi, body || '#d9d9d9');                  // body colour (always)
+  if (tint) s = s.replace(/#3b97d3/gi, tint);                              // eye colour follows the glass tint (only if equipped)
+  if (outline) s = s.replace(/#(000000|222222|000|222)\b/gi, outline);     // windshield outline stroke follows the body outline (only if equipped)
   return s;
 };
 
@@ -59,16 +60,16 @@ const applyFinish = (g, finish, w, h) => {
 };
 
 // Sync cache read for the render hot path. Returns the decoded bitmap (Image or Canvas) or null.
-export const getEmotionBitmap = (carId, emotion, body, tint, finish) =>
-  (carId && emotion) ? (_ready.get(emotionKey(carId, emotion, body, tint, finish)) || null) : null;
+export const getEmotionBitmap = (carId, emotion, body, tint, finish, outline) =>
+  (carId && emotion) ? (_ready.get(emotionKey(carId, emotion, body, tint, finish, outline)) || null) : null;
 
 // Fetch + recolour + decode the overlay, caching the bitmap. Deduped per key; resolves to the bitmap
 // (or null on any failure — offline before first fetch, 404, decode error — so callers degrade to no
 // overlay instead of throwing). When a finish is equipped, the body patch is re-shaded to match it
 // (finish over the whole overlay via source-atop, then the crisp eyes are drawn back on top).
-export const preloadEmotion = (carId, emotion, body, tint, finish) => {
+export const preloadEmotion = (carId, emotion, body, tint, finish, outline) => {
   if (!carId || !emotion) return Promise.resolve(null);
-  const key = emotionKey(carId, emotion, body, tint, finish);
+  const key = emotionKey(carId, emotion, body, tint, finish, outline);
   if (_ready.has(key)) return Promise.resolve(_ready.get(key));
   if (_loading.has(key)) return _loading.get(key);
   const p = (async () => {
@@ -77,7 +78,7 @@ export const preloadEmotion = (carId, emotion, body, tint, finish) => {
       const res = await fetch(url);
       if (!res.ok) throw new Error('emotion fetch ' + res.status);   // → catch → negative cache (no per-frame retry)
       const text = await res.text();
-      const overlay = await rasterize(recolorEmotion(text, body, tint));
+      const overlay = await rasterize(recolorEmotion(text, body, tint, outline));
       let bitmap = overlay;
       if (finish) {
         // Shade ONLY the #D9D9D9 body-skin with the car's finish (so it matches the painted body), leaving

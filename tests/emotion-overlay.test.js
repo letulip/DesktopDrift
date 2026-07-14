@@ -9,12 +9,13 @@ test('EMOTIONS: the 11 mood ids matching the cars/emotions/*.svg suffixes', () =
     ['angry', 'bored', 'evil', 'joy', 'lol', 'love', 'puzzled', 'questioned', 'sleep', 'smug', 'tired']);
 });
 
-test('emotionKey: stable, varies by every input, tint + finish optional', () => {
-  assert.equal(emotionKey('plum', 'joy', '#8e4585', '#3a3f47', 'chrome'), 'plum|joy|#8e4585|#3a3f47|chrome');
-  assert.equal(emotionKey('plum', 'joy', '#8e4585', null, null), 'plum|joy|#8e4585||');
-  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null), emotionKey('plum', 'joy', '#000000', null, null));
-  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null), emotionKey('bismark', 'joy', '#8e4585', null, null));
-  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, 'matte'), emotionKey('plum', 'joy', '#8e4585', null, 'chrome'));   // finish varies the cache
+test('emotionKey: stable, varies by every input, tint/finish/outline optional', () => {
+  assert.equal(emotionKey('plum', 'joy', '#8e4585', '#3a3f47', 'chrome', '#e8e8e8'), 'plum|joy|#8e4585|#3a3f47|chrome|#e8e8e8');
+  assert.equal(emotionKey('plum', 'joy', '#8e4585', null, null, null), 'plum|joy|#8e4585|||');
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null, null), emotionKey('plum', 'joy', '#000000', null, null, null));
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null, null), emotionKey('bismark', 'joy', '#8e4585', null, null, null));
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, 'matte', null), emotionKey('plum', 'joy', '#8e4585', null, 'chrome', null));   // finish varies
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null, '#fff'), emotionKey('plum', 'joy', '#8e4585', null, null, '#000'));       // outline varies
 });
 
 test('recolorEmotion: #D9D9D9 → body always; #3B97D3 → tint only when a tint is applied', () => {
@@ -23,6 +24,13 @@ test('recolorEmotion: #D9D9D9 → body always; #3B97D3 → tint only when a tint
   assert.equal(recolorEmotion(svg, '#8e4585', null), '<path fill="#8e4585"/><path fill="#3B97D3"/>');
   // tint applied → both recoloured
   assert.equal(recolorEmotion(svg, '#8e4585', '#2f6fb0'), '<path fill="#8e4585"/><path fill="#2f6fb0"/>');
+});
+
+test('recolorEmotion: outline stroke (#000/#222) → the body outline colour, only when equipped', () => {
+  const svg = '<path stroke="#000"/><path stroke="#222"/><circle fill="#35495e"/>';
+  assert.equal(recolorEmotion(svg, '#8e4585', null, null), svg);   // no outline equipped → strokes untouched
+  assert.equal(recolorEmotion(svg, '#8e4585', null, '#e8e8e8'),
+    '<path stroke="#e8e8e8"/><path stroke="#e8e8e8"/><circle fill="#35495e"/>');   // both outline strokes recoloured; dark fill left alone
 });
 
 test('recolorEmotion: case-insensitive (placeholders are mixed-case across files)', () => {
