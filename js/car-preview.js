@@ -11,6 +11,12 @@ import { preloadEmotion, getEmotionBitmap } from './emotion-overlay.js';
 export const CANVAS_W = 240;   // default card resolution (taller than the car so the neon fits)
 export const CANVAS_H = 140;
 
+// Neon glow spread, as a multiple of the car draw-scale `s`, so the underglow stays proportional
+// to the car on any canvas size / DPR. 4.5 reproduces the previously-tuned flat blurScale of 2.1
+// at the stock card scale (s ≈ 0.465); retina cards / the bigger modify + share previews draw the
+// car larger, and the glow now scales with it instead of staying a fixed thin rim.
+const NEON_SPREAD = 4.5;
+
 // Two fading rows of skid marks streaming out behind the car (rear = its left edge),
 // drawn in canvas pixels. `phase` (seconds) scrolls them so the trail flows / lives.
 const drawTrail = (ctx, color, cx, cy, s, M, phase) => {
@@ -54,16 +60,17 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
 
   if (trail) drawTrail(ctx, trail, cx, cy, s, M, phase);
 
-  // Neon underglow via the shared 6-zone renderer. Drawn in DEVICE space (shadowBlur is
-  // device-px, unaffected by ctx.scale) at the car centre, with the car half-size scaled by
-  // `s`. A legacy colour string is wrapped as a solid config; a config object is used as-is.
+  // Neon underglow via the shared 6-zone renderer. Drawn in DEVICE space (shadowBlur is device-px,
+  // unaffected by ctx.scale) at the car centre, with the car half-size scaled by `s`. The glow
+  // spread (blurScale) is tied to `s` too — otherwise a DPR-inflated or larger canvas keeps it a
+  // fixed pixel width and it shrinks to a thin rim relative to the bigger car. Brighter (1.45) than
+  // in-race. A legacy colour string is wrapped as a solid config; a config object is used as-is.
   const neonCfg = typeof neon === 'string' ? defaultNeon(neon) : (neon || null);
   if (neonCfg) {
     ctx.save();
     ctx.translate(cx, cy);
     if (M.flip) ctx.scale(-1, 1);   // mirror front/rear zones to match a flipped body
-    // Wider + brighter than in-race so the underglow reads clearly on the small shop card.
-    drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, 2.1, 1.45);
+    drawNeon(ctx, (M.vw / 2) * s, (M.vh / 2) * s, neonCfg, phase, s * NEON_SPREAD, 1.45);
     ctx.restore();
   }
 
