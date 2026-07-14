@@ -151,13 +151,14 @@
     return 'modify.html?' + p.toString();
   };
 
+  const DPR = Math.min(2, window.devicePixelRatio || 1);   // crisp card previews on retina (CSS sizes the display)
   const cards = CARS.map((M, i) => {
     const card = document.createElement('div');
     card.className = 'car-card' + (i === sel ? ' sel' : '');
 
     const cvs = document.createElement('canvas');
-    cvs.width  = CANVAS_W;
-    cvs.height = CANVAS_H;
+    cvs.width  = Math.round(CANVAS_W * DPR);
+    cvs.height = Math.round(CANVAS_H * DPR);
     card.appendChild(cvs);
 
     // Modify (gear) — opens the per-car customization screen. The gear glyph is the
