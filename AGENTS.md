@@ -643,6 +643,16 @@ created lazily and **unlocked on the first user gesture** (capture-phase `pointe
   pre-cached in `sw.js` ASSETS (an SFX must be ready at event time — it can't wait for a first
   network fetch). Everything else is synthesized (zero files). Dev tool: `tools/sound-lab.html`
   (not shipped) auditions every SFX + live-tweaks params.
+
+### Dev tools (`tools/*.html`, not shipped)
+`tools/` holds dev-only prototype pages — NOT copied by `scripts/build.js` (its copy loop lists a
+fixed set of dirs; `tools/` isn't one), so they never reach production and need no `sw.js` ASSETS
+entry or cache bump. Current: `tools/sound-lab.html` (SFX auditioning) and `tools/car-eyes-lab.html`
+(Phase-E0 prototype for the planned car-windshield "expressions" feature — draws procedural eyes on
+the real cars via `drawCarPreview`, auto-detects each windshield from the `#222222` glass `details`,
+with live tuning + an art-overlay slot). **Gotcha:** the game's service worker (registered on the
+same origin) serves `tools/` pages via stale-while-revalidate, so while iterating locally append a
+throwaway query (`?v=2`) to force a fresh fetch instead of the cached copy.
 - **Gotcha:** changing any sound code/asset needs a `sw.js` cache bump; a new sound module or
   sample must also be added to `ASSETS`.
 

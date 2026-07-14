@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Car eyes lab — Desktop Drift</title>
+<style>
+  :root { --bg:#14110f; --raise:#2a2622; --ink:#f4ede2; --muted:#b7ad9c; --accent:#ffb14d; --line:rgba(255,255,255,.12); }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 -apple-system,system-ui,sans-serif; padding:20px 24px 80px; }
+  h1 { font-size:20px; font-weight:700; margin:0 0 4px; }
+  h2 { font-size:15px; font-weight:700; margin:26px 0 10px; color:var(--accent); }
+  p.note { color:var(--muted); margin:0 0 18px; max-width:70ch; }
+  .controls { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:flex-end; background:var(--raise); border:1px solid var(--line); border-radius:12px; padding:14px 16px; position:sticky; top:0; z-index:5; }
+  .ctl { display:flex; flex-direction:column; gap:4px; }
+  .ctl label { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  select, input[type=color] { background:#1b1815; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 8px; font:inherit; }
+  input[type=color] { padding:2px; width:48px; height:32px; }
+  input[type=range] { width:150px; accent-color:var(--accent); }
+  .val { color:var(--accent); font-variant-numeric:tabular-nums; }
+  button { background:var(--accent); color:#20130a; border:0; border-radius:8px; padding:8px 12px; font:700 13px/1 inherit; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:500; }
+  .grid { display:grid; gap:14px; }
+  .cell { background:var(--raise); border:1px solid var(--line); border-radius:12px; padding:8px; text-align:center; }
+  .cell canvas { display:block; width:100%; height:auto; border-radius:8px; }
+  .cell .cap { font-size:12px; color:var(--muted); margin-top:6px; }
+  .cell.sel { outline:2px solid var(--accent); }
+  .scaleRow { display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; }
+  .scaleRow .cell { padding:14px; }
+  .fixedbg { background:#20242a; }
+  #anchorOut { font:12px/1.4 ui-monospace,monospace; color:var(--muted); white-space:pre; background:#1b1815; border:1px solid var(--line); border-radius:8px; padding:10px 12px; overflow:auto; }
+</style>
+</head>
+<body>
+<h1>Car eyes lab <span style="font-weight:400;color:var(--muted);font-size:14px">— procedural expressions on real cars (prototype)</span></h1>
+<p class="note">Phase E0. Eyes are drawn in code on the actual game cars (via <code>drawCarPreview</code>), placed on each car's auto-detected windshield. Judge: do the emotions read? do they survive real in-race size + motion? Tune size/placement with the sliders; the resolved per-car anchors print at the bottom for baking into the real feature later. The art slot lets you drop in a PNG to test hand-drawn eyes instead.</p>
+
+<div class="controls">
+  <div class="ctl"><label>Car</label><select id="carSel"></select></div>
+  <div class="ctl"><label>Expression</label><select id="exprSel"></select></div>
+  <div class="ctl"><label>Body</label><input type="color" id="bodyCol" /></div>
+  <div class="ctl"><label>Glass tint</label><input type="color" id="glassCol" value="#223a4d" /></div>
+  <div class="ctl"><label>Eye size <span class="val" id="eyeVal"></span></label><input type="range" id="eyeR" min="8" max="34" step="1" /></div>
+  <div class="ctl"><label>Fore / aft <span class="val" id="foreVal"></span></label><input type="range" id="fore" min="0" max="70" step="1" /></div>
+  <div class="ctl"><label>Spread <span class="val" id="spreadVal"></span></label><input type="range" id="spread" min="10" max="48" step="1" /></div>
+  <div class="ctl"><label>Nudge X <span class="val" id="dxVal"></span></label><input type="range" id="dx" min="-60" max="60" step="1" /></div>
+  <div class="ctl"><label>Nudge Y <span class="val" id="dyVal"></span></label><input type="range" id="dy" min="-40" max="40" step="1" /></div>
+  <div class="ctl"><label>Race size (px) <span class="val" id="szVal"></span></label><input type="range" id="sz" min="34" max="220" step="2" /></div>
+  <div class="ctl"><label>Motion</label><button class="ghost" id="motionBtn">▶ spin</button></div>
+  <div class="ctl"><label>Art PNG (windshield)</label><input type="file" id="artFile" accept="image/png,image/*" /></div>
+  <div class="ctl"><label>&nbsp;</label><button class="ghost" id="resetBtn">reset tuning</button></div>
+</div>
+
+<h2>1 · Expression gallery — <span id="galCar"></span>, garage size</h2>
+<div class="grid" id="gallery" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
+
+<h2>2 · Placement across all cars — <span id="allExpr"></span></h2>
+<div class="grid" id="allcars" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))"></div>
+
+<h2>3 · Real-size + motion (the legibility test)</h2>
+<div class="scaleRow" id="scaleRow"></div>
+
+<h2>4 · Art test — drop a PNG above to overlay it on the windshield</h2>
+<div class="grid" id="artArea" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
+
+<h2>Resolved per-car anchors (bake these later)</h2>
+<div id="anchorOut"></div>
+
+<script type="module">
+import { CARS } from '../js/config.js';
+import { drawCarPreview } from '../js/car-preview.js';
+
+const EXPRS = ['neutral', 'happy', 'angry', 'cool', 'sleepy', 'surprised'];
+const LS = 'dd-eyes-lab';
+const dpr = Math.min(2, window.devicePixelRatio || 1);
+
+const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
+const save = () => localStorage.setItem(LS, JSON.stringify(state));
+const state = Object.assign({ eyeR: 18, fore: 24, spread: 26, sz: 78, car: 0, expr: 0, perCar: {} }, load());
+
+const isGlass = (c) => (c || '').toLowerCase() === '#222222';
+
+const glassCache = new Map();
+const glassBBox = (M) => {
+  if (glassCache.has(M.id)) return glassCache.get(M.id);
+  const glass = (M.details || []).filter(d => isGlass(d.c) && d._p2d);
+  let bb;
+  if (!glass.length) {
+    bb = { x: M.vw * 0.18, y: M.vh * 0.12, w: M.vw * 0.42, h: M.vh * 0.76 };
+  } else {
+    const c = document.createElement('canvas'); c.width = M.vw; c.height = M.vh;
+    const g = c.getContext('2d'); g.fillStyle = '#000';
+    for (const d of glass) g.fill(d._p2d);
+    const px = g.getImageData(0, 0, M.vw, M.vh).data;
+    let x0 = M.vw, y0 = M.vh, x1 = 0, y1 = 0;
+    for (let y = 0; y < M.vh; y++) for (let x = 0; x < M.vw; x++) if (px[(y * M.vw + x) * 4 + 3] > 40) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    bb = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  glassCache.set(M.id, bb);
+  return bb;
+};
+
+const anchorFor = (M) => {
+  const bb = glassBBox(M);
+  const pc = state.perCar[M.id] || { dx: 0, dy: 0 };
+  const cy = bb.y + bb.h / 2 + pc.dy;
+  const cx = bb.x + bb.w * (state.fore / 100) + pc.dx;
+  const spread = Math.min(bb.h * (state.spread / 100), bb.h / 2);
+  const eyeR = M.vh * (state.eyeR / 100);
+  return { cx, cy, spread, eyeR, bb };
+};
+
+const W = '#ffffff', D = '#181a1d', OUT = '#191919', GL = '#14161a', GLINT = '#8fc0ff';
+
+// One eye, always a white sclera base (so it reads on the dark windshield), with an optional
+// dark eyelid clipped to the eye (top/bottom coverage + tilt = the emotion, Pixar-Cars style).
+const drawEye = (ctx, ex, ey, R, o) => {
+  const pupilR = o.pupilR ?? R * 0.46, fwd = o.fwd ?? R * 0.28, pdy = o.pupilDy || 0;
+  ctx.fillStyle = W; ctx.strokeStyle = OUT; ctx.lineWidth = Math.max(1, R * 0.13);
+  ctx.beginPath(); ctx.arc(ex, ey, R, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = D; ctx.beginPath(); ctx.arc(ex + fwd, ey + pdy, pupilR, 0, 7); ctx.fill();
+  ctx.fillStyle = W; ctx.beginPath(); ctx.arc(ex + fwd + pupilR * 0.35, ey + pdy - pupilR * 0.5, R * 0.17, 0, 7); ctx.fill();
+  if (o.topCover || o.botCover) {
+    ctx.save(); ctx.beginPath(); ctx.arc(ex, ey, R + 0.6, 0, 7); ctx.clip();
+    ctx.fillStyle = D; ctx.translate(ex, ey); ctx.rotate(o.tilt || 0);
+    if (o.topCover) ctx.fillRect(-R * 1.5, -R * 1.5, R * 3, R * 0.5 + 2 * R * o.topCover);
+    if (o.botCover) ctx.fillRect(-R * 1.5, R - 2 * R * o.botCover, R * 3, R * 1.5);
+    ctx.restore();
+  }
+};
+
+// Draw the face in SCREEN space at (ax, ay); nose points toward +x (screen right).
+const drawFace = (ctx, ax, ay, R, spread, expr) => {
+  const eyes = [[ax, ay - spread], [ax, ay + spread]];
+  ctx.lineJoin = ctx.lineCap = 'round';
+  if (expr === 'cool') {
+    ctx.fillStyle = GL; ctx.fillRect(ax - R * 0.34, ay - spread, R * 0.68, spread * 2);
+    for (const [ex, ey] of eyes) {
+      ctx.fillStyle = GL; ctx.strokeStyle = '#0a0b0d'; ctx.lineWidth = R * 0.12;
+      ctx.beginPath(); ctx.arc(ex, ey, R, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = GLINT; ctx.lineWidth = R * 0.18;
+      ctx.beginPath(); ctx.moveTo(ex - R * 0.5, ey - R * 0.42); ctx.lineTo(ex + R * 0.02, ey + R * 0.08); ctx.stroke();
+    }
+    return;
+  }
+  const opt = {
+    neutral: {},
+    surprised: { scale: 1.16, pupilR: R * 0.3 },
+    happy: { topCover: 0.14, botCover: 0.4, pupilR: R * 0.5, pupilDy: R * 0.12 },
+    angry: { topCover: 0.46, pupilR: R * 0.4, tilt: 0.55 },
+    sleepy: { topCover: 0.58, pupilR: R * 0.34, pupilDy: R * 0.32 },
+  }[expr] || {};
+  const RR = R * (opt.scale || 1);
+  eyes.forEach(([ex, ey], i) => {
+    const t = opt.tilt ? (i === 0 ? opt.tilt : -opt.tilt) : 0;   // angry lids converge toward the gap
+    drawEye(ctx, ex, ey, RR, { ...opt, tilt: t });
+  });
+};
+
+// Compose one car + expression to a tight offscreen (transparent bg), return {canvas, carLenPx}.
+const OCW = 460, OCH = 300;
+const composeCar = (M, expr, { withEyes = true, art = null } = {}) => {
+  const oc = document.createElement('canvas'); oc.width = OCW; oc.height = OCH;
+  const ctx = oc.getContext('2d');
+  const origBody = M.body;
+  if (state.bodyOverride) M.body = state.bodyOverride;
+  drawCarPreview(oc, M, null, null, null, 0, state.glass || null, null);
+  M.body = origBody;
+
+  const pad = Math.min(OCW, OCH) * 0.15;
+  const s = Math.min((OCW - pad * 2) / M.vw, (OCH - pad * 2) / M.vh);
+  const carLenPx = M.vw * s;
+  const a = anchorFor(M);
+  const axScreen = OCW / 2 + (M.flip ? -s : s) * (a.cx - M.vw / 2);
+  const ayScreen = OCH / 2 + s * (a.cy - M.vh / 2);
+  if (art) {
+    const h = (a.spread * 2 + a.eyeR * 2) * s, w = h * (art.width / art.height);
+    ctx.drawImage(art, axScreen - w / 2, ayScreen - h / 2, w, h);
+  } else if (withEyes) {
+    drawFace(ctx, axScreen, ayScreen, a.eyeR * s, a.spread * s, expr);
+  }
+  return { canvas: oc, carLenPx };
+};
+
+const mkCanvas = (cssW, cssH) => {
+  const c = document.createElement('canvas');
+  c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
+  c.style.width = cssW + 'px'; c.style.height = cssH + 'px';
+  return c;
+};
+
+const blitFit = (dst, oc) => {
+  const ctx = dst.getContext('2d'); ctx.clearRect(0, 0, dst.width, dst.height);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  const s = Math.min(dst.width / oc.width, dst.height / oc.height);
+  const w = oc.width * s, h = oc.height * s;
+  ctx.drawImage(oc, (dst.width - w) / 2, (dst.height - h) / 2, w, h);
+};
+
+const blitSized = (dst, oc, carLenPx, targetPx, angle = 0) => {
+  const ctx = dst.getContext('2d'); ctx.clearRect(0, 0, dst.width, dst.height);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  const s = (targetPx * dpr) / carLenPx;
+  const w = oc.width * s, h = oc.height * s;
+  ctx.save(); ctx.translate(dst.width / 2, dst.height / 2); ctx.rotate(angle);
+  ctx.drawImage(oc, -w / 2, -h / 2, w, h); ctx.restore();
+};
+
+const $ = (id) => document.getElementById(id);
+let spinning = false, spinAngle = 0, spinCanvas = null, spinOC = null, spinLen = 0;
+
+const render = () => {
+  const M = CARS[state.car], expr = EXPRS[state.expr];
+  $('galCar').textContent = M.name;
+  $('allExpr').textContent = expr;
+
+  const gal = $('gallery'); gal.innerHTML = '';
+  for (const e of EXPRS) {
+    const cell = document.createElement('div'); cell.className = 'cell' + (e === expr ? ' sel' : '');
+    const cvs = mkCanvas(190, 124); cell.appendChild(cvs);
+    const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = e; cell.appendChild(cap);
+    gal.appendChild(cell);
+    blitFit(cvs, composeCar(M, e).canvas);
+  }
+
+  const all = $('allcars'); all.innerHTML = '';
+  CARS.forEach((car, i) => {
+    const cell = document.createElement('div'); cell.className = 'cell' + (i === state.car ? ' sel' : '');
+    const cvs = mkCanvas(150, 98); cell.appendChild(cvs);
+    const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = car.name; cell.appendChild(cap);
+    cvs.style.cursor = 'pointer'; cvs.onclick = () => { state.car = i; sync(); };
+    all.appendChild(cell);
+    blitFit(cvs, composeCar(car, expr).canvas);
+  });
+
+  const sr = $('scaleRow'); sr.innerHTML = '';
+  const built = composeCar(M, expr);
+  const sizes = [['garage / share', 150], ['during a race', state.sz], ['zoomed out', Math.max(28, state.sz * 0.62)]];
+  for (const [label, px] of sizes) {
+    const cell = document.createElement('div'); cell.className = 'cell fixedbg';
+    const cvs = mkCanvas(210, 150); cell.appendChild(cvs);
+    const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = `${label} · ${Math.round(px)}px`; cell.appendChild(cap);
+    sr.appendChild(cell);
+    blitSized(cvs, built.canvas, built.carLenPx, px);
+  }
+  const mcell = document.createElement('div'); mcell.className = 'cell fixedbg';
+  spinCanvas = mkCanvas(210, 180); mcell.appendChild(spinCanvas);
+  const mcap = document.createElement('div'); mcap.className = 'cap'; mcap.textContent = `motion · ${Math.round(state.sz)}px`; mcell.appendChild(mcap);
+  sr.appendChild(mcell);
+  spinOC = built.canvas; spinLen = built.carLenPx;
+  blitSized(spinCanvas, spinOC, spinLen, state.sz, spinAngle);
+
+  const art = $('artArea'); art.innerHTML = '';
+  const acell = document.createElement('div'); acell.className = 'cell';
+  const acvs = mkCanvas(300, 196); acell.appendChild(acvs);
+  const acap = document.createElement('div'); acap.className = 'cap';
+  acap.textContent = artImg ? `${M.name} · your art on the windshield anchor` : 'no art loaded — showing the anchor box';
+  acell.appendChild(acap); art.appendChild(acell);
+  if (artImg) blitFit(acvs, composeCar(M, expr, { withEyes: false, art: artImg }).canvas);
+  else blitFit(acvs, anchorPreview(M));
+
+  $('anchorOut').textContent = CARS.map(car => {
+    const a = anchorFor(car), pc = state.perCar[car.id] || { dx: 0, dy: 0 };
+    return `${car.id.padEnd(9)} cx:${Math.round(a.cx)} cy:${Math.round(a.cy)} eyeR:${Math.round(a.eyeR)} spread:${Math.round(a.spread)}  (nudge dx:${pc.dx || 0} dy:${pc.dy || 0})`;
+  }).join('\n');
+};
+
+const anchorPreview = (M) => {
+  const built = composeCar(M, 'neutral', { withEyes: false });
+  const oc = built.canvas, ctx = oc.getContext('2d');
+  const pad = Math.min(OCW, OCH) * 0.15;
+  const s = Math.min((OCW - pad * 2) / M.vw, (OCH - pad * 2) / M.vh);
+  const a = anchorFor(M);
+  const axS = OCW / 2 + (M.flip ? -s : s) * (a.cx - M.vw / 2);
+  const ayS = OCH / 2 + s * (a.cy - M.vh / 2);
+  ctx.strokeStyle = '#ffb14d'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+  ctx.strokeRect(axS - a.eyeR * s * 1.4, ayS - (a.spread + a.eyeR) * s, a.eyeR * s * 2.8, (a.spread + a.eyeR) * 2 * s);
+  ctx.setLineDash([]); return oc;
+};
+
+let artImg = null;
+
+const spinLoop = () => {
+  if (!spinning) return;
+  spinAngle += 0.05;
+  if (spinCanvas && spinOC) blitSized(spinCanvas, spinOC, spinLen, state.sz, spinAngle);
+  requestAnimationFrame(spinLoop);
+};
+
+const sync = () => {
+  $('eyeVal').textContent = state.eyeR; $('foreVal').textContent = state.fore;
+  $('spreadVal').textContent = state.spread; $('szVal').textContent = state.sz;
+  const pc = state.perCar[CARS[state.car].id] || { dx: 0, dy: 0 };
+  $('dxVal').textContent = pc.dx || 0; $('dyVal').textContent = pc.dy || 0;
+  $('eyeR').value = state.eyeR; $('fore').value = state.fore; $('spread').value = state.spread;
+  $('sz').value = state.sz; $('dx').value = pc.dx || 0; $('dy').value = pc.dy || 0;
+  $('carSel').value = state.car; $('exprSel').value = state.expr;
+  save(); render();
+};
+
+CARS.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = c.name; $('carSel').appendChild(o); });
+EXPRS.forEach((e, i) => { const o = document.createElement('option'); o.value = i; o.textContent = e; $('exprSel').appendChild(o); });
+$('bodyCol').value = CARS[state.car].body;
+
+$('carSel').onchange = e => { state.car = +e.target.value; $('bodyCol').value = state.bodyOverride || CARS[state.car].body; sync(); };
+$('exprSel').onchange = e => { state.expr = +e.target.value; sync(); };
+$('bodyCol').oninput = e => { state.bodyOverride = e.target.value; sync(); };
+$('glassCol').oninput = e => { state.glass = e.target.value; sync(); };
+for (const k of ['eyeR', 'fore', 'spread', 'sz']) $(k).oninput = e => { state[k] = +e.target.value; sync(); };
+for (const k of ['dx', 'dy']) $(k).oninput = e => {
+  const id = CARS[state.car].id; state.perCar[id] = state.perCar[id] || { dx: 0, dy: 0 };
+  state.perCar[id][k] = +e.target.value; sync();
+};
+$('motionBtn').onclick = () => { spinning = !spinning; $('motionBtn').textContent = spinning ? '■ stop' : '▶ spin'; if (spinning) spinLoop(); };
+$('resetBtn').onclick = () => { localStorage.removeItem(LS); location.reload(); };
+$('artFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); img.onload = () => { artImg = img; render(); }; img.src = URL.createObjectURL(f);
+};
+
+sync();
+</script>
+</body>
+</html>
