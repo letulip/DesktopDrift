@@ -12,10 +12,10 @@ export const CANVAS_W = 240;   // default card resolution (taller than the car s
 export const CANVAS_H = 140;
 
 // Neon glow spread, as a multiple of the car draw-scale `s`, so the underglow stays proportional
-// to the car on any canvas size / DPR. 4.5 reproduces the previously-tuned flat blurScale of 2.1
-// at the stock card scale (s ≈ 0.465); retina cards / the bigger modify + share previews draw the
-// car larger, and the glow now scales with it instead of staying a fixed thin rim.
-const NEON_SPREAD = 4.5;
+// to the car on any canvas size / DPR. 4.0 sits just under the previously-tuned flat blurScale of
+// 2.1 at the stock card scale (s ≈ 0.465); retina cards / the bigger modify + share previews draw
+// the car larger, and the glow now scales with it instead of staying a fixed thin rim.
+const NEON_SPREAD = 4.0;
 
 // Two fading rows of skid marks streaming out behind the car (rear = its left edge),
 // drawn in canvas pixels. `phase` (seconds) scrolls them so the trail flows / lives.

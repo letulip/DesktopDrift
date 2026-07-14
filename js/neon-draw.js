@@ -5,14 +5,14 @@
 import { zoneColors } from './neon.js';
 
 // 6 zone geometries in CAR-LOCAL space (+x = nose), as RECTS that sit UNDER the car body so
-// only the blurred glow shows (no hard fill sticking past the car). Keeps the original
-// underglow distribution: along the length nose 3% · wheel-gap 15.5% · mid 58% · wheel-gap
-// 15.5% · tail 8% (inset 2% from the tips); across the width a 70% band split top/bottom into
-// the two sides. Clockwise: 0 front-left · 1 front-right · 2 right-side · 3 rear-right ·
-// 4 rear-left · 5 left-side (top = left, bottom = right).
+// only the blurred glow shows (no hard fill sticking past the car). Underglow distribution along
+// the length: nose 7% · wheel-gap 15.5% · mid 54% · wheel-gap 15.5% · tail 8% (inset 2% from the
+// tips, so the nose glows over ~5% and the tail ~6% — the previously ~1% nose barely lit up). Across
+// the width a 70% band split top/bottom into the two sides. Clockwise: 0 front-left · 1 front-right
+// · 2 right-side · 3 rear-right · 4 rear-left · 5 left-side (top = left, bottom = right).
 const zoneGeom = (hl, hw) => {
   const len = hl * 2;
-  const s1 = len * 0.03, s2 = len * 0.58, s3 = len * 0.08, gp = len * 0.155, ei = len * 0.02;
+  const s1 = len * 0.07, s2 = len * 0.54, s3 = len * 0.08, gp = len * 0.155, ei = len * 0.02;
   const bh = hw * 0.70;                                   // band half-height; split at y = 0
   const noseX = hl - s1,           noseW = s1 - ei;       // near the front tip
   const midX  = hl - s1 - gp - s2, midW  = s2;            // between the axles
