@@ -63,6 +63,20 @@ export const levelForVolume = (v) => {
   return best;
 };
 
+// Decision for the gesture-unlock listeners in sound.js: what to do with the shared
+// AudioContext when a user gesture arrives. Pure so the ad-mute contract stays unit-tested:
+// while sound is off or runtime-muted (`on` false) NOTHING may auto-resume the context.
+//   on     — sound.js _on(): Web Audio present, not muted, sound enabled in settings
+//   state  — AudioContext.state ('suspended' | 'running' | 'closed')
+// Returns 'resume' (try to unlock), 'disarm' (running — the listeners are done), or 'none'
+// (do nothing but KEEP listening: the gesture may not have granted activation, e.g. arrow
+// keys in Firefox, so a later gesture must be able to retry).
+export const unlockAction = (on, state) => {
+  if (!on) return 'none';
+  if (state === 'running') return 'disarm';
+  return state === 'suspended' ? 'resume' : 'none';
+};
+
 // Total wall-clock length of an SFX (s) — when its last voice fully decays. Empty/invalid → 0.
 export const totalDuration = (sfx) => {
   if (!sfx || !Array.isArray(sfx.notes) || sfx.notes.length === 0) return 0;

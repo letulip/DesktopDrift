@@ -6,7 +6,7 @@
 // bell envelope (fade-in + smooth decay — no clicks), routed through a gentle master lowpass and
 // a light procedural reverb tail. No harsh waveforms, no noise, no per-frame loop.
 import { settings } from './store.js';
-import { SFX, gainForVolume } from './sound-params.js';
+import { SFX, gainForVolume, unlockAction } from './sound-params.js';
 
 const _AC = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
 
@@ -220,12 +220,22 @@ export const setMuted = (m) => {
   if (_muted) suspend(); else resume();
 };
 
-// Unlock the AudioContext on the first user gesture (browsers block audio until then) and keep
-// it in step with tab visibility. Registered once at import; a no-op under Node/tests (no window).
+// Unlock the AudioContext on a user gesture (browsers block audio until one) and keep it in
+// step with tab visibility. Registered at import; a no-op under Node/tests (no window).
+// NOT once-listeners: a gesture may fail to grant activation — desktop Firefox never grants it
+// for arrow keys (they match built-in browser shortcuts, which are excluded), so an arrows-only
+// race would consume a once-listener and stay silent. The listeners stay armed, retry resume()
+// on every gesture, and detach only once the context is actually running. While runtime-muted
+// (ad break) unlockAction returns 'none', so nothing can auto-resume — see setMuted.
 if (typeof window !== 'undefined') {
-  const unlock = () => { if (_on()) { const ctx = _ensureCtx(); if (ctx.state === 'suspended') ctx.resume(); } };
-  for (const ev of ['pointerdown', 'keydown', 'touchend'])
-    window.addEventListener(ev, unlock, { once: true, capture: true });
+  const UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchend'];
+  const unlock = () => {
+    const action = unlockAction(_on(), _ctx ? _ctx.state : 'suspended');
+    if (action === 'resume') { const ctx = _ensureCtx(); if (ctx.state === 'suspended') ctx.resume(); }
+    else if (action === 'disarm') for (const ev of UNLOCK_EVENTS) window.removeEventListener(ev, unlock, true);
+  };
+  for (const ev of UNLOCK_EVENTS)
+    window.addEventListener(ev, unlock, { capture: true });
   if (typeof document !== 'undefined')
     document.addEventListener('visibilitychange', () => { if (document.hidden) suspend(); else resume(); });
 }
