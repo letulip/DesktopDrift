@@ -295,7 +295,10 @@ stays readable. No framework, no bundler.
     unit-tested (`tests/neon.test.js`). `js/neon-draw.js` `drawNeon(ctx, hl, hw, neon, t,
     blurScale)` is the one canvas renderer (6 ellipse zones, **same-colour zones batched into
     one `shadowBlur` pass** — solid = 1 pass, per-zone/animated up to 6), shared by
-    `render.js` (in-race) and `car-preview.js` (garage). Shop sells `neon-layout` / `neon-anim`
+    `render.js` (in-race) and `car-preview.js` (garage). **Gotcha:** `shadowBlur` is device-px and
+    does NOT scale with the car — the preview passes `blurScale = s * NEON_SPREAD` (car draw-scale),
+    NOT a flat constant, so a DPR-inflated or larger canvas doesn't shrink the glow to a thin rim
+    (regressed once when the previews went DPR-aware with a fixed `blurScale`). Shop sells `neon-layout` / `neon-anim`
     items (`shop-catalog.js`); solid+static stay free. Perf: measured negligible (per-zone+flow
     ~0.008 ms/frame desktop), animations run everywhere, no throttle (N7).
   - **Flair → Moods** (`js/emotion-overlay.js`) — Pixar-Cars windshield **eye/expression** overlays.
@@ -315,7 +318,9 @@ stays readable. No framework, no bundler.
     a missing/broken overlay isn't re-fetched every frame); `onEmotionReady` repaints one-shot previews.
     Shop sells `kind:'expression'` items; **None** (no face) is the free default. Pure helpers
     (`emotionKey`, `recolorEmotion`) unit-tested (`tests/emotion-overlay.test.js`). SVGs ship via the
-    `cars/` build copy (not precached in `sw.js` — runtime-cached lazily like `items/`).
+    `cars/` build copy and are **precached in `sw.js`** (grid-generated `MOOD_ASSETS`, disk-matched by
+    `tests/sw-assets.test.js`) — paid cosmetics must survive offline across SW updates, and `activate`
+    wipes lazily runtime-cached files on every cache bump.
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
