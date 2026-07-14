@@ -18,7 +18,7 @@ export const CARD = {
   track: { x: 54, labelY: 848, nameY: 903, lapFromBottom: 128, labelSize: 20, nameSize: 46, lapSize: 28,
            maxW: 700, labelColor: '#cdb98f', nameColor: '#ffffff', lapColor: '#e6d9b8' },
   newRecord: { fromRight: 56, cy: 96, size: 23, padX: 26, padY: 16, radius: 30, spacing: 2, color: '#ffc840' },  // top-right pill, only on a new record
-  hook: { x: 54, fromBottom: 262, size: 42, color: '#ffb14d' },                  // bottom-left italic; "repeat it?" at 1 PPS else "beat it?"
+  hook: { x: 54, fromBottom: 54, size: 30, color: '#ffb14d' },                   // bottom-left corner, under the lap time; italic; "repeat it?" at 1 PPS else "beat it?"
 };
 
 // Number of lit stars for a run: 1 per 100 PPS, capped at 5 (mirrors the results screen).
