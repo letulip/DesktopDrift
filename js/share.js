@@ -35,6 +35,7 @@ export const createShareModal = () => {
     try {
       await renderShareCard(canvas, data);
       blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('toBlob returned null');   // iOS Safari under memory pressure → share-err path
       buildActions(data);
     } catch (e) {
       actions.innerHTML = '<span class="share-err">Couldn\'t build the card.</span>';
