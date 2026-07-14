@@ -714,7 +714,10 @@ registers with `{ updateViaCache: 'none' }` (browser never serves a stale `sw.js
 HTTP cache), calls `reg.update()` on every `visibilitychange`→visible (catches the iOS-PWA
 warm-resume case where a relaunch never cold-reloads), and when a fresh worker reaches
 `installed` **while an old one still controls the page** (`shouldNudge`, unit-tested) shows a
-bottom-centre "New version available — tap to update" toast. Tapping posts `{type:'SKIP_WAITING'}`
+bottom-centre "New version available — tap to update" toast — but never on the live-driving pages
+(`game.html`/`sandbox.html`; `isGameplayPage`, unit-tested), where it would sit over the
+touch-steering canvas: the waiting worker persists, so the nudge appears on the next menu page.
+Tapping posts `{type:'SKIP_WAITING'}`
 to the waiting worker and reloads on `controllerchange` (only after the user opts in — never on
 first install, never mid-race). **`sw.js` no longer eagerly `skipWaiting()`s** — a new worker
 *waits* so the nudge can offer the switch; it activates only on that message. Offline-safe by
