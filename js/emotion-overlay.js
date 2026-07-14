@@ -21,11 +21,20 @@ export const recolorEmotion = (svgText, body, tint, outline) => {
   return s;
 };
 
+// Pure (unit-tested): drop the negative (null) entries from a cache map so failed loads can retry.
+// Wired to the window 'online' event below — one network blip must not hide the equipped mood for
+// the whole page session; positive entries (decoded bitmaps) are kept.
+export const clearNegativeEntries = (map) => { for (const [k, v] of map) if (v === null) map.delete(k); };
+
 // ── Browser-only cache + loader (guarded: the two functions touch fetch/Image only when called,
 // so importing this module under node — for the pure-helper tests — runs no browser code) ──
 const _ready = new Map();      // key → HTMLImageElement (decoded)
 const _loading = new Map();    // key → Promise<Image|null> (in-flight, for dedupe + await)
 const _listeners = new Set();  // repaint callbacks for one-shot previews (garage/modify)
+
+// Connectivity back → let negatively-cached overlays retry (render.js preloads per frame, so the
+// negative cache itself must stay — this just clears it at the one moment a retry can succeed).
+if (typeof window !== 'undefined') window.addEventListener('online', () => clearNegativeEntries(_ready));
 
 // Register a callback fired whenever an emotion bitmap finishes loading (so a preview that paints
 // once can repaint when its overlay arrives). Returns an unsubscribe fn.
@@ -106,7 +115,7 @@ export const preloadEmotion = (carId, emotion, body, tint, finish, outline) => {
       _listeners.forEach(cb => { try { cb(); } catch { /* a bad listener can't break loading */ } });
       return bitmap;
     } catch {
-      _ready.set(key, null);   // negative cache — don't re-fetch a missing/broken overlay every frame
+      _ready.set(key, null);   // negative cache — don't re-fetch a missing/broken overlay every frame (cleared on 'online' so a network blip can retry)
       return null;
     } finally {
       _loading.delete(key);
