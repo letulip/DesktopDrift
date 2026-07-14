@@ -109,7 +109,7 @@ export const createRaceResults = () => {
     overlay.querySelector('#rr-best').textContent =
       bestLap != null ? `Best lap  ${bestLap.toFixed(2)} s` : '';
 
-    lastResult = { pps, ddk, trackName, reversed, bestLap, carModel, look };
+    lastResult = { pps, ddk, isNewRecord, trackName, reversed, bestLap, carModel, look };
     overlay.classList.add('show');
   };
 

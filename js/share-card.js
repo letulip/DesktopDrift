@@ -4,6 +4,7 @@
 import { CARS } from './config.js';
 import { drawCarPreview } from './car-preview.js';
 import { preloadEmotion } from './emotion-overlay.js';
+import { isOnePps } from './economy.js';
 import { CARD, litStars } from './share-util.js';
 
 // Template resolved from this module's URL so it works from any page. Cached after first load.
@@ -67,7 +68,8 @@ const crown = (ctx, cx, y, s) => {
 // Draw the full card. `data` = { pps, ddk, trackName, bestLap, carModel, look }. Async: waits for
 // the display font + the template image. Sizes the canvas to the card and returns it.
 export const renderShareCard = async (canvas, data) => {
-  const { pps, ddk, trackName, reversed, bestLap, carModel, look } = data;
+  const { pps, ddk, isNewRecord, trackName, reversed, bestLap, carModel, look } = data;
+  const onePps = isOnePps(pps);   // Participation Trophy — the 🏅 + "repeat it?" gag
   canvas.width = CARD.w; canvas.height = CARD.h;
   const ctx = canvas.getContext('2d');
 
@@ -101,8 +103,15 @@ export const renderShareCard = async (canvas, data) => {
   const ppsW = ctx.measureText('PPS').width;
   ctx.restore();
 
-  // DDK crown over the PPS label.
+  // DDK crown over the PPS label (600+ PPS) — or the Participation Trophy 🏅 at exactly 1 PPS. The two
+  // are mutually exclusive (1 vs 600+), so they share the spot above the PPS label.
   if (ddk) { ctx.fillStyle = CARD.crown.color; crown(ctx, ppsX + ppsW / 2, CARD.score.baseY - CARD.score.ppsSize + CARD.crown.dy, CARD.crown.size / 2); }
+  else if (onePps) {
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = `${CARD.medal.size}px sans-serif`;
+    ctx.fillText('🏅', ppsX + ppsW / 2, CARD.score.baseY - CARD.score.ppsSize + CARD.medal.dy);
+    ctx.restore();
+  }
 
   // Stars — 5, lit by score.
   const lit = litStars(pps);
@@ -121,6 +130,28 @@ export const renderShareCard = async (canvas, data) => {
   ctx.fillText(name, CARD.track.x, CARD.track.nameY);
   ctx.fillStyle = CARD.track.lapColor; ctx.font = `700 ${CARD.track.lapSize}px system-ui`;
   ctx.fillText(bestLap != null ? `Best lap ${bestLap.toFixed(2)} s` : '', CARD.track.x, CARD.h - CARD.track.lapFromBottom);
+  ctx.restore();
+
+  // NEW RECORD badge (top-right pill) — only on a personal best.
+  if (isNewRecord) {
+    const nr = CARD.newRecord;
+    ctx.save();
+    ctx.font = `800 ${nr.size}px Unbounded`; ctx.letterSpacing = `${nr.spacing}px`;
+    const label = 'NEW RECORD', tw = ctx.measureText(label).width;
+    const pillW = tw + nr.padX * 2, pillH = nr.size + nr.padY * 2;
+    const right = CARD.w - nr.fromRight, left = right - pillW, top = nr.cy - pillH / 2;
+    ctx.strokeStyle = nr.color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(left, top, pillW, pillH, nr.radius); ctx.stroke();
+    ctx.fillStyle = nr.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, left + nr.padX, nr.cy + 1);
+    ctx.restore();
+  }
+
+  // Hook (bottom-left, italic) — "Can you repeat it?" on a 1-PPS Participation Trophy, else "Can you beat it?".
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = CARD.hook.color; ctx.font = `italic 800 ${CARD.hook.size}px Unbounded`;
+  ctx.fillText(onePps ? 'Can you repeat it?' : 'Can you beat it?', CARD.hook.x, CARD.h - CARD.hook.fromBottom);
   ctx.restore();
 
   return canvas;
