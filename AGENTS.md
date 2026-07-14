@@ -632,8 +632,11 @@ never crash). The cap fills with red along the exact arc the car sweeps (radial 
 
 Procedural Web Audio, mirroring `haptics.js`: a settings-gated wrapper safe to call anywhere,
 silent when `settings().soundEnabled` is false or Web Audio is missing. One shared `AudioContext`,
-created lazily and **unlocked on the first user gesture** (capture-phase `pointerdown`/`keydown`/
-`touchend`); suspended on `visibilitychange` (tab hidden).
+created lazily and **unlocked on user gestures** (capture-phase `pointerdown`/`keydown`/
+`touchend` — persistent listeners that retry `resume()` per gesture, decided by the pure
+`unlockAction`, detaching only once the context runs: desktop Firefox never grants activation
+for arrow keys, they match built-in browser shortcuts, so once-listeners left an arrows-only
+race silent); suspended on `visibilitychange` (tab hidden).
 
 - **`js/sound-params.js` (pure, unit-tested — `tests/sound-params.test.js`):** the `SFX` table
   (each entry a short sine-only "bell" chime — `{ notes:[[freqHz, offsetSec],…], dur, gain, a }`)

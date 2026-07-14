@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SFX, VOLUME_DEFAULT, VOLUME_LEVELS, clampVolume, gainForVolume, levelForVolume, totalDuration,
+  unlockAction,
 } from '../js/sound-params.js';
 
 test('SFX: every entry is a soft, well-formed sine chime (notes + gentle gain)', () => {
@@ -67,4 +68,17 @@ test('totalDuration: positive for real SFX, 0 for empty/invalid', () => {
   assert.equal(totalDuration({ steps: [] }), 0);
   assert.equal(totalDuration(null), 0);
   assert.equal(totalDuration(undefined), 0);
+});
+
+test('unlockAction: muted never auto-resumes; retry while suspended; disarm only when running', () => {
+  // Ad-break contract (platform adapters, PR #107): while _on() is false NOTHING may
+  // auto-resume the AudioContext — every state must map to 'none'.
+  for (const state of ['suspended', 'running', 'closed']) {
+    assert.equal(unlockAction(false, state), 'none', `muted + ${state} must do nothing`);
+  }
+  // A gesture may not grant activation (Firefox arrow keys): keep retrying while suspended.
+  assert.equal(unlockAction(true, 'suspended'), 'resume');
+  // Only a genuinely running context releases the listeners.
+  assert.equal(unlockAction(true, 'running'), 'disarm');
+  assert.equal(unlockAction(true, 'closed'), 'none');
 });
