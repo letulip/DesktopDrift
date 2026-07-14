@@ -261,4 +261,10 @@ Small, mostly independent wins — slot into a phase as they fit.
 
 - **Music / ambience.** SFX have shipped (see above). Background music is still open — the plan
   is free Moby Gratis tracks, self-hosted, with a music toggle + ducking under the SFX. Revisit
-  later; it's independent of the SFX layer.
+  later; NOTE: *session-long* music (no restart on navigation, menu→race crossfade) is blocked
+  on the SPA migration below — per-page music in the current MPA restarts on every navigation.
+- **SPA migration** — collapse the multi-page site into one document: kills the
+  audio-activation problem as a class (incl. the Firefox arrow-key case), unlocks proper
+  music, instant screen transitions. Phased plan with gates, dangers (reload-as-cleanup,
+  stateful track modules), and the opening trigger: **`docs/plans/spa-migration.md`**.
+  Do NOT start while portal launches / moderation are in flight.
