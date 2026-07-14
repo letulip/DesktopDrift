@@ -47,7 +47,8 @@
   <div class="ctl"><label>Nudge Y <span class="val" id="dyVal"></span></label><input type="range" id="dy" min="-40" max="40" step="1" /></div>
   <div class="ctl"><label>Race size (px) <span class="val" id="szVal"></span></label><input type="range" id="sz" min="34" max="220" step="2" /></div>
   <div class="ctl"><label>Motion</label><button class="ghost" id="motionBtn">▶ spin</button></div>
-  <div class="ctl"><label>Art PNG (windshield)</label><input type="file" id="artFile" accept="image/png,image/*" /></div>
+  <div class="ctl"><label>Full-frame overlay PNG</label><input type="file" id="artFile" accept="image/png,image/*" /></div>
+  <div class="ctl"><label>&nbsp;</label><button class="ghost" id="tplBtn">⬇ car template</button></div>
   <div class="ctl"><label>&nbsp;</label><button class="ghost" id="resetBtn">reset tuning</button></div>
 </div>
 
@@ -60,7 +61,7 @@
 <h2>3 · Real-size + motion (the legibility test)</h2>
 <div class="scaleRow" id="scaleRow"></div>
 
-<h2>4 · Art test — drop a PNG above to overlay it on the windshield</h2>
+<h2>4 · Full-frame overlay test — deliver one transparent PNG per car×emotion, drawn in the car's frame</h2>
 <div class="grid" id="artArea" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
 
 <h2>Resolved per-car anchors (bake these later)</h2>
@@ -176,8 +177,9 @@ const composeCar = (M, expr, { withEyes = true, art = null } = {}) => {
   const axScreen = OCW / 2 + (M.flip ? -s : s) * (a.cx - M.vw / 2);
   const ayScreen = OCH / 2 + s * (a.cy - M.vh / 2);
   if (art) {
-    const h = (a.spread * 2 + a.eyeR * 2) * s, w = h * (art.width / art.height);
-    ctx.drawImage(art, axScreen - w / 2, ayScreen - h / 2, w, h);
+    // Full-frame overlay: the PNG is authored in the car's own vw×vh frame, so it blits onto the
+    // exact same on-canvas rect the car occupies — no per-car anchor needed (this IS the integration).
+    ctx.drawImage(art, OCW / 2 - s * M.vw / 2, OCH / 2 - s * M.vh / 2, s * M.vw, s * M.vh);
   } else if (withEyes) {
     drawFace(ctx, axScreen, ayScreen, a.eyeR * s, a.spread * s, expr);
   }
@@ -206,6 +208,22 @@ const blitSized = (dst, oc, carLenPx, targetPx, angle = 0) => {
   const w = oc.width * s, h = oc.height * s;
   ctx.save(); ctx.translate(dst.width / 2, dst.height / 2); ctx.rotate(angle);
   ctx.drawImage(oc, -w / 2, -h / 2, w, h); ctx.restore();
+};
+
+// The drawing frame for the artist: the car rendered filling its own vw×vh box (no padding, display
+// orientation). Draw eyes over this, export your layer at the same pixel size = a ready overlay.
+const renderTemplate = (M) => {
+  const SC = 3;
+  const bc = document.createElement('canvas'); bc.width = M.vw * SC; bc.height = M.vh * SC;
+  const origBody = M.body; if (state.bodyOverride) M.body = state.bodyOverride;
+  drawCarPreview(bc, M, null, null, null, 0, state.glass || null, null);
+  M.body = origBody;
+  const pad = Math.min(bc.width, bc.height) * 0.15;
+  const s = Math.min((bc.width - pad * 2) / M.vw, (bc.height - pad * 2) / M.vh);
+  const rw = s * M.vw, rh = s * M.vh, rx = bc.width / 2 - rw / 2, ry = bc.height / 2 - rh / 2;
+  const out = document.createElement('canvas'); out.width = Math.round(rw); out.height = Math.round(rh);
+  out.getContext('2d').drawImage(bc, rx, ry, rw, rh, 0, 0, out.width, out.height);
+  return out;
 };
 
 const $ = (id) => document.getElementById(id);
@@ -256,7 +274,7 @@ const render = () => {
   const acell = document.createElement('div'); acell.className = 'cell';
   const acvs = mkCanvas(300, 196); acell.appendChild(acvs);
   const acap = document.createElement('div'); acap.className = 'cap';
-  acap.textContent = artImg ? `${M.name} · your art on the windshield anchor` : 'no art loaded — showing the anchor box';
+  acap.textContent = artImg ? `${M.name} · your full-frame overlay on the car` : 'no overlay loaded — dashed box marks the eye zone. Click "⬇ car template" to get the drawing frame';
   acell.appendChild(acap); art.appendChild(acell);
   if (artImg) blitFit(acvs, composeCar(M, expr, { withEyes: false, art: artImg }).canvas);
   else blitFit(acvs, anchorPreview(M));
@@ -314,6 +332,11 @@ for (const k of ['dx', 'dy']) $(k).oninput = e => {
   state.perCar[id][k] = +e.target.value; sync();
 };
 $('motionBtn').onclick = () => { spinning = !spinning; $('motionBtn').textContent = spinning ? '■ stop' : '▶ spin'; if (spinning) spinLoop(); };
+$('tplBtn').onclick = () => {
+  const M = CARS[state.car], a = document.createElement('a');
+  a.href = renderTemplate(M).toDataURL('image/png');
+  a.download = `${M.id}-template-${M.vw}x${M.vh}.png`; a.click();
+};
 $('resetBtn').onclick = () => { localStorage.removeItem(LS); location.reload(); };
 $('artFile').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
