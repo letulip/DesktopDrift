@@ -318,7 +318,9 @@ stays readable. No framework, no bundler.
     a missing/broken overlay isn't re-fetched every frame); `onEmotionReady` repaints one-shot previews.
     Shop sells `kind:'expression'` items; **None** (no face) is the free default. Pure helpers
     (`emotionKey`, `recolorEmotion`) unit-tested (`tests/emotion-overlay.test.js`). SVGs ship via the
-    `cars/` build copy (not precached in `sw.js` — runtime-cached lazily like `items/`).
+    `cars/` build copy and are **precached in `sw.js`** (grid-generated `MOOD_ASSETS`, disk-matched by
+    `tests/sw-assets.test.js`) — paid cosmetics must survive offline across SW updates, and `activate`
+    wipes lazily runtime-cached files on every cache bump.
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
