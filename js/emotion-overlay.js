@@ -80,15 +80,25 @@ export const preloadEmotion = (carId, emotion, body, tint, finish) => {
       const overlay = await rasterize(recolorEmotion(text, body, tint));
       let bitmap = overlay;
       if (finish) {
-        const eyes = await rasterize(recolorEmotion(text, 'none', tint));   // body patch off → eyes + strokes only
+        // Shade ONLY the #D9D9D9 body-skin with the car's finish (so it matches the painted body), leaving
+        // the eyes/sclera crisp and the SVG's own z-order intact. Build a mask of just the skin path (every
+        // other fill/stroke hidden), clip the finish gradient to it, then lay that over the overlay.
+        // (An earlier "redraw eyes on top" approach exposed the white #fff sclera wherever the skin path was
+        //  drawn OVER the eyes — on open-eye moods — turning the skin white.)
+        const maskSvg = text.replace(/#d9d9d9/gi, 'SKINKEEP')
+          .replace(/#[0-9a-f]{3,8}\b/gi, 'none')   // hide every other fill + stroke
+          .replace(/SKINKEEP/g, '#000');           // the skin path → opaque mask
+        const mask = await rasterize(maskSvg);
         const w = overlay.naturalWidth || overlay.width, h = overlay.naturalHeight || overlay.height;
+        const fc = document.createElement('canvas'); fc.width = w; fc.height = h;
+        const fg = fc.getContext('2d');
+        fg.drawImage(mask, 0, 0);
+        fg.globalCompositeOperation = 'source-in';   // finish gradient clipped to the skin shape
+        applyFinish(fg, finish, w, h);
         const c = document.createElement('canvas'); c.width = w; c.height = h;
         const g = c.getContext('2d');
         g.drawImage(overlay, 0, 0);
-        g.globalCompositeOperation = 'source-atop';   // shade only the overlay's own pixels (body + eyes)
-        applyFinish(g, finish, w, h);
-        g.globalCompositeOperation = 'source-over';
-        g.drawImage(eyes, 0, 0);                       // crisp eyes back on top of the shaded body
+        g.drawImage(fc, 0, 0);                        // shade only the skin; eyes untouched
         bitmap = c;
       }
       _ready.set(key, bitmap);
