@@ -39,7 +39,8 @@
   <div class="ctl"><label>Car</label><select id="carSel"></select></div>
   <div class="ctl"><label>Expression</label><select id="exprSel"></select></div>
   <div class="ctl"><label>Body</label><input type="color" id="bodyCol" /></div>
-  <div class="ctl"><label>Glass tint</label><input type="color" id="glassCol" value="#223a4d" /></div>
+  <div class="ctl"><label>Glass tint</label><input type="color" id="glassCol" /></div>
+  <div class="ctl"><label>Tint applied</label><input type="checkbox" id="tintOn" style="width:18px;height:18px;accent-color:var(--accent)" /></div>
   <div class="ctl"><label>Eye size <span class="val" id="eyeVal"></span></label><input type="range" id="eyeR" min="8" max="34" step="1" /></div>
   <div class="ctl"><label>Fore / aft <span class="val" id="foreVal"></span></label><input type="range" id="fore" min="0" max="70" step="1" /></div>
   <div class="ctl"><label>Spread <span class="val" id="spreadVal"></span></label><input type="range" id="spread" min="10" max="48" step="1" /></div>
@@ -77,7 +78,7 @@ const dpr = Math.min(2, window.devicePixelRatio || 1);
 
 const load = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
-const state = Object.assign({ eyeR: 18, fore: 24, spread: 26, sz: 78, car: 0, expr: 0, perCar: {} }, load());
+const state = Object.assign({ eyeR: 18, fore: 24, spread: 26, sz: 78, car: 0, expr: 0, perCar: {}, tintOn: false, glassPick: '#7cc4ff' }, load());
 
 const isGlass = (c) => (c || '').toLowerCase() === '#222222';
 
@@ -298,19 +299,22 @@ const anchorPreview = (M) => {
   ctx.setLineDash([]); return oc;
 };
 
-let artImg = null, artSVG = null, artBody = null;
+let artImg = null, artSVG = null, artKey = null;
 
-// Emotion art as SVG: recolour its #D9D9D9 placeholder to the car's current body colour, then
-// rasterise (mirrors how the game recolours the #222222 glass detail to the equipped glass tint).
-const svgToImg = (svgText, body) => new Promise((res, rej) => {
-  const svg = svgText.replace(/#d9d9d9/gi, body);
+// Emotion art as SVG, with two reserved placeholder colours (mirrors how the game recolours the
+// #222222 glass detail): #D9D9D9 always -> body colour; #3B97D3 -> glass tint ONLY when a tint is
+// applied (otherwise the #3B97D3 default eye colour stays). Then rasterise.
+const svgToImg = (svgText, body, tint) => new Promise((res, rej) => {
+  let svg = svgText.replace(/#d9d9d9/gi, body);
+  if (tint) svg = svg.replace(/#3b97d3/gi, tint);
   const img = new Image();
   img.onload = () => res(img); img.onerror = rej;
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 });
 const refreshArt = async () => {
-  const body = state.bodyOverride || CARS[state.car].body;
-  if (artSVG && body !== artBody) { try { artImg = await svgToImg(artSVG, body); artBody = body; } catch { artImg = null; } }
+  const body = state.bodyOverride || CARS[state.car].body, tint = state.glass || null;
+  const key = body + '|' + (tint || '');
+  if (artSVG && key !== artKey) { try { artImg = await svgToImg(artSVG, body, tint); artKey = key; } catch { artImg = null; } }
   render();
 };
 
@@ -329,6 +333,8 @@ const sync = () => {
   $('eyeR').value = state.eyeR; $('fore').value = state.fore; $('spread').value = state.spread;
   $('sz').value = state.sz; $('dx').value = pc.dx || 0; $('dy').value = pc.dy || 0;
   $('carSel').value = state.car; $('exprSel').value = state.expr;
+  state.glass = state.tintOn ? state.glassPick : null;   // effective tint: null when not applied
+  $('glassCol').value = state.glassPick; $('tintOn').checked = state.tintOn;
   save(); if (artSVG) refreshArt(); else render();
 };
 
@@ -339,7 +345,8 @@ $('bodyCol').value = CARS[state.car].body;
 $('carSel').onchange = e => { state.car = +e.target.value; $('bodyCol').value = state.bodyOverride || CARS[state.car].body; sync(); };
 $('exprSel').onchange = e => { state.expr = +e.target.value; sync(); };
 $('bodyCol').oninput = e => { state.bodyOverride = e.target.value; sync(); };
-$('glassCol').oninput = e => { state.glass = e.target.value; sync(); };
+$('glassCol').oninput = e => { state.glassPick = e.target.value; sync(); };
+$('tintOn').onchange = e => { state.tintOn = e.target.checked; sync(); };
 for (const k of ['eyeR', 'fore', 'spread', 'sz']) $(k).oninput = e => { state[k] = +e.target.value; sync(); };
 for (const k of ['dx', 'dy']) $(k).oninput = e => {
   const id = CARS[state.car].id; state.perCar[id] = state.perCar[id] || { dx: 0, dy: 0 };
@@ -355,7 +362,7 @@ $('resetBtn').onclick = () => { localStorage.removeItem(LS); location.reload(); 
 $('artFile').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
   if (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)) {
-    f.text().then(t => { artSVG = t; artBody = null; refreshArt(); });   // SVG → live #D9D9D9 recolour
+    f.text().then(t => { artSVG = t; artKey = null; refreshArt(); });   // SVG → live placeholder recolour
   } else {
     artSVG = null;
     const img = new Image(); img.onload = () => { artImg = img; render(); }; img.src = URL.createObjectURL(f);
