@@ -19,6 +19,11 @@
 // AND one is already controlling the page — a genuine update, never the very first install.
 export const shouldNudge = (state, hasController) => state === 'installed' && hasController;
 
+// Pure (unit-tested): is this a live-driving page? The toast sits fixed bottom-centre over the
+// touch-steering canvas there, and a mis-tap = location.reload() = lost race — so gameplay pages
+// suppress it. The waiting worker persists, so the nudge shows on the next menu page instead.
+export const isGameplayPage = (pathname) => /(?:^|\/)(?:game|sandbox)\.html$/.test(pathname || '');
+
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   const sw = navigator.serviceWorker;
   let userTriggered = false, reloading = false;
@@ -54,6 +59,7 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   };
 
   const nudge = (worker) => {
+    if (isGameplayPage(location.pathname)) return;                 // never over live driving
     if (!worker || document.getElementById('sw-update')) return;   // one toast at a time
     injectStyle();
     const el = document.createElement('div');

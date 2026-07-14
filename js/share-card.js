@@ -141,7 +141,10 @@ export const renderShareCard = async (canvas, data) => {
     const pillW = tw + nr.padX * 2, pillH = nr.size + nr.padY * 2;
     const right = CARD.w - nr.fromRight, left = right - pillW, top = nr.cy - pillH / 2;
     ctx.strokeStyle = nr.color; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.roundRect(left, top, pillW, pillH, nr.radius); ctx.stroke();
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(left, top, pillW, pillH, nr.radius);
+    else ctx.rect(left, top, pillW, pillH);   // pre-Safari 16.4 / Chrome 99: square pill beats a thrown share
+    ctx.stroke();
     ctx.fillStyle = nr.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(label, left + nr.padX, nr.cy + 1);
     ctx.restore();

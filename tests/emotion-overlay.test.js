@@ -2,7 +2,7 @@
 // The fetch/Image loader is browser-only and guarded, so importing here runs no browser code.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EMOTIONS, emotionKey, recolorEmotion } from '../js/emotion-overlay.js';
+import { EMOTIONS, emotionKey, recolorEmotion, clearNegativeEntries } from '../js/emotion-overlay.js';
 
 test('EMOTIONS: the 11 mood ids matching the cars/emotions/*.svg suffixes', () => {
   assert.deepEqual(EMOTIONS,
@@ -41,4 +41,14 @@ test('recolorEmotion: case-insensitive (placeholders are mixed-case across files
 test('recolorEmotion: no placeholders (e.g. the all-hearts "love") passes through unchanged', () => {
   const hearts = '<path fill="#ff2244"/>';
   assert.equal(recolorEmotion(hearts, '#8e4585', '#2f6fb0'), hearts);
+});
+
+test('clearNegativeEntries: drops only null (failed-load) entries, keeps loaded bitmaps', () => {
+  const bmp = { fake: 'bitmap' };
+  const map = new Map([['a|joy', bmp], ['a|lol', null], ['b|joy', null]]);
+  clearNegativeEntries(map);
+  assert.deepEqual([...map.entries()], [['a|joy', bmp]]);   // positives survive, negatives retry
+  clearNegativeEntries(map);                                // idempotent on a clean map
+  assert.deepEqual([...map.entries()], [['a|joy', bmp]]);
+  clearNegativeEntries(new Map());                          // empty map is fine
 });
