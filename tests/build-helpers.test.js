@@ -27,6 +27,40 @@ test('leaves HTML without SW registration untouched', () => {
   assert.equal(stripServiceWorker(html), html);
 });
 
+test('removes the external sw-update module script tag (the real page form)', () => {
+  const html = [
+    '<script type="module" src="./js/game-engine.js"></script>',
+    '<script type="module" src="./js/sw-update.js"></script>',
+    '</body>',
+  ].join('\n');
+  const out = stripServiceWorker(html);
+  assert.ok(!out.includes('sw-update'));
+  assert.ok(out.includes('game-engine.js'), 'other external scripts survive');
+  assert.ok(out.includes('</body>'));
+});
+
+test('removes sw-update tags regardless of attribute order, quoting, or path prefix', () => {
+  const variants = [
+    '<script src="js/sw-update.js" type="module"></script>',
+    "<script type='module' src='./js/sw-update.js'></script>",
+    '<script src=./js/sw-update.js type=module></script>',
+    '  <script type="module" src="./js/sw-update.js" defer></script>',
+  ];
+  for (const tag of variants) {
+    const out = stripServiceWorker(`<div>a</div>\n${tag}\n<div>b</div>`);
+    assert.equal(out, '<div>a</div>\n<div>b</div>', `failed on: ${tag}`);
+  }
+});
+
+test('leaves non-SW external script tags untouched', () => {
+  const html = [
+    '<script type="module" src="./js/menu.js"></script>',
+    '<script src="js/track-registry.js" type="module"></script>',
+    '<script type="module">import { boot } from "./js/game-engine.js"; boot();</script>',
+  ].join('\n');
+  assert.equal(stripServiceWorker(html), html);
+});
+
 // ── stripExternalLinks ───────────────────────────────────────────────────────
 
 test('removes the donate link/tile', () => {

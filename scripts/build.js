@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Build script: minifies js/ and css/, copies everything else → dist/
 // `--platform=<name>` builds a portal variant into dist-<name>/ instead:
-// swaps js/platform.js for js/platform-<name>.js, strips SW registration and
-// external links from HTML, prunes SEO files. `--platform=portal` is the
+// swaps js/platform.js for js/platform-<name>.js, strips external links from
+// HTML and the service worker entirely (HTML registration tags, sw.js,
+// js/sw-update.js), prunes SEO files. `--platform=portal` is the
 // SDK-less preset (Newgrounds/Game Jolt): same stripping/pruning but the
 // default no-op js/platform.js ships unchanged. `--zip` packs the output into
 // dist[-<name>].zip with index.html at the zip root (portals require this).
@@ -87,6 +88,7 @@ mkdirSync(join(DIST, 'js'), { recursive: true });
 let jsCount = 0;
 for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js'))) {
   if (/^platform-/.test(file)) continue; // adapters never ship as standalone files (any build)
+  if (PLATFORM && file === 'sw-update.js') continue; // platform builds ship no service worker
   // The adapter swap: dist-<name>/js/platform.js is built from the adapter source.
   const srcPath = ADAPTER && file === 'platform.js' ? ADAPTER : join(ROOT, 'js', file);
   const input = readFileSync(srcPath, 'utf8');
@@ -100,21 +102,27 @@ for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js')))
   jsCount++;
 }
 
-// --- Minify sw.js (root service worker) ---
-// Inject a content-derived hash as the CACHE key before minification so every
-// build that changes any JS or CSS file gets a unique cache version automatically.
-const contentHash = createHash('sha1').update(hashInputs.join('')).digest('hex').slice(0, 8);
-const swInput = readFileSync(join(ROOT, 'sw.js'), 'utf8');
-const swPatched = swInput.replace(/const CACHE\s*=\s*'[^']+'/, `const CACHE='desktop-drift-${contentHash}'`);
-if (swPatched === swInput) {
-  console.error("build: could not inject content hash — 'const CACHE' not found in sw.js");
-  process.exit(1);
-}
-const swResult = await terserMinify(swPatched, { compress: true, mangle: true });
-if (swResult.error) { console.error('JS error in sw.js:', swResult.error); process.exit(1); }
-writeFileSync(join(DIST, 'sw.js'), swResult.code);
+// --- Minify sw.js (root service worker; skipped for platform builds) ---
+// Platform builds ship NO service worker at all: registration is stripped from
+// the HTML, and neither sw.js nor js/sw-update.js is emitted.
+if (PLATFORM) {
+  console.log(`Built dist-${PLATFORM}/  (${jsCount} JS files, ${cssCount} CSS files, no service worker)`);
+} else {
+  // Inject a content-derived hash as the CACHE key before minification so every
+  // build that changes any JS or CSS file gets a unique cache version automatically.
+  const contentHash = createHash('sha1').update(hashInputs.join('')).digest('hex').slice(0, 8);
+  const swInput = readFileSync(join(ROOT, 'sw.js'), 'utf8');
+  const swPatched = swInput.replace(/const CACHE\s*=\s*'[^']+'/, `const CACHE='desktop-drift-${contentHash}'`);
+  if (swPatched === swInput) {
+    console.error("build: could not inject content hash — 'const CACHE' not found in sw.js");
+    process.exit(1);
+  }
+  const swResult = await terserMinify(swPatched, { compress: true, mangle: true });
+  if (swResult.error) { console.error('JS error in sw.js:', swResult.error); process.exit(1); }
+  writeFileSync(join(DIST, 'sw.js'), swResult.code);
 
-console.log(`Built ${PLATFORM ? `dist-${PLATFORM}` : 'dist'}/  (${jsCount + 1} JS files, ${cssCount} CSS files, cache=desktop-drift-${contentHash})`);
+  console.log(`Built dist/  (${jsCount + 1} JS files, ${cssCount} CSS files, cache=desktop-drift-${contentHash})`);
+}
 
 // --- Optional zip (portal uploads need index.html at the ZIP ROOT) ---
 // Shells out to the system `zip` binary (present on macOS and CI runners);
