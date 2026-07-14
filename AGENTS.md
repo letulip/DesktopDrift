@@ -302,10 +302,13 @@ stays readable. No framework, no bundler.
     88 SVGs at `cars/emotions/<carId>-<emotion>.svg` (8 cars × 11 moods), authored in the car's frame
     + final orientation. Equipped per car via `carLook().expression` (additive field, no migration;
     **read it as `look.expression`, NOT `look.emotion`** — a field-name mismatch silently drops the
-    overlay). Loader fetches → recolours (`#D9D9D9` → body **always**; `#3B97D3` → glass tint **only if
-    a tint is equipped**, case-insensitive) → applies the car's paint **finish** to the body patch (so
-    it matches a metallic/pearl/chrome body, no flat seam) → decodes to a bitmap cached by
-    `(carId, emotion, body, tint, finish)`. Rendered **no-flip** (art is final-oriented) over the car
+    overlay). Loader fetches → recolours (case-insensitive): `#D9D9D9` → body **always**; the "glass eyes"
+    `#3B97D3` (open-eye iris) + `#222222` (joy/lol/sleep dark eyes = the car's default window colour) →
+    glass tint **only if a tint is equipped**; `#000`/`#222` (3-digit strokes) → body outline colour **only
+    if an outline is equipped** (a 6-digit `#222222` is a glass eye, not a stroke). Then applies the car's
+    paint **finish** to the body skin — masked to just the `#D9D9D9` skin path so it matches a
+    metallic/pearl/chrome body without touching the eyes — → decodes to a bitmap cached by
+    `(carId, emotion, body, tint, finish, outline)`. Rendered **no-flip** (art is final-oriented) over the car
     in BOTH `render.js` `drawCar` (via `setCarEmotion`) and `car-preview.js` `drawCarPreview` (garage /
     modify / share — `share-card.js` **awaits** `preloadEmotion` before reading pixels). Async: hot-path
     `getEmotionBitmap` is a sync cache read, `preloadEmotion` warms it (deduped + **negative-cached** so

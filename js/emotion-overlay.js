@@ -16,8 +16,8 @@ export const emotionKey = (carId, emotion, body, tint, finish, outline) => `${ca
 
 export const recolorEmotion = (svgText, body, tint, outline) => {
   let s = svgText.replace(/#d9d9d9/gi, body || '#d9d9d9');                  // body colour (always)
-  if (tint) s = s.replace(/#3b97d3/gi, tint);                              // eye colour follows the glass tint (only if equipped)
-  if (outline) s = s.replace(/#(000000|222222|000|222)\b/gi, outline);     // windshield outline stroke follows the body outline (only if equipped)
+  if (tint) s = s.replace(/#(3b97d3|222222)\b/gi, tint);                   // glass eyes follow the glass tint: #3B97D3 (open-eye iris) + #222222 (joy/lol/sleep dark eyes, = the car's default window colour)
+  if (outline) s = s.replace(/#(000000|000|222)\b/gi, outline);            // outline stroke (#000/#222, 3-digit) follows the body outline; #222222 is a 6-digit glass eye handled above
   return s;
 };
 
