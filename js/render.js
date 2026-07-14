@@ -321,8 +321,8 @@ const drawCar = (M) => {
     // Moods: the equipped emotion face, drawn OVER the finished car in its rotated frame (no flip —
     // the art is authored in final orientation). Async bitmap; the rAF loop repaints once it loads.
     if (_carEmotion) {
-      preloadEmotion(M.id, _carEmotion, _carBody ?? M.body, _carGlass);
-      const emo = getEmotionBitmap(M.id, _carEmotion, _carBody ?? M.body, _carGlass);
+      preloadEmotion(M.id, _carEmotion, _carBody ?? M.body, _carGlass, _carFinish);
+      const emo = getEmotionBitmap(M.id, _carEmotion, _carBody ?? M.body, _carGlass, _carFinish);
       if (emo) ctx.drawImage(emo, -s * M.vw / 2, -s * M.vh / 2, s * M.vw, s * M.vh);
     }
     return;

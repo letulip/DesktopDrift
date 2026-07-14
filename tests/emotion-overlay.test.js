@@ -9,11 +9,12 @@ test('EMOTIONS: the 11 mood ids matching the cars/emotions/*.svg suffixes', () =
     ['angry', 'bored', 'evil', 'joy', 'lol', 'love', 'puzzled', 'questioned', 'sleep', 'smug', 'tired']);
 });
 
-test('emotionKey: stable, varies by every input, tint-optional', () => {
-  assert.equal(emotionKey('plum', 'joy', '#8e4585', '#3a3f47'), 'plum|joy|#8e4585|#3a3f47');
-  assert.equal(emotionKey('plum', 'joy', '#8e4585', null), 'plum|joy|#8e4585|');
-  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null), emotionKey('plum', 'joy', '#000000', null));
-  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null), emotionKey('bismark', 'joy', '#8e4585', null));
+test('emotionKey: stable, varies by every input, tint + finish optional', () => {
+  assert.equal(emotionKey('plum', 'joy', '#8e4585', '#3a3f47', 'chrome'), 'plum|joy|#8e4585|#3a3f47|chrome');
+  assert.equal(emotionKey('plum', 'joy', '#8e4585', null, null), 'plum|joy|#8e4585||');
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null), emotionKey('plum', 'joy', '#000000', null, null));
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, null), emotionKey('bismark', 'joy', '#8e4585', null, null));
+  assert.notEqual(emotionKey('plum', 'joy', '#8e4585', null, 'matte'), emotionKey('plum', 'joy', '#8e4585', null, 'chrome'));   // finish varies the cache
 });
 
 test('recolorEmotion: #D9D9D9 → body always; #3B97D3 → tint only when a tint is applied', () => {

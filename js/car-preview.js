@@ -88,8 +88,8 @@ export const drawCarPreview = (cvs, M, neon = null, finish = null, trail = null,
   // Moods: equipped emotion face over the car, in canvas space (no flip — art is final-oriented). The
   // overlay bitmap is async; inline preload warms it and one-shot previews repaint via onEmotionReady.
   if (emotion) {
-    preloadEmotion(M.id, emotion, M.body, glass);
-    const emo = getEmotionBitmap(M.id, emotion, M.body, glass);
+    preloadEmotion(M.id, emotion, M.body, glass, finish);
+    const emo = getEmotionBitmap(M.id, emotion, M.body, glass, finish);
     if (emo) ctx.drawImage(emo, cx - s * M.vw / 2, cy - s * M.vh / 2, s * M.vw, s * M.vh);
   }
 };

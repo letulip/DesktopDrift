@@ -298,6 +298,21 @@ stays readable. No framework, no bundler.
     `render.js` (in-race) and `car-preview.js` (garage). Shop sells `neon-layout` / `neon-anim`
     items (`shop-catalog.js`); solid+static stay free. Perf: measured negligible (per-zone+flow
     ~0.008 ms/frame desktop), animations run everywhere, no throttle (N7).
+  - **Flair → Moods** (`js/emotion-overlay.js`) — Pixar-Cars windshield **eye/expression** overlays.
+    88 SVGs at `cars/emotions/<carId>-<emotion>.svg` (8 cars × 11 moods), authored in the car's frame
+    + final orientation. Equipped per car via `carLook().expression` (additive field, no migration;
+    **read it as `look.expression`, NOT `look.emotion`** — a field-name mismatch silently drops the
+    overlay). Loader fetches → recolours (`#D9D9D9` → body **always**; `#3B97D3` → glass tint **only if
+    a tint is equipped**, case-insensitive) → applies the car's paint **finish** to the body patch (so
+    it matches a metallic/pearl/chrome body, no flat seam) → decodes to a bitmap cached by
+    `(carId, emotion, body, tint, finish)`. Rendered **no-flip** (art is final-oriented) over the car
+    in BOTH `render.js` `drawCar` (via `setCarEmotion`) and `car-preview.js` `drawCarPreview` (garage /
+    modify / share — `share-card.js` **awaits** `preloadEmotion` before reading pixels). Async: hot-path
+    `getEmotionBitmap` is a sync cache read, `preloadEmotion` warms it (deduped + **negative-cached** so
+    a missing/broken overlay isn't re-fetched every frame); `onEmotionReady` repaints one-shot previews.
+    Shop sells `kind:'expression'` items; **None** (no face) is the free default. Pure helpers
+    (`emotionKey`, `recolorEmotion`) unit-tested (`tests/emotion-overlay.test.js`). SVGs ship via the
+    `cars/` build copy (not precached in `sw.js` — runtime-cached lazily like `items/`).
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
