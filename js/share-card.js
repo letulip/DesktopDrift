@@ -3,6 +3,8 @@
 // pure helpers live in js/share-util.js; the car is rendered with the game's own drawCarPreview.
 import { CARS } from './config.js';
 import { drawCarPreview } from './car-preview.js';
+import { preloadEmotion } from './emotion-overlay.js';
+import { isOnePps } from './economy.js';
 import { CARD, litStars } from './share-util.js';
 
 // Template resolved from this module's URL so it works from any page. Cached after first load.
@@ -17,14 +19,18 @@ export const loadTemplate = () => (_tplLoad ||= new Promise((res, rej) => {
 
 // Render the player's car (with its equipped look) to an offscreen canvas — same recipe as
 // select.html's drawCard: override M.body, pass the look through drawCarPreview, then restore.
-const renderCar = (carModel, look) => {
+const renderCar = async (carModel, look) => {
   const c = document.createElement('canvas'); c.width = 560; c.height = 340;
   const M = CARS[Math.max(0, Math.min(carModel ?? 0, CARS.length - 1))];
   const orig = M.body;
   M.body = (look && look.bodyColor) || orig;
+  const glass = (look && look.glassColor) || null, emotion = (look && look.expression) || null;
+  const finish = (look && look.finish) || null, outline = (look && look.outlineColor) || null;
+  // Await the emotion overlay before drawing — the canvas is read synchronously by carBBox().
+  if (emotion) await preloadEmotion(M.id, emotion, M.body, glass, finish, outline);
   drawCarPreview(c, M, (look && (look.neon ?? (look.neonColor || null))) || null,
-    (look && look.finish) || null, null, 0,   // no drift trail — the template already has baked skid marks
-    (look && look.glassColor) || null, (look && look.outlineColor) || null);
+    finish, null, 0,   // no drift trail — the template already has baked skid marks
+    glass, outline, emotion);
   M.body = orig;
   return c;
 };
@@ -62,13 +68,14 @@ const crown = (ctx, cx, y, s) => {
 // Draw the full card. `data` = { pps, ddk, trackName, bestLap, carModel, look }. Async: waits for
 // the display font + the template image. Sizes the canvas to the card and returns it.
 export const renderShareCard = async (canvas, data) => {
-  const { pps, ddk, trackName, reversed, bestLap, carModel, look } = data;
+  const { pps, ddk, isNewRecord, trackName, reversed, bestLap, carModel, look } = data;
+  const onePps = isOnePps(pps);   // Participation Trophy — the 🏅 + "repeat it?" gag
   canvas.width = CARD.w; canvas.height = CARD.h;
   const ctx = canvas.getContext('2d');
 
   await document.fonts.load('800 100px Unbounded');
   const tpl = _tpl || await loadTemplate();
-  const carC = renderCar(carModel, look);
+  const carC = await renderCar(carModel, look);
 
   ctx.clearRect(0, 0, CARD.w, CARD.h);
   ctx.drawImage(tpl, 0, 0, CARD.w, CARD.h);
@@ -96,8 +103,15 @@ export const renderShareCard = async (canvas, data) => {
   const ppsW = ctx.measureText('PPS').width;
   ctx.restore();
 
-  // DDK crown over the PPS label.
+  // DDK crown over the PPS label (600+ PPS) — or the Participation Trophy 🏅 at exactly 1 PPS. The two
+  // are mutually exclusive (1 vs 600+), so they share the spot above the PPS label.
   if (ddk) { ctx.fillStyle = CARD.crown.color; crown(ctx, ppsX + ppsW / 2, CARD.score.baseY - CARD.score.ppsSize + CARD.crown.dy, CARD.crown.size / 2); }
+  else if (onePps) {
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = `${CARD.medal.size}px sans-serif`;
+    ctx.fillText('🏅', ppsX + ppsW / 2, CARD.score.baseY - CARD.score.ppsSize + CARD.medal.dy);
+    ctx.restore();
+  }
 
   // Stars — 5, lit by score.
   const lit = litStars(pps);
@@ -116,6 +130,28 @@ export const renderShareCard = async (canvas, data) => {
   ctx.fillText(name, CARD.track.x, CARD.track.nameY);
   ctx.fillStyle = CARD.track.lapColor; ctx.font = `700 ${CARD.track.lapSize}px system-ui`;
   ctx.fillText(bestLap != null ? `Best lap ${bestLap.toFixed(2)} s` : '', CARD.track.x, CARD.h - CARD.track.lapFromBottom);
+  ctx.restore();
+
+  // NEW RECORD badge (top-right pill) — only on a personal best.
+  if (isNewRecord) {
+    const nr = CARD.newRecord;
+    ctx.save();
+    ctx.font = `800 ${nr.size}px Unbounded`; ctx.letterSpacing = `${nr.spacing}px`;
+    const label = 'NEW RECORD', tw = ctx.measureText(label).width;
+    const pillW = tw + nr.padX * 2, pillH = nr.size + nr.padY * 2;
+    const right = CARD.w - nr.fromRight, left = right - pillW, top = nr.cy - pillH / 2;
+    ctx.strokeStyle = nr.color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(left, top, pillW, pillH, nr.radius); ctx.stroke();
+    ctx.fillStyle = nr.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, left + nr.padX, nr.cy + 1);
+    ctx.restore();
+  }
+
+  // Hook (bottom-left, italic) — "Can you repeat it?" on a 1-PPS Participation Trophy, else "Can you beat it?".
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = CARD.hook.color; ctx.font = `italic 800 ${CARD.hook.size}px Unbounded`;
+  ctx.fillText(onePps ? 'Can you repeat it?' : 'Can you beat it?', CARD.hook.x, CARD.h - CARD.hook.fromBottom);
   ctx.restore();
 
   return canvas;

@@ -4,6 +4,7 @@ import { wallet } from './store.js';
 import { paintBody, hexToRgbStr } from './finish.js';
 import { drawNeon } from './neon-draw.js';
 import { bakeSurfaceDims } from './track-surface.js';
+import { preloadEmotion, getEmotionBitmap } from './emotion-overlay.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -97,6 +98,7 @@ let _carFinish = null;          // equipped paint finish (matte/metallic/pearl/c
 let _trailRgb  = null;          // "r,g,b" for skid marks, from the equipped trail colour, or null
 let _carGlass  = null;          // equipped glass tint (recolours #222222 window details) or null
 let _carOutline = null;         // equipped outline colour (recolours the body stroke + panel lines) or null
+let _carEmotion = null;         // equipped Moods expression id (windshield face overlay) or null
 export const setCarPaint = (body, neon, finish, trail, glass, outline) => {
   _carBody    = body ?? null;
   _carNeon    = neon ?? null;
@@ -105,6 +107,7 @@ export const setCarPaint = (body, neon, finish, trail, glass, outline) => {
   _carGlass   = glass ?? null;
   _carOutline = outline ?? null;
 };
+export const setCarEmotion = (emotion) => { _carEmotion = emotion || null; };
 // Static geometry cache: built once in initRender, not rebuilt every frame
 // (previously draw() re-traced ~830 lineTo calls for the edges, drawMini ~416).
 let trackPath = null, miniTrackPath = null;
@@ -315,6 +318,13 @@ const drawCar = (M) => {
     // Glass tint recolours the dark #222222 window details (also recolours dark trim — same fill).
     if (M.details) for (const d of M.details) { ctx.fillStyle = (_carGlass && d.c === '#222222') ? _carGlass : d.c; ctx.fill(d._p2d); }
     ctx.restore();
+    // Moods: the equipped emotion face, drawn OVER the finished car in its rotated frame (no flip —
+    // the art is authored in final orientation). Async bitmap; the rAF loop repaints once it loads.
+    if (_carEmotion) {
+      preloadEmotion(M.id, _carEmotion, _carBody ?? M.body, _carGlass, _carFinish, _carOutline);
+      const emo = getEmotionBitmap(M.id, _carEmotion, _carBody ?? M.body, _carGlass, _carFinish, _carOutline);
+      if (emo) ctx.drawImage(emo, -s * M.vw / 2, -s * M.vh / 2, s * M.vw, s * M.vh);
+    }
     return;
   }
   const hl = M.len / 2, hw = M.wid / 2;

@@ -298,6 +298,24 @@ stays readable. No framework, no bundler.
     `render.js` (in-race) and `car-preview.js` (garage). Shop sells `neon-layout` / `neon-anim`
     items (`shop-catalog.js`); solid+static stay free. Perf: measured negligible (per-zone+flow
     ~0.008 ms/frame desktop), animations run everywhere, no throttle (N7).
+  - **Flair → Moods** (`js/emotion-overlay.js`) — Pixar-Cars windshield **eye/expression** overlays.
+    88 SVGs at `cars/emotions/<carId>-<emotion>.svg` (8 cars × 11 moods), authored in the car's frame
+    + final orientation. Equipped per car via `carLook().expression` (additive field, no migration;
+    **read it as `look.expression`, NOT `look.emotion`** — a field-name mismatch silently drops the
+    overlay). Loader fetches → recolours (case-insensitive): `#D9D9D9` → body **always**; the "glass eyes"
+    `#3B97D3` (open-eye iris) + `#222222` (joy/lol/sleep dark eyes = the car's default window colour) →
+    glass tint **only if a tint is equipped**; `#000`/`#222` (3-digit strokes) → body outline colour **only
+    if an outline is equipped** (a 6-digit `#222222` is a glass eye, not a stroke). Then applies the car's
+    paint **finish** to the body skin — masked to just the `#D9D9D9` skin path so it matches a
+    metallic/pearl/chrome body without touching the eyes — → decodes to a bitmap cached by
+    `(carId, emotion, body, tint, finish, outline)`. Rendered **no-flip** (art is final-oriented) over the car
+    in BOTH `render.js` `drawCar` (via `setCarEmotion`) and `car-preview.js` `drawCarPreview` (garage /
+    modify / share — `share-card.js` **awaits** `preloadEmotion` before reading pixels). Async: hot-path
+    `getEmotionBitmap` is a sync cache read, `preloadEmotion` warms it (deduped + **negative-cached** so
+    a missing/broken overlay isn't re-fetched every frame); `onEmotionReady` repaints one-shot previews.
+    Shop sells `kind:'expression'` items; **None** (no face) is the free default. Pure helpers
+    (`emotionKey`, `recolorEmotion`) unit-tested (`tests/emotion-overlay.test.js`). SVGs ship via the
+    `cars/` build copy (not precached in `sw.js` — runtime-cached lazily like `items/`).
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
@@ -643,6 +661,16 @@ created lazily and **unlocked on the first user gesture** (capture-phase `pointe
   pre-cached in `sw.js` ASSETS (an SFX must be ready at event time — it can't wait for a first
   network fetch). Everything else is synthesized (zero files). Dev tool: `tools/sound-lab.html`
   (not shipped) auditions every SFX + live-tweaks params.
+
+### Dev tools (`tools/*.html`, not shipped)
+`tools/` holds dev-only prototype pages — NOT copied by `scripts/build.js` (its copy loop lists a
+fixed set of dirs; `tools/` isn't one), so they never reach production and need no `sw.js` ASSETS
+entry or cache bump. Current: `tools/sound-lab.html` (SFX auditioning) and `tools/car-eyes-lab.html`
+(Phase-E0 prototype for the planned car-windshield "expressions" feature — draws procedural eyes on
+the real cars via `drawCarPreview`, auto-detects each windshield from the `#222222` glass `details`,
+with live tuning + an art-overlay slot). **Gotcha:** the game's service worker (registered on the
+same origin) serves `tools/` pages via stale-while-revalidate, so while iterating locally append a
+throwaway query (`?v=2`) to force a fresh fetch instead of the cached copy.
 - **Gotcha:** changing any sound code/asset needs a `sw.js` cache bump; a new sound module or
   sample must also be added to `ASSETS`.
 
