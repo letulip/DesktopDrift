@@ -1,10 +1,19 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v213';
+const CACHE = 'desktop-drift-v215';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
 const BASE = new URL('.', self.location).href;
+// Mood overlays (cars/emotions/) are a regular car x emotion grid — generate the
+// 88 paths instead of hand-listing them. Precached (unlike items/ and objects/)
+// because moods are PAID cosmetics: activate deletes old caches on every version
+// bump, so a lazily runtime-cached mood would vanish offline after an update.
+// tests/sw-assets.test.js asserts this grid matches cars/emotions/ on disk.
+const MOOD_CARS = ['bavarian', 'bismark', 'catana', 'horse', 'panda', 'plum', 'smasher', 'toretto'];
+const MOODS = ['angry', 'bored', 'evil', 'joy', 'lol', 'love', 'puzzled', 'questioned', 'sleep', 'smug', 'tired'];
+const MOOD_ASSETS = MOOD_CARS.flatMap(car => MOODS.map(m => `cars/emotions/${car}-${m}.svg`));
+
 // Pre-cache: HTML, CSS and ALL js modules (critical for startup — must be
 // available before the first offline visit). SVGs from items/ and objects/ are
 // intentionally NOT here — there are dozens of them; they are picked up by the
@@ -109,6 +118,7 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/icon-maskable-192.png',
   'icons/icon-maskable-512.png',
+  ...MOOD_ASSETS,
 ].map(p => BASE + p);
 
 // Pre-cache all static assets on install
