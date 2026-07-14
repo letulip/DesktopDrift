@@ -274,7 +274,7 @@ const render = () => {
   const acell = document.createElement('div'); acell.className = 'cell';
   const acvs = mkCanvas(300, 196); acell.appendChild(acvs);
   const acap = document.createElement('div'); acap.className = 'cap';
-  acap.textContent = artImg ? `${M.name} · your full-frame overlay on the car` : 'no overlay loaded — dashed box marks the eye zone. Click "⬇ car template" to get the drawing frame';
+  acap.textContent = artImg ? `${M.name} · overlay on the car${artSVG ? ' · #D9D9D9 → body colour' : ''}` : 'no overlay loaded — dashed box marks the eye zone. Click "⬇ car template" to get the drawing frame';
   acell.appendChild(acap); art.appendChild(acell);
   if (artImg) blitFit(acvs, composeCar(M, expr, { withEyes: false, art: artImg }).canvas);
   else blitFit(acvs, anchorPreview(M));
@@ -298,7 +298,21 @@ const anchorPreview = (M) => {
   ctx.setLineDash([]); return oc;
 };
 
-let artImg = null;
+let artImg = null, artSVG = null, artBody = null;
+
+// Emotion art as SVG: recolour its #D9D9D9 placeholder to the car's current body colour, then
+// rasterise (mirrors how the game recolours the #222222 glass detail to the equipped glass tint).
+const svgToImg = (svgText, body) => new Promise((res, rej) => {
+  const svg = svgText.replace(/#d9d9d9/gi, body);
+  const img = new Image();
+  img.onload = () => res(img); img.onerror = rej;
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+});
+const refreshArt = async () => {
+  const body = state.bodyOverride || CARS[state.car].body;
+  if (artSVG && body !== artBody) { try { artImg = await svgToImg(artSVG, body); artBody = body; } catch { artImg = null; } }
+  render();
+};
 
 const spinLoop = () => {
   if (!spinning) return;
@@ -315,7 +329,7 @@ const sync = () => {
   $('eyeR').value = state.eyeR; $('fore').value = state.fore; $('spread').value = state.spread;
   $('sz').value = state.sz; $('dx').value = pc.dx || 0; $('dy').value = pc.dy || 0;
   $('carSel').value = state.car; $('exprSel').value = state.expr;
-  save(); render();
+  save(); if (artSVG) refreshArt(); else render();
 };
 
 CARS.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = c.name; $('carSel').appendChild(o); });
@@ -340,7 +354,12 @@ $('tplBtn').onclick = () => {
 $('resetBtn').onclick = () => { localStorage.removeItem(LS); location.reload(); };
 $('artFile').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  const img = new Image(); img.onload = () => { artImg = img; render(); }; img.src = URL.createObjectURL(f);
+  if (f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)) {
+    f.text().then(t => { artSVG = t; artBody = null; refreshArt(); });   // SVG → live #D9D9D9 recolour
+  } else {
+    artSVG = null;
+    const img = new Image(); img.onload = () => { artImg = img; render(); }; img.src = URL.createObjectURL(f);
+  }
 };
 
 sync();
