@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
+  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond, isNewPpsRecord,
   MULT_MAX, QUALITY_MAX, COMBO_RATE,
 } from '../js/scoring.js';
 
@@ -49,4 +49,15 @@ test('pointsPerSecond: points / time, protected against division by zero', () =>
   near(pointsPerSecond(45000, 36), 1250);
   near(pointsPerSecond(0, 36), 0);
   near(pointsPerSecond(45000, 0), 0);  // totalTime=0 → 0, not Infinity
+});
+
+test('isNewPpsRecord: no prior record (null/undefined) always counts as new', () => {
+  assert.equal(isNewPpsRecord(null, 1000), true);       // never set before
+  assert.equal(isNewPpsRecord(undefined, 1000), true);  // loose == also catches undefined
+});
+
+test('isNewPpsRecord: beats the stored best only when strictly higher', () => {
+  assert.equal(isNewPpsRecord(1000, 1200), true);   // higher → new record
+  assert.equal(isNewPpsRecord(1000, 800), false);   // lower → not a record
+  assert.equal(isNewPpsRecord(1000, 1000), false);  // equal → not a record (strict >)
 });

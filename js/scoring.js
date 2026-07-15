@@ -48,3 +48,8 @@ export const slipSign = (vS) =>
 // Denominator grows continuously — drifting in place collapses the metric.
 export const pointsPerSecond = (score, totalTime) =>
   totalTime > 0 ? score / totalTime : 0;
+
+// True when this run's PPS beats the stored best (or there is no stored best yet).
+// Loose `==` is intentional: BOTH null and undefined mean "no prior record".
+export const isNewPpsRecord = (prevBestPPS, pps) =>
+  prevBestPPS == null || pps > prevBestPPS;

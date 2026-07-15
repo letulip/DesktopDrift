@@ -45,6 +45,16 @@ export const nearMiss = (car, cones, props, TABLE, CONE_R, CR, NM_BAND) => {
   return false;
 };
 
+// Anti-skip checkpoint advance: returns the next checkpoint index if the car is
+// within CP_R of the CURRENT checkpoint, else the index unchanged. Gating on the
+// current checkpoint only (never a later one) is what stops the car cutting the
+// course — the caller owns the prevFinishDot reset when the index wraps to 0.
+export const advanceCheckpoint = (nextCp, carX, carY, checkpoints, CP_R) => {
+  const cp = checkpoints[nextCp];
+  if (cp && Math.hypot(carX - cp.x, carY - cp.y) < CP_R) return (nextCp + 1) % checkpoints.length;
+  return nextCp;
+};
+
 // Car vs table wall (capsule). MUTATES car.{x,y,vx,vy} in place (same convention as
 // physics.stepCar). `bodyPts` is the pre-collision capsule snapshot [[x,y]×3]; `hx,hy`
 // = car heading cos/sin; `nose` = half-length to the bumper. Returns the impact
