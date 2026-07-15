@@ -63,6 +63,13 @@ stays readable. No framework, no bundler.
 - **File layout:**
   - `css/base.css` — shared reset **+ design tokens** (`:root` vars) **+ `@font-face`**
     for the display font. Loaded by every page first (defines all `var(--…)`).
+    **Scroll model:** `html, body` default to `overflow-y:auto` + `min-height:100%`
+    so HTML-UI pages page-scroll when the viewport is too short (e.g. an embed frame);
+    `overflow-x` stays hidden. Center-trapping pages (`#menu`, `#garage`,
+    `#settings-page`) use `min-height:100vh` instead of `position:fixed;inset:0` so
+    they grow rather than clip. The two canvas pages (`game.html`, `sandbox.html`)
+    carry `class="fixed-viewport"` on `<html>` → base.css restores
+    `height:100%; overflow:hidden; touch-action:none` (canvas fills, never scrolls).
   - `css/menu.css` — menu styles + the staggered entrance animation
     (`index.html`, also loaded by `select`/`settings`/`donate`).
     `.logo sup` — trademark mark: `font-size:.24em; vertical-align:top` keeps it
