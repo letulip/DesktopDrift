@@ -5,6 +5,25 @@ Format defined in `PROMOTER_AGENT.md` → Session log.
 
 ---
 
+## 2026-07-15 — Game Jolt (Wave 1, playbook steps/02)
+
+- **Status: LIVE.**
+- Page: https://gamejolt.com/games/desktop-drift/1084155
+- Build: same `dist-portal.zip` as Newgrounds (portal preset, index.html at zip
+  root), main @ v218. Embed set to **1280×720** (the NG lesson — never leave the
+  frame size blank, or short-frame clipping hides the Race! button).
+- Listing: slug `desktop-drift` · dev stage Early Access · genre Racing · maturity
+  Everyone · thumbnail `ddd-thumb-ready.png` (landscape) · same description/tags
+  as NG · package (build) description was a separate ≤750-char field.
+- **Version anchor set here: `0.9.0`** (first versioned build; Early Access → 0.x
+  until the roadmap's headline features land = 1.0.0). Use the same number across
+  all platforms + future updates. TODO: record it in package.json (no `version`
+  field exists yet) so builds stay in sync.
+- Game Jolt option noted: "Add to partner system" = referral rev-share, inert for
+  a free game, non-exclusive, harmless — owner's call.
+- **Next:** itch.io optimization (steps/03 — GIF cover + tags + devlog twins on
+  the already-live page); optional devlog cross-posts to seed the GJ feed.
+
 ## 2026-07-15 — Newgrounds (Wave 1, playbook steps/01)
 
 - **Status: PUBLISHED — Under Judgment.**
