@@ -125,10 +125,17 @@ or the agent posts with approval where the account is already logged in.
   `tools/capture/capture.js` (Playwright; see header comment).
 - Gameplay GIF / video: `docs/promo/assets/` ✅ — `cover-630x500.gif` (10 s,
   2.9 MB, itch.io cover slot) + `gameplay-master.mp4` (26 s, 1280×720, source
-  for Shorts/GIF cuts) + mobile 9:16 pair: `gameplay-mobile-master.mp4` (23 s,
-  780×1688, 2.1 MB, YouTube Shorts / vertical embeds) and `gameplay-mobile.gif`
-  (10 s, 480×1038, 2.3 MB, mobile-flavored social). Re-capture any time with
-  `tools/capture/record.js` (add `--mobile` for the vertical pair).
+  for Shorts/GIF cuts) + mobile 9:16 pair: `gameplay-mobile-master.mp4` (28 s,
+  720×1280, 3.6 MB, YouTube Shorts / vertical embeds) and `gameplay-mobile.gif`
+  (9 s, 480×853, 2.8 MB, mobile-flavored social). Re-capture any time with
+  `tools/capture/record.js` (add `--mobile` for the vertical pair — it now
+  records a full-frame 720×1280 portrait, not the old letterboxed 780×1688).
+- Devlog stills: `docs/promo/assets/` ✅ — `devlog-neon.png` (1280×720, cyan
+  neon underglow on the red car mid-drift over the dark green-study desk) +
+  `devlog-mood-eyes.png` (720×540 close-up, red car wearing the "Joy" mood-eyes
+  overlay). Captured with a seeded-save Playwright screenshot script (equipped
+  neon / `garage.cars[0].expression` set) — see `tools/capture/capture.js` for
+  the seeding pattern.
 - Cover art 16:9: `docs/promo/assets/desktop-drift-thumbnail.png` ✅ (1672×941,
   16:9 — owner has the source; ask for a native 1920×1080 re-export if a
   platform demands exact pixels, don't upscale). Logo PNG:

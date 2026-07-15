@@ -482,7 +482,7 @@ stays readable. No framework, no bundler.
     mobile), `assets/` (cover art, gameplay GIF/video masters).
   - `tools/capture/` — Playwright screenshot/video-capture kit (scripted driving +
     contact sheets); regenerates `docs/promo/screenshots/` and the gameplay
-    video masters (`record.js`; `--mobile` = vertical 9:16 iPhone context).
+    video masters (`record.js`; `--mobile` = vertical 9:16 720×1280 portrait).
     See its README — Playwright is installed *outside* the repo, never as a
     project dependency.
 

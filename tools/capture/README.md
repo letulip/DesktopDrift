@@ -7,8 +7,8 @@ steering with a seeded save (red body + cyan neon, tires in the wallet):
   mobile (390×844 @2x) viewports, plus UI pages.
 - `sheet.js` — contact-sheet grids from the captured frames, for fast review.
 - `record.js` — video via Playwright `recordVideo`: desktop 1280×720 runs by
-  default; `--mobile` records a vertical 9:16 pair (780×1688, iPhone-like
-  context) with `-mobile.webm` filename suffixes. Sources for
+  default; `--mobile` records a vertical 9:16 pair (720×1280 portrait,
+  isMobile+hasTouch) with `-mobile.webm` filename suffixes. Sources for
   `docs/promo/assets/` GIFs/masters (ffmpeg cuts documented in
   `docs/promo/steps/00-capture-gif-cover.md`).
 

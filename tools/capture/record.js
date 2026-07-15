@@ -9,7 +9,7 @@
 //
 // Output: <outDir>/green-study.webm and <outDir>/dev-desk.webm (desktop 1280x720),
 // or <outDir>/green-study-mobile.webm and <outDir>/dining-oak-mobile.webm
-// (--mobile: iPhone-like 390x844 @2x context recorded at 780x1688).
+// (--mobile: 720x1280 portrait, isMobile+hasTouch, recorded at 720x1280).
 // Post-process with ffmpeg (see docs/promo/steps/00-capture-gif-cover.md).
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -47,17 +47,20 @@ async function drive(page, secs, seed) {
   }
 }
 
-// Desktop 1280x720 by default; --mobile records an iPhone-like 390x844 @2x
-// context at 780x1688 (keyboard steering works in both — the game listens for
-// arrow keys regardless of touch support). Same seeded SAVE either way.
+// Desktop 1280x720 by default; --mobile records a 720x1280 (9:16) portrait
+// mobile context (keyboard steering works in both — the game listens for arrow
+// keys regardless of touch support). Same seeded SAVE either way.
+// IMPORTANT: recordVideo.size MUST equal the viewport in CSS pixels. Playwright
+// records the page at its CSS-viewport size and pastes it top-left of the video
+// frame WITHOUT scaling, so a larger recordVideo.size (or a deviceScaleFactor
+// multiplier) leaves the game in one corner with the rest grey. Keep them equal.
 const CONTEXT = MOBILE
   ? {
-      viewport: { width: 390, height: 844 },
-      deviceScaleFactor: 2,
+      viewport: { width: 720, height: 1280 },
       isMobile: true,
       hasTouch: true,
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      recordVideo: { dir: OUT, size: { width: 780, height: 1688 } },
+      recordVideo: { dir: OUT, size: { width: 720, height: 1280 } },
     }
   : {
       viewport: { width: 1280, height: 720 },
