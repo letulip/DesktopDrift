@@ -229,7 +229,8 @@ stays readable. No framework, no bundler.
     fixed-16.67 ms "60 fps cap" was **removed** — it downgraded 90 Hz panels to a juddery
     45 fps (no clean 60 exists on 90 Hz) and micro-stuttered on 60 Hz from rAF jitter.
     Do not reintroduce a fixed-ms frame cap; only halve when native rate is a clean
-    multiple of 60 if battery ever demands it.
+    multiple of 60 if battery ever demands it. The race auto-pauses on `visibilitychange`
+    when the tab/app is backgrounded (resume is manual — tap the overlay).
     **Mobile-GPU lesson — do NOT bake the track into a big offscreen bitmap by default.**
     An offscreen static-surface bake (table+track → one canvas, `drawImage` each frame) was
     tried to avoid the per-frame 200 px stroke. It BACKFIRED on weak GPUs: blitting a ~26–42 MB

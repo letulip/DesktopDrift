@@ -353,6 +353,11 @@ export const startGame = (T, opts = {}) => {
     onChange(p) { if (p) { pointers.clear(); } },
   });
 
+  // Auto-pause when the tab / app goes to the background, so a race isn't left silently
+  // running (or resumed mid-corner) on return — resume is manual (tap the overlay). pause.pause()
+  // is idempotent, so a redundant hide event is a no-op. Registered via on() → removed in stop().
+  on(document, 'visibilitychange', () => { if (document.hidden) pause.pause(); });
+
   // ─── Finish line ──────────────────────────────────────────────────────────────
   // Crossing detected by sign-change of the forward projection onto the track axis (not a circle).
   // prevFinishDot < 0 = car is still behind the line; sign change = crossing.
