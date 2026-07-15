@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from '../js/collision.js';
+import { nearMiss, finishDot, crossedFinish, advanceCheckpoint, resolveWall, resolveProps, stepKnockedCone } from '../js/collision.js';
 
 const TABLE_RECT  = { w: 3400, h: 2900, shape: 'rect' };
 const TABLE_ROUND = { w: 3400, h: 2900, shape: 'round' };
@@ -68,6 +68,37 @@ test('crossedFinish: receding, same side, or exact-0 prevDot → false', () => {
   assert.equal(crossedFinish(-1, -1),  false); // still behind
   assert.equal(crossedFinish(1,   1),  false); // already past
   assert.equal(crossedFinish(0,   1),  false); // prevDot=0 is not < 0
+});
+
+// ── advanceCheckpoint (anti-skip) ───────────────────────────────────────────────
+// Four checkpoints in a loop; CP_R is the capture radius around each.
+const CPS = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 }];
+const CP_R = 30;
+
+test('advanceCheckpoint: car far from the current checkpoint → index unchanged', () => {
+  // nextCp=1 (target at 100,0); car well outside CP_R.
+  assert.equal(advanceCheckpoint(1, 500, 500, CPS, CP_R), 1);
+});
+
+test('advanceCheckpoint: car within CP_R of the current checkpoint → index advances', () => {
+  // nextCp=1 (target at 100,0); car 10 units away → inside CP_R.
+  assert.equal(advanceCheckpoint(1, 110, 0, CPS, CP_R), 2);
+});
+
+test('advanceCheckpoint: reaching the LAST checkpoint wraps the index to 0', () => {
+  // nextCp=3 (last, target at 0,100); car on it → wraps to 0.
+  assert.equal(advanceCheckpoint(3, 0, 100, CPS, CP_R), 0);
+});
+
+test('advanceCheckpoint: ANTI-SKIP — sitting on a later checkpoint does not jump ahead', () => {
+  // nextCp=1 but the car is exactly on checkpoints[3] (0,100). Only the CURRENT
+  // checkpoint counts, so the index must stay at 1 — no course-cutting.
+  assert.equal(advanceCheckpoint(1, 0, 100, CPS, CP_R), 1);
+});
+
+test('advanceCheckpoint: undefined checkpoint at the index → index unchanged', () => {
+  // Out-of-range index (no such checkpoint) is a no-op, never throws.
+  assert.equal(advanceCheckpoint(9, 0, 0, CPS, CP_R), 9);
 });
 
 test('nearMiss: capsule prop — nearest point on segment used, not centre', () => {

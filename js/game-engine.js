@@ -12,7 +12,7 @@ import { TRACKS } from './track-registry.js';
 import { CATALOG } from './shop-catalog.js';
 import { createRaceResults } from './race-results.js';
 import {
-  driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
+  driftQuality, comboMult, comboGain, slipSign, pointsPerSecond, isNewPpsRecord,
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS, MULT_MAX,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
@@ -20,7 +20,7 @@ import { hapticCone, hapticCrash } from './haptics.js';
 import { sfx, drift, stopDrift } from './sound.js';
 import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
-import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
+import { nearMiss, finishDot, crossedFinish, advanceCheckpoint, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 import { gameplayStart, gameplayStop, happyMoment } from './platform.js';
 
@@ -353,6 +353,11 @@ export const startGame = (T, opts = {}) => {
     onChange(p) { if (p) { pointers.clear(); } },
   });
 
+  // Auto-pause when the tab / app goes to the background, so a race isn't left silently
+  // running (or resumed mid-corner) on return — resume is manual (tap the overlay). pause.pause()
+  // is idempotent, so a redundant hide event is a no-op. Registered via on() → removed in stop().
+  on(document, 'visibilitychange', () => { if (document.hidden) pause.pause(); });
+
   // ─── Finish line ──────────────────────────────────────────────────────────────
   // Crossing detected by sign-change of the forward projection onto the track axis (not a circle).
   // prevFinishDot < 0 = car is still behind the line; sign change = crossing.
@@ -555,7 +560,7 @@ export const startGame = (T, opts = {}) => {
             const rec  = records();
             const slot = rec[INSTANCE] ?? (rec[INSTANCE] = {});
             const ta   = slot.timeattack ?? (slot.timeattack = {});
-            if (ta.bestPPS == null || pps > ta.bestPPS) {
+            if (isNewPpsRecord(ta.bestPPS, pps)) {
               ta.bestPPS      = pps;
               ta.bestPPSTotal = totalScore;
               ta.bestPPSTime  = totalTime;
@@ -601,11 +606,11 @@ export const startGame = (T, opts = {}) => {
       }
     } else {
       // ── Intermediate checkpoints: circle CP_R ─────────────────────────────────
-      const cp = checkpoints[S.nextCp];
-      if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
-        // Cycle on the actual checkpoint count, not K — long tracks get extra checkpoints
-        // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
-        S.nextCp = (S.nextCp + 1) % checkpoints.length;
+      // Cycle on the actual checkpoint count, not K — long tracks get extra checkpoints
+      // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
+      const nx = advanceCheckpoint(S.nextCp, car.x, car.y, checkpoints, CP_R);
+      if (nx !== S.nextCp) {
+        S.nextCp = nx;
         if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
     }
