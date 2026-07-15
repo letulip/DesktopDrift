@@ -50,7 +50,9 @@ stays readable. No framework, no bundler.
   - `sandbox.html` — free-drive mode on the parametric oval track. Inline
     `<script type="module">` imports `track-oval.js` and calls
     `startGame(T)` (no items).
-  - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph);
+  - `settings.html` — **settings screen** (Phase 0). Speed-units toggle (km/h ↔ mph),
+    haptics toggle, and a **Profile / Sync** section (export/import the whole save to
+    move progress between devices — `js/profile-sync.js` + `js/profile-io.js`).
     auto-saves via `store.js`. Entry point: ⚙ Settings link on the menu. `noindex`.
   - `donate.html` — donation page. Bybit UID with Copy button, link to Bybit Pay.
 - **SEO files (root):**
@@ -75,21 +77,60 @@ stays readable. No framework, no bundler.
   - `fonts/unbounded-800-latin.woff2` — self-hosted display font (Unbounded 800, OFL).
   - `js/config.js` — pure static data: `CFG`, `CARS` (with Path2D init),
     `TABLE`, physics constants (`PHYS_HZ`, `GRIP_WOBBLE`, `STEER_WOBBLE`,
-    `NM_BAND`).
+    `NM_BAND`). `CARS = [...LEGACY_CARS, ...GENERATED_CARS]`: legacy cars
+    (Bismark, Panda) are inline + hand-extracted; newer cars come from the
+    generated `js/cars-data.js`. Append order is load-bearing — saved
+    `carIndex` must stay stable, so new cars land at index 2+.
+  - **Adding a car** (Variant B pipeline — see `docs/plans/cars.md`):
+    1) drop the top-down SVG in `cars/` (convention: one `stroke`-only `<path>`
+    = body silhouette; the longest wins if several, the rest become `lines`;
+    each `fill` `<path>` = a detail; `viewBox` → `vw`/`vh`).
+    2) add an entry to `js/car-registry.js` (`id`, `name`, `svg`, `body` colour,
+    `flip`, `len`, `ratings:{handling,accel,speed}`, optional `feel`).
+    3) `npm run gen:cars` → regenerates committed `js/cars-data.js`.
+    4) SW: the car SVG is author-time only (path is baked into `cars-data.js`) —
+    do NOT add it to `ASSETS`; just bump the cache. Stat math is the pure
+    `js/car-stats.js` (`speedRating`/`handlingRating`/`accRating` +
+    `driveForRatings`), shared by the garage display, the generator, and tests.
   - `js/items.js` — item catalog with 1:64-scale physics data. Each export is
     a plain object `{ hl, r, kind, imgSrc, c }`. No game state; no imports.
     Used by track files to spread item descriptors with position/angle.
     SVGs live in `items/`.
-  - `js/collectibles.js` — collectible-item catalog (e.g. `ITEM_TIRE_COIN`),
-    same descriptor shape as `items.js`. SVGs live in `objects/`. **Not currently
-    imported** (the only consumer, `track.js`, was removed) — kept as the catalog
-    for the future on-track coins feature.
+  - `js/collectibles.js` — collectible catalog (SVGs in `objects/`). Exports
+    `COLA_CAP` (`{ kind:'cola', r, imgSrc, imgFull }`) — the drift-collected cola cap
+    (see **Cola-cap collectibles** below) — and `TIRE` (`{ kind:'tire', r:20, value:5,
+    imgSrc:'objects/tire.svg' }`) — proximity pickup that feeds the wallet.
+  - `js/cola.js` — **pure cola-cap math** (no imports, no state): `angDelta(a,b)`
+    (shortest signed angle), `capProgress(sweep)`, `stepSweep(...)` (accumulate swept
+    angle when engaged, decay toward 0 when idle). Unit-tested in `tests/cola.test.js`.
+  - `js/economy.js` — **pure tire-coin formulas** (no imports, no state): `starsForPps(pps)`
+    (1 star / 100 PPS, cap 5), `finishPayout(pps)` = `2 + 2*stars` tires, and `isDDK(pps)` /
+    `DDK_PPS` (600 — the 6-star "crown" tier; **display + achievement only, never changes
+    payout**). The soft-currency maths for the Phase 2.5 economy; persistence lives in
+    `store.js`. Unit-tested in `tests/economy.test.js`.
+  - `js/achievements.js` — **pure achievement catalog + evaluator** (imports only `DDK_PPS`
+    from economy). `evaluate(ctx, unlocked)` → `{ unlocked:[{id,name,icon,reward}],
+    progress:[{id,value}] }` over an injected `ctx` snapshot (see
+    `docs/plans/achievements.md`); zero side-effects, so the whole system is unit-testable
+    (`tests/achievements.test.js`). Also: `buildContent(tracks, catalog)` (derives the
+    instance/shop-section descriptor), `buildCatalog(content)` (static defs + generated
+    ladder families + per-instance `ddk-*` + `absolute-ddk`), `flattenRecords(records)`,
+    `CATEGORY_ORDER`. The engine (at finish) and `modify.html` (on purchase) assemble `ctx`,
+    call `evaluate`, then persist via the `store.js` `ach*` helpers + credit the reward once.
+  - `js/tire-seed.js` — **pure tire placement** (no imports, no state): `seedTires(center,
+    inner, outer, n)` scatters `n` tire pickups by even arc-length — on the racing line on
+    straights, pushed toward the inner (concave) edge on corners ∝ sharpness. Deterministic
+    (positions = the persistent `capId`). Called by `track-factory.makeTrack({ tires })`;
+    the count is also declared on the registry entry (`tires`) as the badge denominator.
+    Unit-tested in `tests/tire-seed.test.js`.
   - `js/track-oval.js` — parametric oval track (classic sandbox mode).
     Same export shape as the Time Attack track modules. Does NOT import `items.js`
     (no props). Used by `sandbox.html`.
   - `js/track-registry.js` — **track registry**. Single source of truth for all
-    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, page, theme }`.
-    `id` keys `store.records()`; `theme` (background/table/tableEdge/track) is the
+    Time Attack tracks: `TRACKS` array of `{ id, name, desc, svgSrc, caps, theme }`.
+    `id` keys `store.records()`; `caps` = number of cola caps on the track (the
+    static denominator for the cap badges — see **Cola-cap collectibles**);
+    `theme` (background/table/tableEdge/track) is the
     canvas-world palette, used both by the `tracks.html` preview and (re-declared in
     the track module) by the game. Consumed by `tracks.html` (cards + previews) and
     `select.html` (routing). Adding a track = one entry here + a track module + an
@@ -128,6 +169,21 @@ stays readable. No framework, no bundler.
     per-lap times (best lap highlighted) and a "Back to tracks" button → `tracks.html`.
     All queries are scoped to its own overlay element. Returns `{ show, destroy }`.
     Styled in `css/sandbox.css` (`#rr-*`, `.rr-sub`). Shown by `game-engine.js` on the final lap of a fixed-lap race.
+  - `js/platform.js` — **platform adapter seam**, the ONLY platform file game code
+    imports (contract at the top of the file): `init()`, `gameplayStart()` (after the
+    countdown), `gameplayStop()` (race finish + exit-to-menu), `commercialBreak()`
+    (Promise; awaited on the results-screen restart — a real adapter shows an
+    interstitial and must mute sound while it runs), `happyMoment()` (new record).
+    This default file is the no-op adapter; `npm run build -- --platform=<name>`
+    swaps it for `js/platform-<name>.js` (error if missing — no committed stubs).
+    Contract test: `tests/platform.test.js`; HTML-strip helpers for platform builds
+    live in `scripts/build-helpers.js` (tested in `tests/build-helpers.test.js`).
+    First real adapter: `js/platform-crazygames.js` (CrazyGames SDK v3 — injects the
+    SDK script at runtime, self-inits at import since game code never calls `init()`,
+    silent no-op off-platform, mutes ads via `sound.js setMuted()`; test:
+    `tests/platform-crazygames.test.js`). Adapter files ship ONLY inside their own
+    `--platform` build (as `platform.js`) — never as standalone files in any dist,
+    and never in `sw.js` ASSETS.
   - `js/state.js` — all mutable game state: `car`, `S` (lap/scoring/physics),
     `keys`, `pointers`. Exports `initCar(T)` to set starting position/angle
     from the track namespace. No hardcoded track import.
@@ -135,6 +191,10 @@ stays readable. No framework, no bundler.
     Exports `initRender(T)` and `initItems(props)`. No hardcoded track import.
     SVG orientation is auto-detected (`naturalHeight > naturalWidth` → portrait
     → rotate π/2 + swap draw dimensions).
+    **Collectible rendering:** `drawCaps()` handles `kind:'cola'`; `drawTires()`
+    handles `kind:'tire'` (1:3 aspect, slow spin, amber glow, pop burst on pickup).
+    Both called from `draw()`. **Wallet HUD:** `#wallet` span updated each frame
+    via `wallet()` from `store.js` with a prev-value guard.
     **Theme (dependency injection):** world colours live in `THEME_DEFAULT`
     (background/table/tableEdge/track/cone/skid); `initRender` merges `T.theme`
     over it (same pattern as `T.TABLE`). Tracks ship their palette; no per-track
@@ -144,27 +204,123 @@ stays readable. No framework, no bundler.
     (`rgba(255,255,255,0.92)` / `rgba(0,0,0,0.82)`) — not theme-dependent, always
     readable on any background. `startLine` is no longer a theme field.
     **Checkpoint circles** (intermediate only — finish has no circle): fixed
-    `#7dd4ff` stroke, `lineWidth 5`, `shadowColor rgba(0,0,0,0.7)` `shadowBlur 14`.
-    Dark shadow creates contrast halo on light themes; bright blue is self-visible
-    on dark themes.
+    `#7dd4ff` stroke. Double-stroke technique for contrast: dark wide outer stroke
+    (`lineWidth 8`, `rgba(0,0,0,0.55)`) then cyan narrow inner stroke (`lineWidth 5`).
+    Replaces `shadowBlur 14` which was expensive on mobile GPU (separate rasterisation
+    buffer + Gaussian blur per frame).
     **Cone rendering (2.5D):** Standing cone — 3 arcs in world coords (no save/restore):
     shadow (+2,+2 offset dark circle) → base (`TH.cone`) → highlight (r×0.35, shifted
     −1,−1 to simulate top-left light source). Knocked cone — `save/translate/rotate(c.ang)`:
     shadow trapezoid (+2,+2) → cone body trapezoid (wide at base, `rTip=r×0.25` at tip,
     `h=r×3`) → white reflective stripe (70% of cone width, interpolated per x so it stays
-    inside the body). No save/restore for standing cones (166+/frame) — perf intentional.
+    inside the body). No save/restore for standing cones — perf intentional.
+    **Standing cones are cached as 3 `Path2D` objects** (shadow/base/highlight), rebuilt
+    only when a cone transitions standing→knocked. Each frame: 3 `fill()` calls for all
+    standing cones + one `save/translate/rotate/restore` pass for knocked cones only.
+    `moveTo(cx+r, cy)` before every `arc()` in the Path2D is mandatory — without it the
+    implicit `lineTo` connects consecutive arcs and fills the entire enclosed polygon.
     **Perf:** static geometry (track polygon, minimap line) is cached as `Path2D`
     in `initRender` — built once, not rebuilt per frame. Skid marks are batched into
     `SKID_LEVELS` alpha buckets (a few `fill()`s instead of up to 1500 `fillRect`/frame).
+    DPR capped at 1.5 (`min(devicePixelRatio, 1.5)`) — saves ~1.78× fragment ops vs
+    cap=2 with negligible visual difference for flat arcade style.
+    Game loop runs at the display's native refresh rate (uncapped rAF); physics is
+    frame-rate-independent (`Math.pow(k, dt*PHYS_HZ)`, `dt` clamped 0.05 s). A previous
+    fixed-16.67 ms "60 fps cap" was **removed** — it downgraded 90 Hz panels to a juddery
+    45 fps (no clean 60 exists on 90 Hz) and micro-stuttered on 60 Hz from rAF jitter.
+    Do not reintroduce a fixed-ms frame cap; only halve when native rate is a clean
+    multiple of 60 if battery ever demands it.
+    **Mobile-GPU lesson — do NOT bake the track into a big offscreen bitmap by default.**
+    An offscreen static-surface bake (table+track → one canvas, `drawImage` each frame) was
+    tried to avoid the per-frame 200 px stroke. It BACKFIRED on weak GPUs: blitting a ~26–42 MB
+    texture every frame is a net loss vs the decimated live stroke on fill-rate-poor Adreno
+    (it made even the simple tracks lag on a Moto G8 Plus / Adreno 610), and it does NOT fix
+    the Mali-G76 corruption on cafe-marble/dev-desk (that glitch is per-frame **translucent
+    gradient-sprite overdraw** — the coffee/donut items — not the surface). The bake is now
+    OFF by default (`_surfaceMode` / `USE_SURFACE_BAKE` in `render.js`, opt-in via
+    `?surface=bake`). If you ever revisit it, gate it to strong GPUs only; don't make it the
+    default. The real per-frame win is **off-screen culling** of props/collectibles (`_inView`
+    in `draw()`): the camera zooms on the car, so most items aren't visible — skip them.
+    Culling alone was NOT enough on cafe-marble (winding layout clusters the coffee/donut items,
+    so several stay on-screen at once). The durable Mali fix is `initItems()` **pre-rendering
+    oversized item art once into a ≤`TEX_CAP`(512) canvas, deduped by `imgSrc`** — the source SVGs
+    are 1152² but items draw ~170 px, so the raw textures were minified ~6.7×/frame with no
+    mipmaps; the downscale cuts resident texture memory ~20× and the per-frame sample cost. Props
+    carry a cached `o._portrait` flag (a downscaled canvas has no `naturalWidth`). Also: the main
+    2d context is `{ alpha:false }` (canvas is repainted opaque every frame), and a `?dpr=1|1.25|1.5`
+    override (`_dprCap`, sticky) shrinks the backbuffer for on-device Mali A/B.
   - `js/store.js` — **single persistence layer**. All `localStorage` access goes
     through this module only. Exports `garage()`, `records()`, `settings()`,
-    `achievements()` (live objects — mutate then call `save()`), and `save()`.
-    Versioned schema (`VERSION = 1`, key `'desktop-drift'`); bumping `VERSION`
-    requires a migration block in `_ensure()`.
+    `achievements()`, `stats()` (live objects — mutate then call `save()`), plus
+    `save()` / `collectedCaps()` / `capCollect()` and the economy:
+    `wallet()` / `addTires(n)` / `tiresFor(id)` / `tireCollect(id, tireId)`
+    (`wallet` int + `stats.tires` mirror the caps model). Achievements:
+    `achAll()` / `achUnlocked()` (Set) / `achUnlock(id)` (idempotent) /
+    `achSetProgress(id, n)` (latches to max) + lifetime `stats.runs` / `stats.driftSecs`.
+    Whole-profile sync: `snapshot()` (full state, for export) / `replaceAll(obj)` (import,
+    routed through the same migrate+merge heal; caller must reload).
+    Track-instance markers: `tireSwept`/`markTireSwept` (clean-sweep wheel badge),
+    `hasTrophy`/`markTrophy` (the 1-PPS 🏅 badge, `stats.trophies`), and
+    `hasPerpetual`/`markPerpetual` (the unbroken-drift ♾️ badge, `stats.perpetuals`) — all
+    drive a badge on the `tracks.html` card next to the stars (like the DDK crown).
+    Key `'desktop-drift'`, `VERSION = 4`.
+    **Schema evolution never wipes data:** on load the saved object is deep-MERGED over
+    `defaults()` (missing keys filled, saved leaf values win, arrays replaced). `defaults()`
+    is the shape spec: a save value that's the **wrong type** for an object slot (e.g.
+    hand-edited `settings: null`) is discarded and that slot heals to its default — content
+    validation, so a garbled save can't `TypeError` a consumer. So adding a
+    field/slice = just edit `defaults()` — no `VERSION` bump, no reset (this replaced the
+    old `stats` lazy-init hack — `stats` is a normal slice now). `VERSION` + the
+    `MIGRATIONS` table are only for **breaking** reshapes: bump `VERSION` and add
+    `MIGRATIONS[newVersion] = (s)=>…`; the chain runs old→VERSION, then merge fills the
+    rest. Reset to defaults happens **only** for unparseable/corrupt data — an unknown
+    ("future") version is merged, not wiped.
+  - `js/profile-io.js` — **pure** profile codec for device sync. `encodeProfile(state)` →
+    a `DDP1.`-prefixed base64 code, `decodeProfile(code|json)` → validated profile object
+    (tolerates a raw JSON file export), `validateProfile` / `profileJson`. No DOM, no store —
+    unit-tested in `tests/profile-io.test.js`.
+  - `js/profile-sync.js` — settings "Profile / Sync" DOM glue. `initProfileSync()` wires
+    copy-code / download-file export and paste-or-file import → native confirm →
+    `store.replaceAll()` → reload. Persistence stays in `store.js`; codec in `profile-io.js`.
   - `js/palette.js` — curated colour palettes. Exports `PALETTE` (20 body colours,
     `{ hex, name }`) and `NEON_PALETTE` (10 vivid neon colours, same shape).
     Imported only by `select.html`. Designed to grow: Phase 2 liveries will add
     a `LIVERIES` array with `{ name, body, stroke, details }` entries here.
+  - **Neon FX** (`js/neon.js` + `js/neon-draw.js`, docs/plans/neon.md) — the underglow is a
+    **6-zone** cosmetic (clockwise: front-L, front-R, right-side, rear-R, rear-L, left-side)
+    driven by a per-car config `neon: { layout, anim, colors[], speed }` (in `carLook`;
+    VERSION-3 migration folds the legacy `neonColor` hex into it). `js/neon.js` is the **pure**
+    resolver — `zoneColors(neon, t)` → 6 `{color,intensity}` — with `LAYOUTS`
+    (solid/longitudinal/front-mid-rear/per-zone) and `ANIMS` (none/pulse/rainbow/flow);
+    unit-tested (`tests/neon.test.js`). `js/neon-draw.js` `drawNeon(ctx, hl, hw, neon, t,
+    blurScale)` is the one canvas renderer (6 ellipse zones, **same-colour zones batched into
+    one `shadowBlur` pass** — solid = 1 pass, per-zone/animated up to 6), shared by
+    `render.js` (in-race) and `car-preview.js` (garage). **Gotcha:** `shadowBlur` is device-px and
+    does NOT scale with the car — the preview passes `blurScale = s * NEON_SPREAD` (car draw-scale),
+    NOT a flat constant, so a DPR-inflated or larger canvas doesn't shrink the glow to a thin rim
+    (regressed once when the previews went DPR-aware with a fixed `blurScale`). Shop sells `neon-layout` / `neon-anim`
+    items (`shop-catalog.js`); solid+static stay free. Perf: measured negligible (per-zone+flow
+    ~0.008 ms/frame desktop), animations run everywhere, no throttle (N7).
+  - **Flair → Moods** (`js/emotion-overlay.js`) — Pixar-Cars windshield **eye/expression** overlays.
+    88 SVGs at `cars/emotions/<carId>-<emotion>.svg` (8 cars × 11 moods), authored in the car's frame
+    + final orientation. Equipped per car via `carLook().expression` (additive field, no migration;
+    **read it as `look.expression`, NOT `look.emotion`** — a field-name mismatch silently drops the
+    overlay). Loader fetches → recolours (case-insensitive): `#D9D9D9` → body **always**; the "glass eyes"
+    `#3B97D3` (open-eye iris) + `#222222` (joy/lol/sleep dark eyes = the car's default window colour) →
+    glass tint **only if a tint is equipped**; `#000`/`#222` (3-digit strokes) → body outline colour **only
+    if an outline is equipped** (a 6-digit `#222222` is a glass eye, not a stroke). Then applies the car's
+    paint **finish** to the body skin — masked to just the `#D9D9D9` skin path so it matches a
+    metallic/pearl/chrome body without touching the eyes — → decodes to a bitmap cached by
+    `(carId, emotion, body, tint, finish, outline)`. Rendered **no-flip** (art is final-oriented) over the car
+    in BOTH `render.js` `drawCar` (via `setCarEmotion`) and `car-preview.js` `drawCarPreview` (garage /
+    modify / share — `share-card.js` **awaits** `preloadEmotion` before reading pixels). Async: hot-path
+    `getEmotionBitmap` is a sync cache read, `preloadEmotion` warms it (deduped + **negative-cached** so
+    a missing/broken overlay isn't re-fetched every frame); `onEmotionReady` repaints one-shot previews.
+    Shop sells `kind:'expression'` items; **None** (no face) is the free default. Pure helpers
+    (`emotionKey`, `recolorEmotion`) unit-tested (`tests/emotion-overlay.test.js`). SVGs ship via the
+    `cars/` build copy and are **precached in `sw.js`** (grid-generated `MOOD_ASSETS`, disk-matched by
+    `tests/sw-assets.test.js`) — paid cosmetics must survive offline across SW updates, and `activate`
+    wipes lazily runtime-cached files on every cache bump.
   - `js/game-engine.js` — sole entry point for all game modes. Exports
     `startGame(T, opts = {})`. Receives the full track namespace `T`, calls
     `initRender(T)` and `initCar(T)`, optionally `initItems(props)` when
@@ -173,11 +329,11 @@ stays readable. No framework, no bundler.
     penalties, and the entire lap-detection block (no lap times, no race finish).
     Flash notifications (combo banked, crashes, TRANSITION!, NEAR MISS!) still fire.
     On init reads `garage()` from `store.js` to apply the chosen car model,
-    body colour, and neon colour (`CARS[S.carModel].neonColor`).
+    body colour, and the neon config (`carLook().neon` → `setCarPaint` → `drawNeon`).
     Also reads `settings().units` once to compute `speedFactor` (1 for km/h,
     0.621371 for mph) and sets `#spdUnit` label. Speed passed to `draw()` is
     already converted — `render.js` just rounds and displays it.
-    When `neonColor` is set, the black drop-shadow under the car is suppressed.
+    When a neon config is equipped, the black drop-shadow under the car is suppressed.
     **Lap count & finish:** `TOTAL_LAPS = T.laps ?? opts.laps ?? 0` (0 = endless,
     used by sandbox). With a finite count the HUD shows `1/3`. The finish line
     (checkpoint[0] = center[0]) is detected by **sign-change of the forward projection**
@@ -217,22 +373,117 @@ stays readable. No framework, no bundler.
     when the Menu button is tapped.
   - `js/track-util.js` — **pure track geometry helpers** (no imports, no state):
     `parseSvgPath`, `chaikin`, `offsetEdges` (center→outer/inner), `placeCones`,
-    `sampleCheckpoints`, `prepProp`. `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z,
-    absolute coords) — единственный экземпляр; раньше был продублирован в каждом
-    трек-модуле и в `tracks.html`. Shared by track modules + `tracks.html`.
-    Unit-tested in `tests/track-util.test.js` (20 tests).
+    `sampleCheckpoints`, `sampleCheckpointsByCorner`, `prepProp`,
+    `nearestCenter` (windowed O(window) nearest centreline scan, replaces the old O(N)
+    loop in `frame()`), `circularAdvance` (forward arc distance on a closed loop; returns 0
+    for backward movement). Shared by track modules, `tracks.html`, and `game-engine.js`.
+    Unit-tested in `tests/track-util.test.js`.
+    Key behaviours / gotchas:
+    - `parseSvgPath(d)` → `[[x,y],…]` (M/L/H/V/Z, absolute coords). **Deduplicates
+      the closing vertex**: track SVGs use `L start_x start_y Z` which makes the last
+      parsed point equal to the first — a zero-length Chaikin edge that after 4 passes
+      creates 16 coincident points, destabilising tangent normals near start/finish.
+      Fix: `if dist(pts[0], pts[-1]) < 0.5` SVG-units → `pts.pop()`.
+    - `offsetEdges(centerPts, half, minInnerGap=10)` — **clamps the inner offset on
+      hairpins**. Estimates local radius R as the circumradius of the (prev,curr,next)
+      triangle; inner offset = `min(half, max(R−minInnerGap, minInnerGap))`. Outer
+      offset always = `half` (no inversion possible). Prevents self-intersecting inner
+      edges on tracks where R < TRACK_HALF (green-study min R≈66 GU, workbench ≈55 GU).
+    - `placeCones(outer, inner, minSpacing=160)` — **independent arc-length accumulators**
+      for each edge. Outer and inner are sampled separately: outer (longer in corners)
+      receives more cones, inner fewer. Cones are no longer always "directly across"
+      from each other — staggered placement fills gaps on outer radii of bends.
+    - `sampleCheckpointsByCorner(center, K)` — K checkpoints in equal **arc-length** sectors
+      (not equal index count), biased toward curvature peaks. **Two hard guarantees enforced
+      post-placement:** (1) `checkpoints[0]` is always `center[0]` — finish-line detection
+      in `game-engine.js` uses `c0 = checkpoints[0]` as the reference point and it must
+      match the visual chequered flag drawn at `center[0]` in `render.js`; never break this
+      invariant. (2) Minimum arc-length gap of `totalLen/K/2` between consecutive
+      checkpoints — prevents a 180° hairpin spanning two sectors from placing both
+      checkpoints at its entry and exit; the later is pushed to its sector index-midpoint.
+    - **Reversed mode** (`reverseTrack(T)` + `instanceId`): `reverseTrack(T)` is a pure
+      transform — it reverses `center`/`inner`/`outer` in lockstep, recomputes
+      `checkpoints`/`startPos`/`startAngle`, carries all other fields unchanged, and sets
+      `reversed: true`. The existing finish/checkpoint logic then works without modification.
+      `instanceId(trackId, reversed)` returns `trackId` for the forward run and
+      `` `${trackId}:rev` `` for the reversed run; this key is used consistently across
+      records, tire pickups, cola-cap pickups, the cleared flag, and the first-clear bonus
+      (all persistence in `store.js` and `game-engine.js`). Entry point: `game.html?dir=rev`
+      reads the param, calls `reverseTrack(T)`, and passes `reversed` to `startGame`.
+      `tracks.html` shows a Normal/Reversed toggle; the reversed card is **locked until the
+      forward run earns 3★ (bestPPS ≥ 300)**; the reversed card link includes `&dir=rev`,
+      shows per-instance records/chips, and appends a ↺ to the name. The thumbnail is **not**
+      mirrored — reversed is the same geometry the other way, so the preview matches forward and
+      the ↺ suffix is the only marker. Forward and reversed are fully independent persistence
+      instances — no store VERSION bump was needed (additive).
+    - **Achievements** (pull-model, no event bus): the pure `evaluate()` in
+      `js/achievements.js` is called at **two** sites — race finish (`game-engine.js`
+      `awardAchievements(pps)`, Time Attack only) and after a purchase (`modify.html`
+      `creditShopAchievements()`). Each assembles a `ctx` snapshot (run metrics + persistent
+      state + `buildContent(TRACKS, CATALOG)`), evaluates, then persists via `store.js`
+      (`achUnlock` gates the reward so it pays once; `achSetProgress` latches ladder progress
+      to max) and credits tires. The engine tracks **per-run accumulators** separate from the
+      per-combo `S.*` fields — `runNearMisses/runCrashes/runTimeAt8/runDriftSecs/
+      runTirePickups/runCaps/comboUnbroken` — since e.g. `S.nearMisses` is zeroed on every
+      combo reset. Lifetime `stats.runs`/`stats.driftSecs` feed the drift/race ladders.
+      Newly-unlocked defs + a `ddk` flag are passed to `raceResults.show` (toast + crown).
+      `achievements.html` renders the full catalog grouped by `CATEGORY_ORDER`; hidden-locked
+      cards are masked to `???` (name/desc/reward never rendered into the DOM). Entry: 🏆 on
+      the main menu; `absolute-ddk` lights a permanent crown there.
+    - **Cola caps pay tires, not score** (since the achievements work): banking a cola-cap
+      donut credits `CAP_TIRE_VALUE` (15) tires with its own ledger line, one-time per
+      instance via `capCollect`. `CAP_BONUS` and the old PPS-strip are gone — score maps
+      straight to PPS. (Tire *pickups* stay separate: `runTirePickups`/`tiresEarned` count
+      only `kind:'tire'` so the `clean-sweep` invariant `tiresThisRun === tireTotalOnTrack`
+      holds.)
   - `js/scoring.js` — **pure drift-scoring logic** (no imports, no state):
     `isDrifting`, `driftQuality`, `comboMult`, `comboGain`, `slipSign`, `pointsPerSecond`
     + named tuning constants. `pointsPerSecond(score, totalTime)` is the PPS metric
     (returns 0 when `totalTime = 0`). Used by `game-engine.js`; unit-tested in `tests/scoring.test.js`.
+  - `js/physics.js` — **pure car kinematics step** (imports only `scoring.js`): `stepCar(car,
+    S, steerTarget, P, K, dt)` — steering smoothing, velocity decomposition, grip/roll/
+    drift-drag, wobble, angle integration, self-align, position. Mutates `car` + `S.steerSmooth/
+    physT`; returns `{ drifting, speed, vS, fwd, side }` for the engine's scoring/skid code.
+    A **verbatim** extraction of the old inline `frame()` integration — **feel-critical, do
+    not reorder**. Locked by a golden-master in `tests/physics.test.js` (frozen trajectory;
+    regenerate deliberately only when intentionally changing handling). `K` =
+    `{ PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE }`.
+  - `js/collision.js` — **pure collision / finish geometry** (no imports, no state):
+    `finishDot` / `crossedFinish` (lap-line sign-flip), `nearMiss` (within-band check),
+    `resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts)` / `resolveProps(car, props, CR,
+    bodyPts)` — wall + prop pushback, and `stepKnockedCone(c, props, CONE_R, dt, fAdj)` —
+    advances a knocked cone one frame (translate + cone-vs-prop pushback + decay). The
+    `resolve*` and `stepKnockedCone` MUTATE their first argument and return nothing (resolve*)
+    or void (step*); side effects (haptics, combo burn, score) stay in `game-engine.js`.
+    Verbatim extractions — **feel-critical**; locked by golden-masters in
+    `tests/collision.test.js`. `bodyPts` is the pre-collision capsule snapshot.
+  - `js/input.js` — **pure input mapping** (no imports, no state):
+    `resolveSteer(pointers, keys, W) → -1|0|1` — sums pointer-half votes (left < W/2 → −1,
+    right → +1) then applies keyboard (ArrowLeft/Right, a/A/d/D); keyboard takes priority
+    over touch when non-zero. Called once per `frame()`. Unit-tested in `tests/input.test.js`.
   - **Dependency order (no circular deps):**
-    `store.js` / `track-util.js` / `scoring.js` / `track-registry.js` (no imports) →
-    `config.js` → `items.js` → `track*.js` → (`state.js` / `render.js`) →
-    `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
+    `store.js` / `track-util.js` / `scoring.js` / `collision.js` / `input.js` /
+    `economy.js` / `cola.js` / `track-registry.js` / `platform.js` (no imports) →
+    `physics.js` → `config.js` → `items.js` → `track*.js` →
+    (`state.js` / `render.js`) → `game-engine.js` → (`pause.js` / `confirm-exit.js` / `race-results.js`).
     HTML inline module scripts are the outer shell.
     `select.html` imports `config.js` + `palette.js` + `store.js` + `track-registry.js`
     (car previews + colour palette + persistence + track routing).
     `tracks.html` imports `track-registry.js` + `store.js`.
+- **Non-shipped directories (not in the build, not deployed):**
+  - `docs/promo/` — marketing/distribution pack: `PLATFORMS.md` (staged portal
+    rollout plan — the map; its rollout table indexes the playbooks),
+    `steps/NN-*.md` (one executable playbook per rollout step: what/how/when/who),
+    `PROMOTER_AGENT.md` (standing prompt for the marketing agent),
+    `BUILDER_AGENT.md` (standing prompt for the builder agent: git/worktree
+    protocol, task intake + report formats), `SHORTS_PIPELINE.md` (YouTube
+    Shorts workflow), `screenshots/` (store-listing screenshots, desktop +
+    mobile), `assets/` (cover art, gameplay GIF/video masters).
+  - `tools/capture/` — Playwright screenshot/video-capture kit (scripted driving +
+    contact sheets); regenerates `docs/promo/screenshots/` and the gameplay
+    video masters (`record.js`; `--mobile` = vertical 9:16 iPhone context).
+    See its README — Playwright is installed *outside* the repo, never as a
+    project dependency.
 
 ## Setup
 
@@ -253,7 +504,9 @@ stays readable. No framework, no bundler.
 |------|---------|-------|
 | install | `npm install` | Installs `terser` + `clean-css` devDeps. |
 | dev | `python3 -m http.server 8777` (inside `DesktopDrift/`) | Serves source directly — no build needed for local dev. |
-| build | `npm run build` | Minifies `js/*.js` + `sw.js` + `css/*.css` → `dist/`. Runs via `scripts/build.js`. |
+| build | `npm run build` | `scripts/build.js` → `dist/`. Copies asset dirs verbatim; minifies `css/*.css` (CleanCSS lvl 2) and `js/*.js` + `sw.js` (Terser, `module:true`). Not needed for local dev — source is served directly. |
+| platform build | `npm run build -- --platform=<name>` | Portal variant → `dist-<name>/` (git-ignored): swaps `js/platform.js` for `js/platform-<name>.js` (error if missing), ships NO service worker (strips inline + `sw-update` registration tags from HTML, prunes `sw.js` + `js/sw-update.js`), strips external links from HTML, prunes SEO files (`google*.html`, `yandex_*.html`, `sitemap.xml`, `robots.txt`). No flag (or `--platform=none`) = default build, byte-identical. |
+| portal zip | `npm run build -- --platform=portal --zip` | `portal` = SDK-less preset (Newgrounds/Game Jolt): same stripping/pruning but keeps the default no-op `js/platform.js` (no adapter swap). `--zip` (works with any platform build) packs the output into `dist-<name>.zip` via the system `zip` binary — `index.html` at the zip root, ready to upload. |
 | test | `npm test` | `node --test tests/*.test.js`. Must be green before every commit. |
 | syntax check | `node --check js/*.js && echo OK` | Run before every commit (all ES modules). |
 
@@ -317,11 +570,18 @@ axis maps to the capsule long axis.
   `T`, calls `initRender(T)` / `initCar(T)`, optionally `initItems(props)`.
 - `requestAnimationFrame(frame)` drives physics at ~60–120 Hz. `dt` is clamped
   to `0.05` s.
-- **Physics:** Velocity decomposed into forward `vF` and lateral `vS`. Per-frame
-  multipliers raised to `dt * PHYS_HZ` for frame-rate independence. Grip
-  breathing via `GRIP_WOBBLE` + `STEER_WOBBLE` (see Gotchas).
+- **`frame()` is a thin orchestrator** — it delegates to pure modules and fires
+  side effects (haptics, HUD writes, score, combo) on their return values:
+  `resolveSteer` (input) → `stepCar` (physics) → `hitConeAt`+`stepKnockedCone`
+  (cone hit + motion) → `resolveWall`/`resolveProps` (collision) →
+  `nearestCenter` (track distance) → scoring helpers → finish/checkpoint logic → `draw`.
 - **Scoring (combo bank/burn):** Drift points accumulate in `comboPoints`.
-  Banked on clean drift end; burned on crash/off-track. Cones = flat −200.
+  Banked on clean drift end; burned on crash/off-track. Cone hit = flat −100.
+- **Tire economy:** `updateCaps` dispatches by `kind`. `kind:'tire'` → proximity
+  pickup (`dist < r + TIRE_CR`): `tireCollect`, `addTires(value)`, flash. `kind:'cola'`
+  (the drift-donut cap) → banks `CAP_TIRE_VALUE` (15) tires one-time via `capCollect`
+  (**not** score any more). On race finish: `addTires(finishPayout(pps))` adds 2–12 coins
+  scaled by star rating, plus any achievement rewards (`awardAchievements`).
 - **HUD:** DOM overlay (`#hud`). Elements: `#menuBtn`, `#timePanel`, `#mini`,
   score, `#lapCounter`, `#combo`, `#flash`, `#count`, `#hint`.
   Car/colour controls are **not** in the game HUD — selection lives entirely on
@@ -342,21 +602,138 @@ axis maps to the capsule long axis.
   }
   ```
 
+### Cola-cap collectibles
+
+Collect cola caps by drifting a full "donut" **around** them (no collision — you orbit,
+never crash). The cap fills with red along the exact arc the car sweeps (radial wedge).
+
+- **Placement:** a cap is a `<line id="ITEM_COLA_CAP">` proxy-line in the track SVG
+  (same midpoint-as-position convention as items). Each track module's parse loop
+  special-cases that id → pushes `{ ...COLA_CAP, x, y }` to its `collectibles` export
+  instead of `props` (so no collider). The registry entry's `caps:` must equal the
+  number of those lines in the SVG (it's the static badge denominator).
+- **Mechanic (`js/game-engine.js` `updateCaps`):** per frame, when the car is in the ring
+  `[CAP_INNER_R, CAP_OUTER_R]` around a cap **and** `isDrifting`, accumulate the signed
+  swept angle via `stepSweep` (`js/cola.js`); idle → slow decay toward 0 (`CAP_DECAY`,
+  ~2.5× slower than fill). `CAP_LOOPS` full circles (currently 2) → collected: `+CAP_TIRE_VALUE`
+  (15) tires, flash, and `capCollect(id, i)` persists it one-time. Swept-angle is geometric → frame-rate
+  independent (only decay is `dt`-scaled). Runtime per-cap state lives in `S.caps[i]`
+  (sweep/prevAng/collected/pop), **not** on the descriptor.
+- **Persistence (`js/store.js`):** `stats().caps[trackId]` = **array of collected cap
+  indices** (index = position in the track's `collectibles`). `capCollect(id, i)` appends
+  + saves; `collectedCaps(id)` reads it; restored on race start so caps stay collected.
+  (`stats` is a normal slice in `defaults()`; the load-time merge fills it for old saves —
+  no VERSION bump, no reset.)
+- **Render (`js/render.js` `drawCaps`):** empty `cola.svg` base; reveal `cola-filled.svg`
+  inside a wedge clip `[startAng, startAng+sweep]`; collected → full red + a brief `pop`.
+- **UI:** `index.html` Time Attack tile shows total caps collected across tracks
+  ("N cap(s) collected"); each `tracks.html` card shows an `N / M cap` badge
+  (`is-done` when full). Both read `store` — totals use the registry `caps` denominator
+  so neither page imports heavy track modules.
+- **Caveat:** persisted index = position in `collectibles`; reordering/removing caps in an
+  SVG shifts existing saved flags. Keep cap order stable.
+
+### Sound (`js/sound.js` + `js/sound-params.js`)
+
+Procedural Web Audio, mirroring `haptics.js`: a settings-gated wrapper safe to call anywhere,
+silent when `settings().soundEnabled` is false or Web Audio is missing. One shared `AudioContext`,
+created lazily and **unlocked on user gestures** (capture-phase `pointerdown`/`keydown`/
+`touchend` — persistent listeners that retry `resume()` per gesture, decided by the pure
+`unlockAction`, detaching only once the context runs: desktop Firefox never grants activation
+for arrow keys, they match built-in browser shortcuts, so once-listeners left an arrows-only
+race silent); suspended on `visibilitychange` (tab hidden).
+
+- **`js/sound-params.js` (pure, unit-tested — `tests/sound-params.test.js`):** the `SFX` table
+  (each entry a short sine-only "bell" chime — `{ notes:[[freqHz, offsetSec],…], dur, gain, a }`)
+  plus volume maths: `gainForVolume` (squared perceptual curve), `clampVolume`, `VOLUME_LEVELS`
+  (low/med/high), `levelForVolume`. No DOM, no AudioContext.
+- **`js/sound.js` (browser-only):** renders those params (sine osc + exp attack/decay through a
+  gentle master lowpass + a light procedural-impulse reverb). `play(id, mag)` + named `sfx.*`
+  helpers are fired imperatively at event sites (game-engine + UI handlers), like the haptic
+  calls. A per-id throttle (`_MIN_GAP`) stops burst-prone sounds (pickup/cone/crash) machine-gunning.
+  `soundThenGo(href, id)` / `tapThenGo(href)` play a cue then defer navigation ~100 ms so it isn't
+  cut when the page (and its AudioContext) unloads — used by menu/back links.
+  `setMuted(bool)` is a runtime-only mute for platform ad breaks (gates `_on()` + suspends the
+  context; never touches persisted settings) — used by `js/platform-crazygames.js`.
+- **Aesthetic:** toy-car arcade → soft discrete blips only; **no** engine-drone / tyre-squeal
+  synth (a procedural continuous voice was tried and cut — it droned/fatigued). The one
+  continuous voice is the **drift sound** (`drift(sliding, slip, active)` / `stopDrift`, called
+  per frame from `game-engine.js`): two independent layers — a recorded cardboard-slide sample
+  (`sounds/drift.mp3`, looped, volume+pitch react to slip) while actually sliding, plus a
+  whisper-quiet band-passed noise "bed" that runs steadily while the combo counter is active
+  (`S.comboPoints >= 1`) to give the slide a continuous body.
+- **Settings:** `settings().soundEnabled` (default true) + `settings().volume` (0..1, default
+  0.65) — added to `defaults()`; the load-time merge fills them for old saves (no VERSION bump).
+  UI on `settings.html`: a Sound On/Off toggle + a Low/Med/High volume button-row.
+- **Assets:** the only bundled audio is `sounds/drift.mp3` (Pixabay — see `CREDITS.md`),
+  pre-cached in `sw.js` ASSETS (an SFX must be ready at event time — it can't wait for a first
+  network fetch). Everything else is synthesized (zero files). Dev tool: `tools/sound-lab.html`
+  (not shipped) auditions every SFX + live-tweaks params.
+
+### Dev tools (`tools/*.html`, not shipped)
+`tools/` holds dev-only prototype pages — NOT copied by `scripts/build.js` (its copy loop lists a
+fixed set of dirs; `tools/` isn't one), so they never reach production and need no `sw.js` ASSETS
+entry or cache bump. Current: `tools/sound-lab.html` (SFX auditioning) and `tools/car-eyes-lab.html`
+(Phase-E0 prototype for the planned car-windshield "expressions" feature — draws procedural eyes on
+the real cars via `drawCarPreview`, auto-detects each windshield from the `#222222` glass `details`,
+with live tuning + an art-overlay slot). **Gotcha:** the game's service worker (registered on the
+same origin) serves `tools/` pages via stale-while-revalidate, so while iterating locally append a
+throwaway query (`?v=2`) to force a fresh fetch instead of the cached copy.
+- **Gotcha:** changing any sound code/asset needs a `sw.js` cache bump; a new sound module or
+  sample must also be added to `ASSETS`.
+
+### Share result (`js/share.js` + `js/share-card.js` + `js/share-util.js`)
+
+Client-only "share your score" from the race-results screen — no backend. A **template PNG**
+(`share/template.png`, 1080², all static art + a baked QR) is drawn onto a canvas, then a
+**dynamic layer** on top: the player's actual car (via `drawCarPreview`, sized by measuring its
+solid bbox → 140px body, RIGHT-rear corner anchored, per `CARD` in `share-util.js`), the PPS
+number, DDK crown (600+), stars, track name (auto-shrunk to fit) + best lap.
+
+- `js/share-util.js` — pure, unit-tested (`tests/share-util.test.js`): `CARD` layout config,
+  `buildShareText`, `shareFilename`, `litStars`, `pickShareMethod`, `SHARE_URL`.
+- `js/share-card.js` — browser: `renderShareCard(canvas, data)` + `loadTemplate()`; reuses
+  `car-preview.js`, imports `config.js` (Path2D) so it is browser-only.
+- `js/share.js` — browser: `createShareModal()` (mirrors `confirm-exit.js`) — card preview +
+  native Web Share (`navigator.canShare({ files })` → `navigator.share`, mobile) OR Download +
+  Copy link (desktop). Wired from `race-results.js` (`#rr-share`); the engine passes
+  `carModel / look / trackName` into `show()`.
+- **Build gotcha (important):** `scripts/build.js` copies only a fixed dir list to `dist/`, so a
+  shipped asset dir that isn't in it never reaches production. `share/` (and `sounds/`) had to be
+  ADDED to that loop. Any new shipped asset dir must go in **both** `scripts/build.js` and the
+  `sw.js` `ASSETS` list.
+
 ### Service Worker (`sw.js`)
 
-**Stale-while-revalidate** strategy. Current cache key: **`desktop-drift-v31`**.
+**Stale-while-revalidate** strategy. The cache key (`const CACHE`) is bumped on every asset change.
 The fetch handler serves the cached copy immediately (fast + offline) **and** in
 parallel re-fetches from network, overwriting the cache — so updated assets reach
 the player on the *next* load even if `CACHE` wasn't bumped (a forgotten bump
 self-heals). **Still bump `CACHE` on any asset change**: the version bump byte-changes
-`sw.js`, which triggers `skipWaiting`/`clients.claim` and guarantees the update on the
-*first* load, plus `addAll(ASSETS)` re-primes the precache. ASSETS lists every HTML page
-(incl. `tracks.html`, `green-study.html`), CSS, JS, the track SVG (`tracks/green-study.svg`),
+`sw.js` so the browser installs a fresh worker, and `addAll(ASSETS)` re-primes the
+precache. ASSETS lists every HTML page, CSS, JS, track SVGs, sounds, `share/template.png`,
 and icons. Individual `items/` SVGs are NOT precached (fetched + runtime-cached lazily).
+
+**Registration + update nudge (`js/sw-update.js`).** Every page loads this module
+(`<script type="module" src="./js/sw-update.js">`) instead of an inline `register`. It
+registers with `{ updateViaCache: 'none' }` (browser never serves a stale `sw.js` from the
+HTTP cache), calls `reg.update()` on every `visibilitychange`→visible (catches the iOS-PWA
+warm-resume case where a relaunch never cold-reloads), and when a fresh worker reaches
+`installed` **while an old one still controls the page** (`shouldNudge`, unit-tested) shows a
+bottom-centre "New version available — tap to update" toast — but never on the live-driving pages
+(`game.html`/`sandbox.html`; `isGameplayPage`, unit-tested), where it would sit over the
+touch-steering canvas: the waiting worker persists, so the nudge appears on the next menu page.
+Tapping posts `{type:'SKIP_WAITING'}`
+to the waiting worker and reloads on `controllerchange` (only after the user opts in — never on
+first install, never mid-race). **`sw.js` no longer eagerly `skipWaiting()`s** — a new worker
+*waits* so the nudge can offer the switch; it activates only on that message. Offline-safe by
+construction: no network → no `updatefound` → no toast, the cached app runs untouched.
 
 > Why prod sometimes showed stale content before v31: four commits changed
 > `tracks.html` / `css/tracks.css` / `track-registry.js` without bumping `CACHE`,
 > so cache-first kept serving the old precached copies. SWR + the bump fixes it.
+> (Installed PWAs also lagged because iOS warm-resumes without cold-reloading — the
+> `js/sw-update.js` nudge + `visibilitychange` re-check now surfaces updates there.)
 
 ## Development rules
 
@@ -449,9 +826,10 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   build — fits the pure-static stack). Run with `npm test`. Tests live in `tests/`,
   one `*.test.js` file per concern.
 - **What gets unit-tested:** pure logic only — `store.js` (defaults, save/load,
-  version-mismatch reset), `scoring.js` (drift/combo formulas), `track-util.js`
-  (chaikin / edge offset / cones / checkpoints / prepProp), and as they land:
-  data tables in `config.js`, the future collision validator.
+  merge-over-defaults, corrupt-data reset, unknown-version preservation),
+  `scoring.js` (drift/combo formulas), `physics.js` + `collision.js` (golden-masters),
+  `track-util.js` (chaikin / edge offset / cones / checkpoints / prepProp), `cola.js`,
+  `input.js`, and as they land: data tables in `config.js`, the future collision validator.
 - **What stays manual:** anything needing Canvas2D / Path2D / DOM / `requestAnimationFrame`
   — `render.js`, `game-engine.js`, `pause.js`, `confirm-exit.js`. These can't run in
   Node, so they ride the browser smoke test below.
@@ -471,8 +849,15 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
 - **Branch → environment:** `main` → GitHub Pages (`github-pages` environment).
   No staging branch.
 - **CI/CD:** GitHub Actions `.github/workflows/static.yml` — on push to `main`:
-  `npm ci` → `npm run build` (minifies JS + CSS → `dist/`) → deploys `dist/` to
-  Pages. Run `npm test` + smoke test locally before merging; CI has no test step.
+  `npm ci` → `npm run build` → deploys `dist/` to Pages. CI has no test step —
+  run `npm test` + smoke test locally before merging.
+- **Build script** (`scripts/build.js`): cleans `dist/`, copies asset dirs
+  (`fonts/`, `icons/`, `cars/`, `items/`, `objects/`, `tracks/`) + all `.html` +
+  root statics verbatim; minifies every `css/*.css` (CleanCSS level 2) and
+  `js/*.js` + `sw.js` (Terser, `module: true, compress, mangle`). Exits 1 on
+  any minification error so CI catches broken syntax before deploy.
+- **`dist/` is never committed** — it is git-ignored and fully regenerated by CI.
+  Run `npm run build` locally only to validate the production bundle or debug CI.
 - **Rollback:** Revert commit on `main` and push. Do **not** force-push `main`.
 - **Feature branches:** Work in progress lives in `feat/*` / `fix/*` / `chore/*`
   branches, merged to `main` via PR when ready.
@@ -542,6 +927,36 @@ Guiding philosophy: **DESIGN.md** (distinctive, non-generic UI). All tokens live
   On overlap: cone is pushed out along the contact normal; velocity reflected with
   restitution 0.8 (`vDotN * 0.8`), spin reversed and damped (`* −0.4`).
   Cost: O(knocked_cones × props) per frame — typically 0–45 checks, negligible.
+- **Track SVG closing-vertex pattern.** All shipped SVGs end with `L start_x start_y Z`
+  (explicit return to first vertex before the implicit Z-close). `parseSvgPath` now strips
+  this duplicate automatically (`dist(pts[0], pts[-1]) < 0.5`). New SVGs authored the
+  same way are handled; do **not** remove the dedup — it prevents 16 coincident Chaikin
+  points and the resulting inner-edge normal instability at start/finish.
+- **Hairpin inner-edge inversion.** When a corner has R < TRACK_HALF (100 GU), naive
+  `±half` offset crosses the centre of curvature and inverts the inner arc (self-
+  intersecting loop, fill overlap, misplaced cones). `offsetEdges` clamps the inner
+  offset to `min(half, R−10)` via the local circumradius estimate. If you lower
+  TRACK_HALF or add tracks with tighter hairpins, watch for R < new TRACK_HALF.
+- **Item clearance validation.** After placing or resizing items in a track SVG,
+  run the inline Node script below to check every `<line id="ITEM_*">` midpoint
+  against the raw track-path polyline. Items need `dist > TRACK_HALF + item.r`
+  from the nearest path segment. The script uses the same `scale=0.25` and
+  `svgCx/svgCy = viewBox/2` logic as `track-factory.js`. Copy `itemSizes` from
+  `js/items.js` for the items you changed; items not in the map default to `r=50`
+  (conservative). A 30–50 GU buffer above the minimum is recommended because
+  Chaikin smoothing pulls corners inward and may reduce clearance slightly.
+
+  ```bash
+  # Usage: node --input-type=module << 'EOF' ... EOF   (from DesktopDrift/)
+  # Paste the script from the "Item clearance validator" section below, or use:
+  node tools/check-item-clearance.js tracks/workbench.svg
+  ```
+
+  The script lives at `tools/check-item-clearance.js` (run standalone, no deps).
+- **HUD DOM writes are guarded.** `render.js` caches the 10 HUD element refs in
+  `initRender` and writes `textContent`/`innerHTML` only when the value changes. The
+  prev-value guards are reset to `null` inside `initRender` on each track start — do
+  not add unconditional per-frame DOM writes to the HUD loop.
 
 ## Commit / PR conventions
 

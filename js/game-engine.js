@@ -1,14 +1,31 @@
-import { CARS, TABLE, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
+import { CARS, TABLE as TABLE_CFG, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
 import { car, S, keys, pointers, initCar } from './state.js';
-import { canvas, W, draw, initItems, initRender } from './render.js';
+import { canvas, W, draw, initItems, initRender, setCarPaint, setCarEmotion } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
-import { garage, settings, records, save } from './store.js';
+import { garage, settings, records, save, collectedCaps, capCollect, addTires, recordTxn, carLook, markCleared, markTireSwept, markTrophy, markPerpetual,
+         stats, wallet, owned, ownedCars, achUnlocked, achUnlock, achSetProgress } from './store.js';
+import { finishPayout, starsForPps, isDDK, isOnePps, ONE_PPS_BONUS, UNBROKEN_BONUS, FIRST_CLEAR_BONUS } from './economy.js';
+import { evaluate, buildContent, flattenRecords } from './achievements.js';
+import { defaultNeon } from './neon.js';
+import { TRACKS } from './track-registry.js';
+import { CATALOG } from './shop-catalog.js';
 import { createRaceResults } from './race-results.js';
 import {
-  isDrifting, driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
-  MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS,
+  driftQuality, comboMult, comboGain, slipSign, pointsPerSecond,
+  MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS, MULT_MAX,
 } from './scoring.js';
+import { stepSweep } from './cola.js';
+import { hapticCone, hapticCrash } from './haptics.js';
+import { sfx, drift, stopDrift } from './sound.js';
+import { stepCar } from './physics.js';
+import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
+import { nearMiss, finishDot, crossedFinish, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
+import { resolveSteer } from './input.js';
+import { gameplayStart, gameplayStop, happyMoment } from './platform.js';
+
+// Physics constants bundle passed to the pure stepCar() each frame (built once).
+const PHYS_K = { PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE };
 
 // Active-game registry — ensures a second startGame call tears down the previous one
 // (listeners + loop) instead of creating duplicates. Anchored on globalThis, NOT
@@ -31,13 +48,54 @@ export const startGame = (T, opts = {}) => {
     prev.stop();
   }
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
+  // Effective table bounds for this session — track's own TABLE, or the config default.
+  // Local const shadows the module-level import so the shared singleton is never mutated.
+  const TABLE = T.TABLE ?? TABLE_CFG;
   const TOTAL_LAPS = T.laps ?? opts.laps ?? 0; // 0 = infinite (sandbox)
   const ZEN = !!opts.zen;
   S.zen = ZEN;
+  const REVERSED = !!opts.reversed;
+  S.reversed = REVERSED;
+  // Per-instance persistence key (forward = id, reversed = id:rev). Records, tire/cap
+  // pickups, cleared-flag and first-clear are all keyed by this so directions are independent.
+  const INSTANCE = instanceId(T.id ?? '', REVERSED);
 
   initRender(T);
   initCar(T);
   if (opts.initItems) initItems(props);
+
+  // ─── Cola caps ────────────────────────────────────────────────────────────────
+  const CAP_INNER_R = 40;               // min distance from cap centre to count as "around" it
+  const CAP_OUTER_R = 160;              // max distance
+  const CAP_DECAY   = Math.PI * 2 / 6; // sweep decay rate (rad/s) when not drifting in donut
+  const CAP_TIRE_VALUE = 15;           // tires awarded for banking a cola-cap donut (was dead score)
+  const CAP_LOOPS   = 2;               // full circles required to collect
+  const TIRE_CR     = 35;              // car half-length proxy for proximity pickup radius
+
+  const collectibles = T.collectibles ?? [];
+  // Preload images onto the descriptor (same pattern as _cos/_sin on props).
+  for (const cap of collectibles) {
+    if (cap.imgSrc  && !cap._img)     { const im = new Image(); im.src = cap.imgSrc;  cap._img     = im; }
+    if (cap.imgFull && !cap._imgFull) { const im = new Image(); im.src = cap.imgFull; cap._imgFull = im; }
+  }
+  // S.caps: pure runtime state only — static data stays in collectibles[].
+  // Restore previously collected CAPS so they stay permanently collected. Tires RESPAWN every
+  // race now (arcade coin loop), so they always start uncollected.
+  const _prevCollected = new Set(collectedCaps(INSTANCE));
+  S.caps = {};
+  collectibles.forEach((c, i) => {
+    // Multi-format lookup so no save format silently loses collected state. Accept any of:
+    //   • c.capId          — current keys (seed-index `t<k>` for tires, coordinate for caps)
+    //   • `${c.x},${c.y}`  — the OLD coordinate key for tires (pre seed-index); on a stable
+    //                        track the current seed lands on the same coords, so a legacy
+    //                        save stays collected with no reset / migration
+    //   • i                — the oldest numeric-index format
+    const wasCollected = _prevCollected.has(c.capId ?? i)
+      || _prevCollected.has(`${c.x},${c.y}`)
+      || _prevCollected.has(i);
+    S.caps[i] = { trackId: INSTANCE, sweep: 0, prevAng: null, collected: wasCollected, pop: 0 };
+  });
+
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,9 +105,34 @@ export const startGame = (T, opts = {}) => {
     S.flashT = 0.9;
   };
 
+  // Seconds the car may be non-drifting before the MULTIPLIER resets. Deliberately longer than
+  // the 0.5s points-bank window: a fast transition flick can straighten the car for up to ~1s,
+  // and that brief interruption must NOT nuke a hard-earned multiplier (it froze, not lost).
+  const MULT_RESET_GRACE = 1.2;
+
   const resetCombo = () => {
     S.comboPoints = 0; S.mult = 1; S.driftTime = 0;
     S.transitions = 0; S.lastSlipSign = 0; S.multBuild = 0; S.nearMisses = 0;
+    driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
+  };
+
+  // Bank the accumulated combo POINTS into the score but KEEP the multiplier (multBuild/mult):
+  // banking is the score payout; the multiplier is the separate "flow" reward that only resets
+  // on a sustained stop (resetMult) or a crash (burnCombo → resetCombo). Preserving it here is
+  // what lets a quick flick that briefly ends the drift continue the multiplier on recovery.
+  const bankPoints = () => {
+    if (S.comboPoints >= 1) {
+      if (!ZEN) S.score += Math.round(S.comboPoints);
+      flash('+' + Math.round(S.comboPoints) + ' banked', '#9be37a');
+    }
+    S.comboPoints = 0; S.driftTime = 0;
+  };
+
+  // Reset ONLY the multiplier side (points are already banked). Fires after MULT_RESET_GRACE of
+  // continuous non-drift — a genuine stop, not a flick.
+  const resetMult = () => {
+    S.mult = 1; S.multBuild = 0; S.transitions = 0; S.lastSlipSign = 0; S.nearMisses = 0;
+    driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
   };
 
   const bankCombo = () => {
@@ -61,61 +144,68 @@ export const startGame = (T, opts = {}) => {
 
   const burnCombo = (reason) => {
     if (S.comboPoints >= 1) flash(reason + '  combo ' + Math.round(S.comboPoints) + ' lost', '#ff6a6a');
+    comboUnbroken = false;   // any crash / off-track ends the "one unbroken drift" run
     resetCombo();
     S.crashCd = 0.5; S.driftGrace = 1;
   }
 
-  // Nearest centreline point. Previously an O(N) full scan every frame.
-  // The car moves continuously along the closed line, so we only search
-  // ±NEAR_W around the previous index. For N≈300–416 that's ~49 points
-  // instead of all of them — far cheaper, same result (car step per frame
-  // ≪ window width even at the clamped dt=0.05).
-  const N_CENTER = center.length;
-  const NEAR_W = 24;
-  let nearIdx = 0;
-  const distToTrack = () => {
-    let best = Infinity, bi = nearIdx;
-    for (let k = -NEAR_W; k <= NEAR_W; k++) {
-      const i = (((nearIdx + k) % N_CENTER) + N_CENTER) % N_CENTER;
-      const dx = car.x - center[i].x, dy = car.y - center[i].y;
-      const d = dx * dx + dy * dy;
-      if (d < best) { best = d; bi = i; }
-    }
-    nearIdx = bi;
-    return Math.sqrt(best);
-  }
-
-  const nearMissCheck = (CR) => {
-    const speed = Math.hypot(car.vx, car.vy);
-    if (speed < 140) return false;
-    if (TABLE.shape === 'round') {
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      const r = Math.hypot(car.x / rx, car.y / ry);
-      const gap = (1 - r) * Math.min(rx, ry);
-      if (gap > 0 && gap < NM_BAND) return true;
-    } else {
-      const gx = (TABLE.w / 2 - CR) - Math.abs(car.x);
-      const gy = (TABLE.h / 2 - CR) - Math.abs(car.y);
-      if ((gx > 0 && gx < NM_BAND) || (gy > 0 && gy < NM_BAND)) return true;
-    }
-    for (const c of cones) {
-      if (c.knocked) continue;
-      const d = Math.hypot(car.x - c.x, car.y - c.y) - (CONE_R + CR);
-      if (d > 0 && d < NM_BAND) return true;
-    }
-    for (const o of props) {
-      let qx = o.x, qy = o.y;
-      if (o.hl > 0) {
-        const lx = car.x - o.x, ly = car.y - o.y;
-        let t = lx * o._cos + ly * o._sin;
-        if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-        qx = o.x + o._cos * t; qy = o.y + o._sin * t;
+  const updateCaps = (dt, drifting) => {
+    for (let i = 0; i < collectibles.length; i++) {
+      const cap = S.caps[i];
+      if (cap.collected) {
+        if (cap.pop > 0) cap.pop = Math.max(0, cap.pop - dt);
+        continue;
       }
-      const d = Math.hypot(car.x - qx, car.y - qy) - (o.r + CR);
-      if (d > 0 && d < NM_BAND) return true;
+      const c  = collectibles[i];
+      const dx = car.x - c.x, dy = car.y - c.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (c.kind === 'tire') {
+        if (ZEN) continue;                 // no tire economy in Zen mode
+        if (dist < c.r + TIRE_CR) {
+          cap.collected = true;
+          cap.pop = 0.4;
+          addTires(c.value);                 // credit live (HUD); ledger logs the per-race sum
+          tiresEarned += c.value;
+          runTirePickups++;
+          flash('+' + c.value + ' tire' + (c.value !== 1 ? 's' : ''), '#ffe48a');
+          sfx.pickup();
+        }
+        continue;
+      }
+
+      // kind === 'cola': drift-donut collection
+      const inDonut = dist > CAP_INNER_R && dist < CAP_OUTER_R;
+      const ang = Math.atan2(dy, dx);
+      const engaged = inDonut && drifting;
+      // prevAng is null when the car was last outside the donut;
+      // use ang as both args so the first frame in the donut contributes 0 delta.
+      cap.sweep = stepSweep(cap.sweep, cap.prevAng ?? ang, ang, engaged, dt, CAP_DECAY);
+      cap.prevAng = engaged ? ang : null;
+      if (Math.abs(cap.sweep) >= Math.PI * 2 * CAP_LOOPS) {
+        cap.collected = true;
+        cap.pop       = 0.6;
+        cap.sweep     = 0;
+        if (!ZEN) {
+          addTires(CAP_TIRE_VALUE, 'Cola cap — ' + CAP_TIRE_VALUE + ' tires'); // its own ledger line
+          runCaps++;
+        }
+        flash('CAP! +' + CAP_TIRE_VALUE + ' tires', '#ff9999');
+        sfx.cap();
+        capCollect(INSTANCE, c.capId ?? i);
+      }
     }
-    return false;
-  }
+  };
+
+  const N_CTR      = center.length; // centerline point count for circular-index arithmetic
+  const ZONE_ADV   = 8;             // forward indices required to reset the no-progress timer
+  const ZONE_STALL = 3.0;           // seconds without progress before multiplier growth freezes
+
+  let nearIdx        = 0;
+  let driftZoneRef   = 0;     // nearIdx at the last zone reset
+  let driftZoneTimer = 0;     // seconds the car has been in the same zone while drifting
+  let driftZoned     = false; // true once stall fired; ref frozen at stall-start until car exits
+  let cdBeep         = 0;     // last countdown integer that beeped, so 3→2→1 each pip once
 
   const hitConeAt = (c, px, py, r) => {
     if (c.knocked) return;
@@ -123,6 +213,8 @@ export const startGame = (T, opts = {}) => {
     const rr = r + CONE_R;
     if (dx * dx + dy * dy >= rr * rr) return;
     c.knocked = true;
+    hapticCone();
+    sfx.cone();
     const d = Math.hypot(dx, dy) || 1;
     c.vx = car.vx * 0.6 - (dx / d) * 80;
     c.vy = car.vy * 0.6 - (dy / d) * 80;
@@ -133,12 +225,6 @@ export const startGame = (T, opts = {}) => {
   }
 
   // ─── Input ────────────────────────────────────────────────────────────────────
-
-  const updatePointerSteer = () => {
-    let s = 0;
-    for (const x of pointers.values()) s += (x < W / 2 ? -1 : 1);
-    S.steerInput = Math.sign(s);
-  };
 
   // All listeners go through on(): it accumulates them in listeners[] so stop()
   // can remove them all at once. Without this they would pile up on restart.
@@ -154,10 +240,10 @@ export const startGame = (T, opts = {}) => {
   on(window, 'keyup',   onKeyUp);
   // passive: false + preventDefault() — prevents iOS from starting text selection
   // on long press during gameplay
-  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); updatePointerSteer(); };
-  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); updatePointerSteer(); } };
-  const onPointerUp     = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
-  const onPointerCancel = e => { pointers.delete(e.pointerId); updatePointerSteer(); };
+  const onPointerDown   = e => { e.preventDefault(); pointers.set(e.pointerId, e.clientX); };
+  const onPointerMove   = e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, e.clientX); } };
+  const onPointerUp     = e => { pointers.delete(e.pointerId); };
+  const onPointerCancel = e => { pointers.delete(e.pointerId); };
   on(canvas, 'pointerdown',   onPointerDown,   { passive: false });
   on(canvas, 'pointermove',   onPointerMove,   { passive: false });
   on(canvas, 'pointerup',     onPointerUp);
@@ -172,6 +258,51 @@ export const startGame = (T, opts = {}) => {
 
   const raceResults  = createRaceResults();
   let raceFinished   = false; // flag: stop() must not destroy raceResults after a finish
+  let tiresEarned    = 0;     // tire-PICKUP coins this run — logged as one ledger entry at finish
+  // Per-run achievement accumulators (reset here, read once at finish). Separate from the
+  // per-combo S.* fields (e.g. S.nearMisses is zeroed on every combo reset).
+  let runTirePickups = 0;     // count of tire pickups (for clean-sweep vs the track total)
+  let runNearMisses  = 0;     // near misses this race (S.nearMisses resets per combo)
+  let runCrashes     = 0;     // wall/prop impacts this race (for untouchable)
+  let runTimeAt8     = 0;     // seconds held at the max multiplier (for flow-1/2)
+  let runDriftSecs   = 0;     // seconds drifted this race (added to lifetime stats.driftSecs)
+  let runCaps        = 0;     // cola caps banked this race
+  let comboUnbroken  = true;  // set false the first time an active combo is lost mid-race
+
+  // Assemble the pure achievement ctx from this run + persistent state, evaluate, and persist
+  // the result (ladder progress + one-time unlock + tire reward). Returns the newly-unlocked
+  // defs ({ id, name, icon, reward }) for the results toast. Time Attack only (see call site).
+  const awardAchievements = (pps) => {
+    const st = stats();
+    const ctx = {
+      run: {
+        finished: true, instanceId: INSTANCE, trackId: T.id, reversed: REVERSED,
+        pps, stars: starsForPps(pps), ddk: isDDK(pps),
+        nearMisses: runNearMisses, crashes: runCrashes,
+        conesHit: cones.filter(c => c.knocked).length, conesTotal: cones.length,
+        timeAt8: runTimeAt8, comboUnbroken, tiresThisRun: runTirePickups,
+        // Tires respawn every race, so the clean-sweep achievement is honestly re-checkable
+        // each run (collect all tires this run → tiresThisRun === tireTotalOnTrack). It's a
+        // one-time UNLOCK, and the per-track first-sweep BONUS above handles ongoing rewards.
+        tireTotalOnTrack: collectibles.filter(c => c.kind === 'tire').length,
+        capsThisRun: runCaps, hour: new Date().getHours(),
+      },
+      wallet: wallet(), owned: owned(), ownedCars: ownedCars(), cleared: st.cleared ?? [],
+      records: flattenRecords(records()), caps: st.caps ?? {},
+      lifetime: { runs: st.runs ?? 0, driftSecs: st.driftSecs ?? 0 },
+      content: buildContent(TRACKS, CATALOG, CARS),
+    };
+    const res = evaluate(ctx, achUnlocked());
+    for (const p of res.progress) achSetProgress(p.id, p.value);
+    const out = [];
+    for (const u of res.unlocked) {
+      if (achUnlock(u.id)) {                 // idempotent — the reward is paid once
+        if (u.reward) addTires(u.reward, 'Achievement: ' + u.name);
+        out.push(u);
+      }
+    }
+    return out;
+  };
 
   // Menu button — ask for confirmation first so a stray tap doesn't eject the player.
   // Game is paused for the duration of the dialog.
@@ -181,24 +312,32 @@ export const startGame = (T, opts = {}) => {
     const wasAlreadyPaused = pause.isPaused();
     pause.pause();
     confirmExit.show({
-      onExit:    () => { location.href = 'index.html'; },
+      onExit:    () => { gameplayStop(); location.href = 'index.html'; },
       onRestart: () => { location.reload(); },
       onCancel:  () => { if (!wasAlreadyPaused) pause.resume(); },
     });
   };
   on(document.getElementById('menuBtn'), 'click', onMenuClick);
 
-  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode
+  // Lap counter in HUD: "1/3" instead of "1/-" in fixed-lap mode.
+  // Set ONLY the total span — never replace #lapNum, whose ref render.js caches once
+  // (innerHTML-replacing it detached that ref and froze the visible counter).
   if (TOTAL_LAPS > 0) {
-    const el = document.getElementById('lapCounter');
-    if (el) el.innerHTML = `<span id="lapNum">1</span>/${TOTAL_LAPS}`;
+    const el = document.getElementById('lapTotal');
+    if (el) el.textContent = TOTAL_LAPS;
   }
 
-  // Car and colour chosen on the garage screen (select.html), read from store
+  // Car and colour chosen on the garage screen (select.html), read from store.
+  // Garage paint is session-local — never write back to the shared CARS descriptor.
   const g = garage();
   S.carModel = Math.max(0, Math.min(g.carIndex ?? 0, CARS.length - 1));
-  if (g.bodyColor) CARS[S.carModel].body = g.bodyColor;
-  CARS[S.carModel].neonColor = g.neonColor || null;
+  // Sandbox is a free test-drive: the car is always STOCK (factory look), ignoring any saved
+  // paint/neon/finish/trail. Customisation is a Time Attack thing. opts.stock signals this.
+  const look = opts.stock ? {} : carLook(S.carModel);   // per-car equipped look ({} = factory)
+  // neon is a config object now; fall back to a solid config from the legacy neonColor.
+  const neonCfg = look.neon ?? (look.neonColor ? defaultNeon(look.neonColor) : null);
+  setCarPaint(look.bodyColor ?? null, neonCfg, look.finish ?? null, look.trailColor ?? null, look.glassColor ?? null, look.outlineColor ?? null);
+  setCarEmotion(look.expression ?? null);
 
   // Speed units: read once at startup — does not change mid-game.
   // Conversion: game units/s → km/h (GU_TO_KMH) or mph (× 0.621371).
@@ -211,7 +350,7 @@ export const startGame = (T, opts = {}) => {
   // The engine only reads pause.isPaused(); on pause we release steering so the car
   // doesn't lurch on resume.
   const pause = createPause({
-    onChange(p) { if (p) { pointers.clear(); S.steerInput = 0; } },
+    onChange(p) { if (p) { pointers.clear(); } },
   });
 
   // ─── Finish line ──────────────────────────────────────────────────────────────
@@ -223,168 +362,70 @@ export const startGame = (T, opts = {}) => {
 
   // ─── Physics ──────────────────────────────────────────────────────────────────
 
+  // Render at the display's native refresh rate (uncapped rAF). Physics is frame-rate
+  // independent (decay terms use Math.pow(k, dt * PHYS_HZ); dt clamped at 0.05 s), so a
+  // 60 / 90 / 120 Hz panel all simulate identically — running every frame is just smoother.
+  // NB: a previous 60 fps throttle was removed: skipping rAF ticks against a fixed 16.67 ms
+  // threshold downgrades 90 Hz panels to a juddery 45 fps (no clean 60 exists on 90 Hz) and
+  // micro-stutters on 60 Hz from refresh jitter. Don't reintroduce a fixed-ms frame cap;
+  // if battery on 120 Hz ever matters, only halve when native rate is a clean multiple of 60.
   let last = performance.now();
   let rafId = 0;
   const frame = (now) => {
+    rafId = requestAnimationFrame(frame);
+
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
     // Frozen: nothing computed or redrawn — last frame stays on canvas, overlay dims it.
-    // `last` is already updated → no dt spike on resume.
-    if (pause.isPaused()) { rafId = requestAnimationFrame(frame); return; }
+    if (pause.isPaused()) { drift(false, 0); return; }   // hush the drift rev while paused
 
     if (S.startCd > 0) {
       S.startCd -= dt;
-      if (S.startCd <= 0) S.goT = 1.0;
+      const cd = Math.ceil(Math.max(0, S.startCd));
+      if (cd >= 1 && cd !== cdBeep) { cdBeep = cd; sfx.count(); }   // 3-2-1 pips (one per number)
+      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); gameplayStart(); }   // GO!
       draw(0);
-      rafId = requestAnimationFrame(frame);
       return;
     }
     if (S.goT > 0) S.goT -= dt;
 
-    const P = CARS[S.carModel]._drive;
+    const M = CARS[S.carModel];
+    const P = M._drive;
 
-    let kSteer = 0;
-    if (keys['ArrowLeft']  || keys['a'] || keys['A']) kSteer -= 1;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) kSteer += 1;
-    const steerTarget = kSteer !== 0 ? kSteer : S.steerInput;
-    S.steerSmooth += (steerTarget - S.steerSmooth) * Math.min(1, dt * P.steerSmooth);
+    const steerTarget = resolveSteer(pointers, keys, W);
 
-    const fwd  = { x: Math.cos(car.angle), y: Math.sin(car.angle) };
-    const side = { x: -Math.sin(car.angle), y: Math.cos(car.angle) };
-    let vF = car.vx * fwd.x + car.vy * fwd.y;
-    let vS = car.vx * side.x + car.vy * side.y;
-    const speed = Math.hypot(car.vx, car.vy);
-    const drifting = isDrifting(vS, speed);
+    // Car kinematics (steering, grip, wobble, self-align, integration) — pure step in
+    // js/physics.js. Mutates car + S.steerSmooth/physT; returns the snapshot the scoring
+    // and skid code below reads. (updateCaps now samples post-integration position — a
+    // sub-pixel, feel-irrelevant shift from when it ran mid-step.)
+    const { drifting, speed, vS, fwd, side } = stepCar(car, S, steerTarget, P, PHYS_K, dt);
+    updateCaps(dt, drifting);
 
-    S.physT += dt;
-    const wobSlow = Math.sin(S.physT * 0.8 + 1.7) + 0.5 * Math.sin(S.physT * 1.9 + 4.2);
-    const wobFast = 0.6 * Math.sin(S.physT * 5.3 + 0.5) + 0.4 * Math.sin(S.physT * 12.1 + 2.1);
-    const wob  = 0.7 * wobSlow + 0.3 * wobFast;
-    const live = Math.min(1, speed / P.maxSpeed) * (0.4 + 0.6 * Math.min(1, Math.abs(vS) / 80));
-    const liveSteer = Math.min(1, speed / P.maxSpeed) * Math.min(1, Math.abs(vS) / 60);
-    const fAdj    = dt * PHYS_HZ;
-    const gripAdj = fAdj * (1 + GRIP_WOBBLE * wob * live);
+    // Frame-normalised decay factor for knocked-cone motion below.
+    const fAdj = dt * PHYS_HZ;
 
-    if (vF < P.maxSpeed) vF += P.thrust * dt;
-    vF *= Math.pow(P.rollFriction, fAdj);
-    vS *= Math.pow(P.grip, gripAdj);
-    vF *= Math.max(0, 1 - P.driftDrag * Math.abs(vS) * dt);
-
-    const turnFactor = Math.max(P.lowSpeedTurn, Math.min(speed / 160, 1));
-    const authority  = drifting ? P.driftSteerBoost : 1;
-    car.angle += S.steerSmooth * P.steer * turnFactor * authority * dt;
-    car.angle += STEER_WOBBLE * wobSlow * liveSteer * dt;
-
-    car.vx = fwd.x * vF + side.x * vS;
-    car.vy = fwd.y * vF + side.y * vS;
-
-    if (speed > 40) {
-      const moveAng = Math.atan2(car.vy, car.vx);
-      let diff = moveAng - car.angle;
-      while (diff >  Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      car.angle += diff * P.selfAlign * Math.min(1, speed / P.maxSpeed) * dt;
-    }
-
-    car.x += car.vx * dt;
-    car.y += car.vy * dt;
-
-    const M  = CARS[S.carModel];
     const CR = M.wid * 0.55;
     const hx = Math.cos(car.angle), hy = Math.sin(car.angle), nose = M.len * 0.3;
     const bodyPts = [[car.x + hx * nose, car.y + hy * nose], [car.x, car.y], [car.x - hx * nose, car.y - hy * nose]];
 
     for (const c of cones) {
       for (const p of bodyPts) hitConeAt(c, p[0], p[1], CR);
-      if (c.knocked) {
-        const dAdj = Math.pow(0.9, fAdj);
-        c.x += c.vx * dt; c.y += c.vy * dt;
-
-        // Knocked cone vs prop collision — same capsule formula as car vs prop.
-        // A simple center-check (without hl) would be inaccurate for boards/knives/pans.
-        for (const o of props) {
-          let qx = o.x, qy = o.y;
-          if (o.hl > 0) {
-            const lx = c.x - o.x, ly = c.y - o.y;
-            let t = lx * o._cos + ly * o._sin;
-            if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-            qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-          }
-          const dx = c.x - qx, dy = c.y - qy, minD = o.r + CONE_R;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < minD * minD) {
-            const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
-            c.x = qx + nx * minD; c.y = qy + ny * minD; // push cone out
-            const vDotN = c.vx * nx + c.vy * ny;
-            if (vDotN < 0) { c.vx -= vDotN * nx * 0.8; c.vy -= vDotN * ny * 0.8; c.spin *= -0.4; }
-          }
-        }
-
-        c.vx *= dAdj; c.vy *= dAdj; c.ang += c.spin * dt; c.spin *= dAdj;
-      }
+      if (c.knocked) stepKnockedCone(c, props, CONE_R, dt, fAdj);
     }
 
-    if (TABLE.shape === 'round') {
-      // Iterate capsule points: front → centre → rear. First violation = response.
-      const rx = TABLE.w / 2 - CR, ry = TABLE.h / 2 - CR;
-      for (const [bpx, bpy] of bodyPts) {
-        const bnx = bpx / rx, bny = bpy / ry;
-        const br = Math.hypot(bnx, bny);
-        if (br > 1) {
-          car.x += bnx / br * rx - bpx;
-          car.y += bny / br * ry - bpy;
-          const ux = bnx / br / rx, uy = bny / br / ry, ul = Math.hypot(ux, uy);
-          const px = ux / ul, py = uy / ul;
-          const vn = car.vx * px + car.vy * py;
-          if (vn > 0) { car.vx -= vn * px * 1.3; car.vy -= vn * py * 1.3; if (vn > 120) burnCombo('WALL!'); }
-          break; // one response per frame
-        }
-      }
-    } else {
-      // Capsule AABB: extent along X/Y depends on car angle, not just CR.
-      // Previously only CR (width) was used, so the bumper would "enter the wall"
-      // ~24 gu before the collision triggered.
-      const absExtX = Math.abs(hx) * nose + CR;
-      const absExtY = Math.abs(hy) * nose + CR;
-      const wallW = TABLE.w / 2, wallH = TABLE.h / 2;
-      let wallHit = 0;
-      if (car.x - absExtX < -wallW) { car.x = -wallW + absExtX; if (car.vx < 0) { wallHit = Math.max(wallHit, -car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.x + absExtX >  wallW) { car.x =  wallW - absExtX; if (car.vx > 0) { wallHit = Math.max(wallHit,  car.vx); car.vx *= -0.3; } car.vy *= 0.85; }
-      if (car.y - absExtY < -wallH) { car.y = -wallH + absExtY; if (car.vy < 0) { wallHit = Math.max(wallHit, -car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (car.y + absExtY >  wallH) { car.y =  wallH - absExtY; if (car.vy > 0) { wallHit = Math.max(wallHit,  car.vy); car.vy *= -0.3; } car.vx *= 0.85; }
-      if (wallHit > 120) burnCombo('WALL!');
-    }
-
-    for (const o of props) {
-      // Find the closest capsule body point to the prop
-      let bestD2 = Infinity, bestBpX = car.x, bestBpY = car.y;
-      let bestQx = o.x, bestQy = o.y;
-      for (const [bpx, bpy] of bodyPts) {
-        let qx = o.x, qy = o.y;
-        if (o.hl > 0) {
-          const lx = bpx - o.x, ly = bpy - o.y;
-          let t = lx * o._cos + ly * o._sin;
-          if (t > o.hl) t = o.hl; else if (t < -o.hl) t = -o.hl;
-          qx = o.x + o._cos * t; qy = o.y + o._sin * t;
-        }
-        const dx = bpx - qx, dy = bpy - qy, d2 = dx * dx + dy * dy;
-        if (d2 < bestD2) { bestD2 = d2; bestBpX = bpx; bestBpY = bpy; bestQx = qx; bestQy = qy; }
-      }
-      const rr = o.r + CR;
-      if (bestD2 < rr * rr) {
-        const d = Math.sqrt(bestD2) || 1;
-        const nx = (bestBpX - bestQx) / d, ny = (bestBpY - bestQy) / d;
-        car.x += bestQx + nx * rr - bestBpX;
-        car.y += bestQy + ny * rr - bestBpY;
-        const vn = car.vx * nx + car.vy * ny;
-        if (vn < 0) { car.vx -= vn * nx * 1.4; car.vy -= vn * ny * 1.4; if (-vn > 100) burnCombo('CRASH!'); }
-      }
-    }
+    // Wall + prop collision response — pure mutators in js/collision.js. They mutate
+    // car kinematics and return the impact magnitude; side effects (haptics, combo burn)
+    // stay here. bodyPts is the pre-collision capsule snapshot (not recomputed mid-step).
+    const wallHit = resolveWall(car, TABLE, CR, hx, hy, nose, bodyPts);
+    if (wallHit > 120) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (wallHit - 120) / 400)); burnCombo('WALL!'); runCrashes++; }
+    const propHit = resolveProps(car, props, CR, bodyPts);
+    if (propHit > 100) { hapticCrash(); sfx.crash(0.55 + Math.min(0.45, (propHit - 100) / 400)); burnCombo('CRASH!'); runCrashes++; }
 
     if (S.crashCd > 0) S.crashCd -= dt;
     const slip     = Math.abs(vS);
-    const distTrk  = distToTrack();
+    const { dist: distTrk, idx: _nearIdx } = nearestCenter(car.x, car.y, center, nearIdx);
+    nearIdx = _nearIdx;
     const onTrack  = distTrk < TRACK_HALF + 90;
 
     if (S.comboPoints >= 1 && distTrk > TRACK_HALF + 260) burnCombo('OFF TRACK!');
@@ -392,28 +433,49 @@ export const startGame = (T, opts = {}) => {
 
     if (drifting && onTrack && S.crashCd <= 0) {
       S.driftTime += dt;
+      runDriftSecs += dt;
       const quality = driftQuality(slip, speed);
-      S.multBuild += dt * MULT_GAIN_PER_S * quality;
-      const sgn = slipSign(vS);
-      if (sgn !== 0) {
-        if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
-          S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
+      if (circularAdvance(nearIdx, driftZoneRef, N_CTR) >= ZONE_ADV) {
+        driftZoneRef = nearIdx; driftZoneTimer = 0; driftZoned = false;
+      } else {
+        driftZoneTimer += dt;
+        if (driftZoneTimer >= ZONE_STALL && !driftZoned) {
+          driftZoned = true;
+          driftZoneRef = nearIdx; // anchor to current position so recovery needs only 8 forward indices
         }
-        S.lastSlipSign = sgn;
       }
-      if (S.nearMissCd <= 0 && nearMissCheck(CR)) {
-        S.nearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+      if (!driftZoned) {
+        S.multBuild += dt * MULT_GAIN_PER_S * quality;
+        const sgn = slipSign(vS);
+        if (sgn !== 0) {
+          if (S.lastSlipSign !== 0 && sgn !== S.lastSlipSign) {
+            S.transitions++; S.multBuild += MULT_TRANSITION_BONUS; flash('TRANSITION!', '#7fd4ff');
+          }
+          S.lastSlipSign = sgn;
+        }
+        if (S.nearMissCd <= 0 && nearMiss(car, cones, props, TABLE, CONE_R, CR, NM_BAND)) {
+          S.nearMisses++; runNearMisses++; S.multBuild += MULT_NEARMISS_BONUS; S.nearMissCd = 0.6; flash('NEAR MISS!', '#ffd36a');
+        }
+        S.mult = comboMult(S.multBuild);
+        if (S.mult >= MULT_MAX) runTimeAt8 += dt;   // time held at the ceiling (flow-1/2)
+        S.comboPoints += comboGain(slip, speed, dt, S.mult);
+      } else {
+        flash('NO PROGRESS!', '#ffa040');
       }
-      S.mult = comboMult(S.multBuild);
-      S.comboPoints += comboGain(slip, speed, dt, S.mult);
       S.driftGrace = 0;
     } else {
       S.driftGrace += dt;
       if (S.driftGrace > 0.5 && S.comboPoints >= 1) {
-        if (onTrack) bankCombo(); else burnCombo('OFF TRACK!');
-      } else if (S.driftGrace > 0.5) {
-        resetCombo();
+        comboUnbroken = false;   // an active combo streak ended mid-race
+        // Breaking the drift long enough to bank (>0.5s off the slide) costs the multiplier
+        // too — you keep the points you earned, but the flow reward resets. A genuinely
+        // seamless flick (grace < 0.5s, nothing banks) still builds through, so clean
+        // drift-chaining is unaffected; only a real break drops the multiplier.
+        if (onTrack) { bankPoints(); resetMult(); } else burnCombo('OFF TRACK!');
       }
+      // Safety net: a stop that built a multiplier but no bankable points still clears it
+      // after a sustained non-drift stretch (a quick flick never reaches this).
+      if (onTrack && S.driftGrace > MULT_RESET_GRACE && S.multBuild > 0) resetMult();
     }
 
     if (slip > 40 && speed > 60) {
@@ -429,12 +491,12 @@ export const startGame = (T, opts = {}) => {
       // ── Finish line: crossing by sign of projection ────────────────────────────
       // Circle removed — detection is exact: time is recorded at the moment of crossing,
       // not on entry into a CP_R radius zone.
-      const fDot = (car.x - c0.x) * finishCos + (car.y - c0.y) * finishSin;
+      const fDot = finishDot(car, c0, finishCos, finishSin);
 
       // Lateral constraint removed: the car could lap around the line at the table edge
       // and not be credited. Direction detection (sign of fDot) + completed intermediate
       // checkpoints is sufficient — they already guarantee a full lap.
-      if (prevFinishDot !== null && prevFinishDot < 0 && fDot >= 0) {
+      if (prevFinishDot !== null && crossedFinish(prevFinishDot, fDot)) {
         S.lastLap = S.lapTime;
         if (S.bestLap === null || S.lapTime < S.bestLap) S.bestLap = S.lapTime;
         S.lapNum++;
@@ -448,12 +510,50 @@ export const startGame = (T, opts = {}) => {
 
           const totalScore = Math.round(S.score);
           const totalTime  = S.lapScores.reduce((s, l) => s + l.t, 0);
+          // Cola caps now pay tires (not score), so score maps straight to PPS — nothing to strip.
           const pps        = pointsPerSecond(totalScore, totalTime);
+          // Tire economy (Time Attack only — Zen earns nothing). Ledger order:
+          // pickups sum → first-clear bonus → finish payout.
+          const baseName  = TRACKS.find(t => t.id === T.id)?.name ?? 'Race';
+          const trackName = baseName + (REVERSED ? ' (reversed)' : '');
+          const tireTotal = collectibles.filter(c => c.kind === 'tire').length;
+          let firstClearBonus = 0, finishBonus = 0, cleanSweepBonus = 0, trophyBonus = 0, unbrokenBonus = 0;
+          if (!ZEN) {
+            if (tiresEarned > 0)
+              recordTxn(tiresEarned, `${trackName} — ${tiresEarned} tire${tiresEarned !== 1 ? 's' : ''}`);
+            // First time you collect EVERY tire on a track in one run → a one-time bonus
+            // (doubles the run's tire coins) + marks the track (wheel badge). Repeats just pay
+            // the tire coins, so it never becomes a grind.
+            if (tireTotal > 0 && runTirePickups >= tireTotal && markTireSwept(INSTANCE)) {
+              cleanSweepBonus = tireTotal;
+              addTires(cleanSweepBonus, `${trackName} — clean sweep bonus`);
+            }
+            if (T.id && markCleared(INSTANCE)) {    // first finish of this instance → bonus
+              firstClearBonus = FIRST_CLEAR_BONUS;
+              addTires(firstClearBonus, `${trackName} — first clear`);
+            }
+            finishBonus = finishPayout(pps);
+            addTires(finishBonus, `${trackName} — finish bonus`);
+            // Participation Trophy — repeatable pity payout for a 1-PPS finish; also earns the
+            // 🏅 badge on the track card (markTrophy is idempotent, so the badge is set once).
+            if (isOnePps(pps)) {
+              trophyBonus = ONE_PPS_BONUS;
+              addTires(trophyBonus, `${trackName} — Participation Trophy`);
+              markTrophy(INSTANCE);
+            }
+            // Perpetual Motion — repeatable bonus for finishing in one unbroken drift (same feat as
+            // the one-time 'perpetual' achievement). Hard, so it stays worth doing on every run.
+            if (comboUnbroken) {
+              unbrokenBonus = UNBROKEN_BONUS;
+              addTires(unbrokenBonus, `${trackName} — Perpetual Motion`);
+              markPerpetual(INSTANCE);   // ♾️ badge on the track card (idempotent, set once)
+            }
+          }
 
           let isNewRecord = false;
           if (T.id) {
             const rec  = records();
-            const slot = rec[T.id] ?? (rec[T.id] = {});
+            const slot = rec[INSTANCE] ?? (rec[INSTANCE] = {});
             const ta   = slot.timeattack ?? (slot.timeattack = {});
             if (ta.bestPPS == null || pps > ta.bestPPS) {
               ta.bestPPS      = pps;
@@ -464,10 +564,29 @@ export const startGame = (T, opts = {}) => {
             }
           }
 
+          // ── Achievements (Time Attack only) ─────────────────────────────────────
+          // Evaluate AFTER records + markCleared + wallet payouts above, so DDK/progression/
+          // hoard checks see this run's results. evaluate() is pure; we persist here.
+          let unlockedNow = [];
+          if (!ZEN) {
+            const st = stats();
+            st.runs = (st.runs ?? 0) + 1;
+            st.driftSecs = (st.driftSecs ?? 0) + runDriftSecs;
+            save();
+            unlockedNow = awardAchievements(pps);
+          }
+
           raceFinished = true;
           stop();
+          gameplayStop();
+          // Finish sting: a new record gets the bigger celebration, otherwise the finish flourish;
+          // any achievement unlocked this run chimes in shortly after so it doesn't collide.
+          if (isNewRecord) { sfx.record(); happyMoment(); } else sfx.finish();
+          if (unlockedNow.length) setTimeout(() => sfx.achieve(), 650);
           document.getElementById('score').textContent = totalScore;
-          raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime });
+          raceResults.show({ score: totalScore, bestLap: S.bestLap, lapScores: S.lapScores, isNewRecord, pps, totalTime,
+            ddk: isDDK(pps), unlocked: unlockedNow, carModel: S.carModel, look: carLook(S.carModel), trackName: baseName, reversed: REVERSED,
+            tires: { pickup: tiresEarned, cap: runCaps * CAP_TIRE_VALUE, cleanSweep: cleanSweepBonus, firstClear: firstClearBonus, finish: finishBonus, trophy: trophyBonus, unbroken: unbrokenBonus } });
           return;
         }
 
@@ -484,20 +603,23 @@ export const startGame = (T, opts = {}) => {
       // ── Intermediate checkpoints: circle CP_R ─────────────────────────────────
       const cp = checkpoints[S.nextCp];
       if (Math.hypot(car.x - cp.x, car.y - cp.y) < CP_R) {
-        S.nextCp = (S.nextCp + 1) % K;
+        // Cycle on the actual checkpoint count, not K — long tracks get extra checkpoints
+        // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
+        S.nextCp = (S.nextCp + 1) % checkpoints.length;
         if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
     }
 
     if (S.flashT > 0) S.flashT -= dt;
+    drift(drifting, Math.min(1, slip / 180), S.comboPoints >= 1);   // slide sample reacts; static bed runs while the combo counter is active
     draw(toDisplaySpeed(speed));
-    rafId = requestAnimationFrame(frame);
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
   // stop() makes the engine reentrant: removes all listeners, cancels the loop,
   // and destroys its UI components. Foundation for restart / results-screen / ghost.
   const stop = () => {
+    stopDrift();
     cancelAnimationFrame(rafId);
     for (const [t, type, h, o] of listeners) t.removeEventListener(type, h, o);
     listeners.length = 0;

@@ -18,6 +18,11 @@
   align-items: center;
   gap: 12px;
   justify-content: center;
+  overflow-y: unset !important;
+}
+
+.content--modify {
+  
 }
 
 #content::-webkit-scrollbar { display: none; }
@@ -28,6 +33,11 @@
     padding-inline: 0;
     padding-block: 16px;
     margin-block-end: 50px;
+  }
+
+  .content--modify {
+    margin-block-end: 0 !important;
+    padding-block-end: 0 !important;
   }
 
 }

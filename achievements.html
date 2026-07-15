@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Desktop Drift — Achievements</title>
+  <meta name="description" content="Browse every Desktop Drift achievement — progression, skill, combo, endurance, dedication, wealth, economy, secrets and DDK mastery.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#14110f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/achievements.css">
+</head>
+<body>
+<div id="ach-page">
+
+  <header id="ach-header">
+    <h1 id="ach-title">Achievements</h1>
+    <div id="ach-count" title="Unlocked / total">0 / 0</div>
+  </header>
+
+  <div id="ach-content">
+    <div id="ach-sections"></div>
+  </div>
+
+  <footer id="ach-footer">
+    <a href="index.html" class="ach-back">← Menu</a>
+  </footer>
+
+</div>
+
+<script type="module">
+  import { TRACKS } from './js/track-registry.js';
+  import { CATALOG } from './js/shop-catalog.js';
+  import { buildContent, buildCatalog, CATEGORY_ORDER } from './js/achievements.js';
+  import { achAll, wallet } from './js/store.js';
+  import { syncStateAchievements } from './js/ach-sync.js';
+
+  // Retroactive sweep: unlock + credit anything already earned by the current save (cleared
+  // tracks, records/DDK, owned cosmetics, wallet, caps) before rendering — so returning
+  // players who met the conditions before this feature shipped see them light up here.
+  syncStateAchievements();
+
+  const catalog = buildCatalog(buildContent(TRACKS, CATALOG));
+  const state   = achAll();
+
+  // ── Group defs by category, counting unlocked as we go ─────────────────────
+  const byCategory = new Map();
+  let unlockedCount = 0;
+
+  for (const def of catalog) {
+    const s = state[def.id];
+    if (s?.unlocked) unlockedCount++;
+    if (!byCategory.has(def.category)) byCategory.set(def.category, []);
+    byCategory.get(def.category).push(def);
+  }
+
+  document.getElementById('ach-count').textContent = `${unlockedCount} / ${catalog.length}`;
+
+  // Section order: CATEGORY_ORDER first (only categories that actually have defs),
+  // then any leftover category in first-seen order.
+  const orderedKeys = CATEGORY_ORDER.map(c => c.key);
+  const labelOf     = Object.fromEntries(CATEGORY_ORDER.map(c => [c.key, c.label]));
+  const extraKeys   = [...byCategory.keys()].filter(k => !orderedKeys.includes(k));
+  const sectionKeys = [...orderedKeys, ...extraKeys].filter(k => byCategory.has(k));
+
+  // ── Small helpers to build DOM without innerHTML ────────────────────────────
+  const el = (tag, className, text) => {
+    const n = document.createElement(tag);
+    if (className) n.className = className;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  function renderBar(value, target, fmt, complete) {
+    const wrap  = el('div', 'ach-bar-wrap');
+    const track = el('div', 'ach-bar-track');
+    const fill  = el('div', 'ach-bar-fill');
+    const ratio = target > 0 ? Math.min(1, value / target) : 0;
+    fill.style.width = `${ratio * 100}%`;
+    track.appendChild(fill);
+    const label = el('div', 'ach-bar-label', complete ? 'Complete' : `${fmt(value)} / ${fmt(target)}`);
+    wrap.appendChild(track);
+    wrap.appendChild(label);
+    return wrap;
+  }
+
+  function renderCard(def, s) {
+    const unlocked = !!s?.unlocked;
+    const progress = s?.progress ?? 0;
+
+    // Locked + hidden → masked. Never leak name/desc/reward.
+    if (!unlocked && def.hidden) {
+      const card = el('div', 'ach-card is-hidden');
+      card.appendChild(el('div', 'ach-icon', '🔒'));
+      const body = el('div', 'ach-body');
+      body.appendChild(el('div', 'ach-name', '???'));
+      body.appendChild(el('div', 'ach-desc ach-desc--muted', 'Hidden'));
+      card.appendChild(body);
+      return card;
+    }
+
+    const card = el('div', 'ach-card' + (unlocked ? ' is-unlocked' : ' is-locked'));
+    card.appendChild(el('div', 'ach-icon', def.icon));
+
+    const body = el('div', 'ach-body');
+    body.appendChild(el('div', 'ach-name', def.name));
+    body.appendChild(el('div', 'ach-desc', def.desc));
+    if (def.bar) {
+      // Wallet ladders ('wealth') are non-monotonic — spending tires lowers the balance — but stored
+      // progress latches to the peak. Show the LIVE wallet on a locked wealth bar so it reflects the
+      // current balance (e.g. 300 / 1000), not the historical max. (Unlock still uses live wallet.)
+      const barVal = (!unlocked && def.category === 'wealth') ? wallet() : progress;
+      body.appendChild(unlocked
+        ? renderBar(def.target, def.target, def.fmt, true)
+        : renderBar(barVal, def.target, def.fmt, false));
+    }
+    card.appendChild(body);
+
+    const reward = el('div', unlocked ? 'ach-reward' : 'ach-reward ach-reward--goal', `+${def.reward} 🛞`);
+    card.appendChild(reward);
+    return card;
+  }
+
+  const root = document.getElementById('ach-sections');
+  for (const key of sectionKeys) {
+    const section = el('section', 'ach-section');
+    section.appendChild(el('h2', 'ach-section-title', labelOf[key] ?? key));
+
+    const grid = el('div', 'ach-grid');
+    for (const def of byCategory.get(key)) grid.appendChild(renderCard(def, state[def.id]));
+    section.appendChild(grid);
+
+    root.appendChild(section);
+  }
+</script>
+<script type="module" src="./js/sw-update.js"></script>
+</body>
+</html>

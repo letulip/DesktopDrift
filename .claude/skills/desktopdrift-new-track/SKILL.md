@@ -28,15 +28,29 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    - viewBox centre = game (0,0); SVG +Y maps to game −Y.
    - Keep ≥ 800–1200 SVG units (TABLE_MARGIN 200–300 game units) clear between the outer
      track edge and the viewBox boundary. Save as `tracks/<id>.svg`.
-2. **Track module** `js/track-<id>.js` — copy `js/track-green-study.js` and change the
-   `fetch('./tracks/<id>.svg')` path + the viewBox-derived `SVG_CX`/`SVG_CY`/`SCALE`.
-   It already: top-level `await fetch` → `DOMParser` → parse `track_path` → helpers from
-   `js/track-util.js` (`chaikin` ×4, `offsetEdges`, `placeCones`, `sampleCheckpoints`,
-   `prepProp`) → `TABLE` from outer bounds + margin → items from `line[id^="ITEM_"]`.
-   Exports the full track shape **plus** `TABLE`, `theme`, `id` (records key) and
-   `laps` (race length, default 3). `game-engine.js` reads `laps`/`id` to run the
-   fixed-lap race + write `store.records()[id].timeattack` + show the results overlay —
-   all automatic once those are exported.
+2. **Track module** `js/track-<id>.js` — all geometry and item-parsing logic lives in
+   `js/track-factory.js`. A new track module is ~20 lines:
+   ```js
+   import { makeTrack, TRACK_HALF, CONE_R, K, CP_R } from './track-factory.js';
+   export { TRACK_HALF, CONE_R, K, CP_R };
+   export const {
+     center, outer, inner, cones, TABLE,
+     props, collectibles, checkpoints,
+     startPos, startAngle, id, laps, theme,
+   } = await makeTrack({
+     svgPath: './tracks/<id>.svg',
+     svgCx:   <viewBoxW> / 2,   // from SVG viewBox
+     svgCy:   <viewBoxH> / 2,
+     scale:   0.25,             // TRACK_HALF / (stroke-width/2) = 100/400
+     id:      '<id>',
+     laps:    3,
+     theme:   { background, table, tableEdge, track, skid, checkpoint, cone },
+   });
+   ```
+   `makeTrack` handles: `fetch` → `DOMParser` → centreline → `chaikin` ×4 →
+   `offsetEdges` → `placeCones` → `TABLE` → items loop (both `<line>` and
+   `<path>` proxy elements, including `ITEM_COLA_CAP` → `collectibles`) →
+   checkpoints → startPos/startAngle. Everything is exported automatically.
 3. **Colours (`theme`).** Pick a scheme from `tracks/TRACK_COLOR_SCHEMES.svg` /
    `tracks/track_themes.json` (dining-oak / steel-kitchen / cafe-marble / green-study /
    workbench / dev-desk). Theme injection is already wired: `render.js` merges `T.theme`
@@ -51,12 +65,25 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    draw a top-down SVG (portrait, 1:64 scale) + descriptor. Items must read from above
    (avoid bare circles); keep clear of the racing line
    (distance-to-centerline > TRACK_HALF + collider.r + margin); ~8–12 per track.
-5. **Register** — add/uncomment the `{ id, name, desc, svgSrc, theme }` entry in
-   `js/track-registry.js`. `name`/`desc` are player-facing (English). This is what makes
-   the track appear on `tracks.html`. **No `page` field** — routing is automatic via
-   `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
-6. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
+5. **Cola caps (collectibles).** Optional but free if you copied the template. Place one
+   or more `<line id="ITEM_COLA_CAP" .../>` proxy-lines in the SVG (line midpoint =
+   position) at WIDE corners where a drift "donut" fits clear of walls/props. The
+   template's parse loop already special-cases `ITEM_COLA_CAP` → pushes `{ ...COLA_CAP }`
+   into the `collectibles` export (NOT `props`, so no collision). Everything else is
+   automatic: `game-engine.js` `updateCaps` handles the drift-to-collect mechanic + scoring
+   + persistence (`store.capCollect`), `render.js` `drawCaps` fills the cap, and the
+   `index.html` / `tracks.html` badges show progress. Each cap is keyed by `capId`
+   (`"${cx},${cy}"`) — a stable coordinate key so adding/reordering caps in the SVG later
+   won't corrupt previously saved collection state. See `js/track-green-study.js`.
+6. **Register** — add/uncomment the `{ id, name, desc, svgSrc, caps, theme }` entry in
+   `js/track-registry.js`. `name`/`desc` are player-facing (English); `caps` = the number
+   of `ITEM_COLA_CAP` lines you placed in the SVG (0 if none — it's the badge denominator).
+   This is what makes the track appear on `tracks.html`. **No `page` field** — routing is
+   automatic via `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
+7. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
    then bump the cache version. **No HTML to add** — `game.html` is already in ASSETS.
+   (`js/cola.js`, `js/track-factory.js`, and the cola SVGs are already in ASSETS —
+   shared across all tracks, no need to add them again.)
    (SWR self-heals a forgotten bump on the next load, but bump anyway for first-load-fresh.)
 8. **Verify + PR** via the **desktopdrift-pr** skill (npm test + node --check + browser
    smoke with the SW cleared; branch `feat/track-<id>` → PR).
@@ -67,4 +94,6 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
 the racing line, start/finish checkered flag + cones readable against the theme, combo +
 lap counter (`1/3`), and the **race-results overlay** (score, per-lap times, Back to tracks)
 after the final lap. On figure-8 layouts confirm the windowed `distToTrack` scan gives no
-false off-track. Console must be error-free.
+false off-track. If the track has cola caps: drifting a donut around one fills it and
+collects it (+score), the `tracks.html` card shows `N / M cap`, and the `index.html` Time
+Attack tile shows the total. Console must be error-free.

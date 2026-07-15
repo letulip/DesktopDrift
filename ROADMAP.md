@@ -28,17 +28,20 @@ Decisions that hold the whole thing together — settle these as they come up, d
    ```
    {
      version,
-     settings:     { units: 'kmh' | 'mph', ... },
-     garage:       { carIndex, bodyColor, unlocks: [] },
+     settings:     { units: 'kmh' | 'mph', haptics },
+     garage:       { carIndex, cars: { [carIndex]: <per-car look> } },
      records:      { [trackId]: { [mode]: { bestPPS, bestPPSTotal, bestPPSTime } } },
-     achievements: { [id]: { unlocked, progress } }
+     achievements: { [id]: { unlocked, progress } },
+     wallet, ledger, owned, ownedCars,
+     stats:        { caps, tires, tiresSwept, trophies, cleared, runs, driftSecs }
    }
    ```
+   *(Illustrative — the authoritative shape is `store.defaults()` in `js/store.js`.)*
    `bestPPS` — Points Per Second (effectiveness of a ride). `time` grows endlessly, `score` only while drifting. `bestPPSTotal` and `bestPPSTime` — points and time of the run, where record PPS was achieved(to display on a card).
 2. **Data-driven content.** Tracks, achievements, colour palettes and (later) tuning specs
    are plain data tables. Logic stays generic; content is just data. Cars and items already
    follow this pattern — extend it.
-3. **Track registry — `tracks/registry.js`.** One list of every track with metadata
+3. **Track registry — `js/track-registry.js`** (shipped). One list of every track with metadata
    (id, name, mode, thumbnail, difficulty). Drives the selection screen, previews, and the
    `records` keys.
 4. **Event seam in `game-engine.js`** — introduce *only* when Phase 2 starts. A tiny
@@ -104,33 +107,129 @@ Turns the tech demo into a game and fixes what bugs us now.
 - [x] **Design system pass** (spine #6). CSS token layer (`:root` in `base.css`),
       self-hosted display font (Unbounded 800), warm `theme-color`, film grain on
       menu/garage/settings, staggered menu entrance. See AGENTS.md → Design language.
-- [ ] **Track previews** on the selection screen — generalize `drawMini` into
+- [x] **Track previews** on the selection screen — generalize `drawMini` into
       `renderTrackThumb(canvas, track)`. Cheap (the rendering already exists); start with the
       two existing tracks, gets richer once the track registry lands.
 
 ## Phase 2 — Depth & replayability
 
-First add the **event seam** (spine #4). Then:
+The **event seam** (spine #4) is still deferred: Achievements shipped **without** it (a pure
+`evaluate(ctx)` called at two sites is simpler than pub/sub — YAGNI). Add the seam when
+in-run bonuses / sound actually need it. Then:
 
-- [ ] **Achievements** — data table of definitions + `store` flags/progress; subscribe to
-      engine events.
-- [ ] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
-- [ ] **Cosmetic mods** — paint finishes (matte / metallic), maybe liveries. Builds on the
-      palette UI from Phase 1.
+- [x] **Tracks** - more tracks. *(Reversed variants shipped — see Phase 2.5 D2; more tracks ongoing.)*
+- [x] **Achievements** — data table of definitions + `store` flags/progress. **DONE** —
+      60+ achievements (visible + hidden, scales with track count) via a pure `evaluate(ctx)` called at race finish +
+      on purchase (pull-model, no event bus); results toast, dedicated `achievements.html`,
+      tire rewards, ladders (drift/races/wallet), and the **DDK** 6-star crown (600+ PPS)
+      per instance + **Absolute DDK**. Detail: `docs/plans/achievements.md`.
+- [x] **In-run bonuses** — drift zones, score multipliers, bonus-time pickups.
+- [x] **Cosmetic mods** — paint finishes (matte / metallic / pearl / chrome) + drift-trail
+      colours + **Neon FX** (6-zone customisable underglow: layouts + animations, sold in the
+      shop — see docs/plans/neon.md) shipped via the tire-shop (Phase 2.5). Liveries / wheel
+      styles still to come.
 - [ ] **Performance tuning** — grip / thrust / steer, etc. *Depends on the progression
       system:* tuning options **unlock progressively after completing tracks**. Tune with
       care — it shifts game balance and would affect leaderboard fairness in the online era.
 - [ ] **Ghost car** — race your own best lap (records + a recorded position/input trace).
       Pure client-side, strong Time-Attack motivation.
 
+## Phase 2.5 — Economy: tire coins & garage progression
+
+A soft-currency economy that reinforces the core loop (drift well → earn → express
+yourself / chase new cars). **Records-safe by design:** the spend is cosmetic + new cars,
+never raw power, so PPS records stay comparable (see "Cars" below for the per-car-records
+guard). Precursor already shipped: **cola caps** (skill collectible — drift a donut around
+one; per-track badge). Tires are the *currency* sibling (easy proximity pickup).
+
+### Currency — tires ("tire")
+- One currency for the whole game. `tire.svg` already exists (`js/collectibles.js`).
+- `1 tire pickup = 1 tire` in the wallet (plentiful, Mario-coin feel).
+- New `store` slices: `wallet` (int) + `owned` (set of purchased item ids). Sync-ready.
+- Tire pickups persist **one-time per track** by index (same model as cola caps).
+
+### Faucets (income) — hybrid, anti-grind
+- **One-time track pickups** — discovery/risk reward, collected once ever.
+- **Repeatable finish payout, scaled by PPS/stars** — the sustainable income; skill = money.
+  Reuses the results-screen star rating (1 star / 100 PPS, max 5).
+- **First-clear bonus** per track instance.
+
+### Sink (spend)
+- **Cosmetics** (Phase 2 cosmetic-mods feeds this): paint finishes (matte/metallic/chrome/
+  pearl), liveries, wheel styles, skid/trail colour. The free 20 body + 10 neon colours stay
+  free; the shop is strictly additive.
+- **New cars** (Phase 3 content): the aspirational long-tail. See "Cars".
+
+### Economy maths (anchored to current content; tune by feel, ratios > absolutes)
+Content scope = **12 track instances** = 6 tracks (all live: green-study, steel-kitchen,
+workbench, cafe-marble, dev-desk, dining-oak) × forward & **reversed** mode.
+
+| Faucet | Starting value | Total over 14 |
+|---|---|---|
+| Tire pickups | ~20 / instance | ~280 |
+| First-clear bonus | +20 / instance | ~280 |
+| Finish payout (repeatable) | `2 + 2×stars` (2–12 / race) | endless trickle |
+
+→ Guaranteed one-time bank ≈ **~560 tires**, then finish payouts drive the long tail.
+
+| Sink | Price |
+|---|---|
+| Cosmetics tier 1 / 2 / 3 | 40–80 / 150–250 / 400 (catalog ≈ 1,800) |
+| First new car (the hook — cheap, reachable early) | 400 |
+| Later cars | 800 / 1,400 (+ stretch ~2,000) |
+
+Pacing intent: one-time bank ≈ starter cosmetics + nearly the first car; everything else is
+the completionist tail funded by finish payouts. First car is deliberately cheap = the hook.
+
+### Reversed-mode gating
+- Reversed unlocks **per track** as you *complete* its forward version (completion, **not**
+  mastery — finishing the race once, never a 5-star gate). Optional "all 7 done" celebration
+  banner on top.
+- Doubles content value and paces the currency supply (≈ half the one-time bank behind the gate).
+
+### Cars (Phase 3) — sidegrades with personality, NOT power-creep
+- Each new car excels somewhere and is weaker elsewhere (distinct spd/hdl/acc profile), so
+  car choice is expressive + track-strategic, never strictly "better".
+- **Per-car records** (`records[trackId].timeattack[carId]`) — turns different handling into a
+  *feature* (×N goals: best PPS per car per track) and keeps comparisons fair. This schema
+  addition lands with the first paid car.
+- Each car = real art (top-down SVG layers body/glass/roof/wheels/lights + Path2D silhouette,
+  per the existing `config.js` `CARS` pattern) + a tuned stat profile + a price. Content cost,
+  not a code line.
+- Roster concept (nicknames, no brands — like Bismark/Panda): **Wagon** (grippy, forgiving —
+  the cheap "first new car" hook, 400), **Kei** (nimble, low top — king of tight tracks),
+  **Muscle** (huge thrust, loose rear — risk/reward), **Wedge** (max top, lazy turn-in — the
+  aspirational flex, ~2,000).
+
+### Phasing (ship incrementally). Detail plans: `docs/plans/economy.md`, `docs/plans/shop.md`.
+- [x] **A** — tire pickup + persistent `wallet` + HUD counter. **DONE** — tires now **respawn
+      every race** (migration v4); one-time-ness moved to `tiresSwept` (clean-sweep badge);
+      repeatable finish payout (2–12 by stars) + first-clear bonus (+20) + 1-PPS participation
+      trophy (+5); HUD + menu counter; per-race history.
+- [x] **B** — shop + cosmetics. **DONE** — a per-car **`modify.html`** (gear on each car card):
+      body colour, neon, paint finishes, drift-trail colour; cart + buy; **purchases
+      account-wide, looks per-car**; wallet history (tap the counter); first-clear bonus
+      (economy.md Phase D1). *Remaining: liveries/wheels to fill the catalog (D4).*
+- [x] **C (cars)** — new cars in the tire shop. **DONE** — 6 paid cars + 2 free starters,
+      bought in the `select.html` coverflow carousel (`buyCar` / `ownedCars`, ownership gate).
+- [ ] **C (records)** — per-car records (deferred; records still keyed by track/mode only).
+- [ ] **D** — cars classes and mods
+- [x] **D2 (reversed)** — reversed track variants + per-track unlock gate. **DONE.**
+      `reverseTrack` + `instanceId` `:rev` keying + `game.html?dir=rev` + `tracks.html` 3★ gate
+      + mirrored thumbnail. Detail plan: `docs/plans/reversed.md`.
+
+### Open decisions — resolved
+- ~~Shop location~~ → a dedicated **per-car `modify.html`** opened by a gear on each car card.
+- ~~Wallet UI label~~ → 🛞 + number, tap to open the tire-coin history.
+
 ## Phase 3 — Content
 
-- [ ] **Track registry** (spine #3) + **collision validator**: a dev-time check that flags
-      any prop whose collider overlaps the drivable corridor
-      (`distance-to-centerline < TRACK_HALF + margin`). Turns "eyeball it" into an automated
-      guard and eliminates the prop-blocks-the-racing-line bug class.
-- [ ] **New track: "around the plates"** — author the SVG, place props, run the validator.
-- [ ] **Zen drift mode** + transitions between locations (larger, content-heavy creative
+- [x] **Track registry** (spine #3) `js/track-registry.js` + **collision validator**
+      `tools/check-item-clearance.js` (flags any prop whose collider overlaps the drivable
+      corridor, `distance-to-centerline < TRACK_HALF + margin`). **DONE** — plus a bonus visual
+      `tools/collider-tuner.html`. *Note: the validator is a manual CLI check, not in `npm test`.*
+- [x] **New track: "around the plates"** — author the SVG, place props, run the validator.
+- [x] **Zen drift mode** + transitions between locations (larger, content-heavy creative
       feature).
 - [ ] Time-Attack: selectable lap count / difficulty.
 
@@ -149,14 +248,23 @@ Only once competition is actually wanted. Not a near-term goal.
 
 Small, mostly independent wins — slot into a phase as they fit.
 
-- **Share result** — screenshot + Web Share API. Social without a backend. *(Phase 1–2)*
-- **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
+- [x] **Profile sync** — export / import your full save as a code or file (`settings.html`, `js/profile-io.js`). **DONE.**
+- [ ] **Share result** — screenshot + Web Share API. Social without a backend. *(Phase 1–2)*
+- [ ] **Daily challenge** — date-seeded, identical for everyone that day. Replayability, no
   server. *(Phase 2–3)*
-- **Haptics** — vibrate on cone / crash (Vibration API, mobile). *(Phase 1, cheap)*
-- **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
+- [x] **Haptics** — vibrate on cone / crash (Vibration API, mobile) — **DONE** (settings toggle).
+- [x] **Sound (SFX)** — procedural Web Audio for menu + gameplay, plus a recorded cardboard-slide
+  drift sound (`js/sound.js` / `js/sound-params.js`; settings toggle + volume). **DONE.**
+- [ ] **Onboarding / tutorial** — currently just the `#hint` line. *(Phase 1–2)*
 
 ## Parked / needs a decision
 
-- **Sound & music.** High ROI for an arcade racer, but **licensing is unresolved** — decide
-  on royalty-free or original assets before committing. Revisit later. When it lands it
-  subscribes to the Phase-2 event seam, so no engine changes are needed.
+- **Music / ambience.** SFX have shipped (see above). Background music is still open — the plan
+  is free Moby Gratis tracks, self-hosted, with a music toggle + ducking under the SFX. Revisit
+  later; NOTE: *session-long* music (no restart on navigation, menu→race crossfade) is blocked
+  on the SPA migration below — per-page music in the current MPA restarts on every navigation.
+- **SPA migration** — collapse the multi-page site into one document: kills the
+  audio-activation problem as a class (incl. the Firefox arrow-key case), unlocks proper
+  music, instant screen transitions. Phased plan with gates, dangers (reload-as-cleanup,
+  stateful track modules), and the opening trigger: **`docs/plans/spa-migration.md`**.
+  Do NOT start while portal launches / moderation are in flight.

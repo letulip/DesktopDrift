@@ -28,7 +28,7 @@ for (let i = 0; i < SAMPLES; i++) {
 
 // Cones along the edges
 export const CONE_R = 9;
-export const cones = placeCones(outer, inner, 5);
+export const cones = placeCones(outer, inner);
 
 // Props on the table
 const distToTrackPoint = (x, y) => {

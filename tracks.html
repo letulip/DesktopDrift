@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/menu.css">
   <link rel="stylesheet" href="css/tracks.css">
+  <link rel="stylesheet" href="css/wallet.css">
   <link rel="stylesheet" href="css/footer.css">
   <link rel="stylesheet" href="css/header.css">
   <link rel="stylesheet" href="css/content.css">
@@ -25,17 +26,16 @@
 <div id="track-select">
 
   <header id="ts-header">
-    <h1 id="ts-title">Time Attack</h1>
-    <p  id="ts-sub">Choose a track</p>
+    <div class="ts-header-row">
+      <div class="ts-header-text">
+        <h1 id="ts-title">Time Attack</h1>
+        <p  id="ts-sub">Choose a track</p>
+      </div>
+      <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+    </div>
     <div id="ts-mode">
       <button class="mode-btn is-active" id="btn-normal">Normal</button>
-      <button class="mode-btn is-locked" id="btn-reversed" disabled>
-        <svg class="lock-icon" width="11" height="13" viewBox="0 0 11 13" fill="none" aria-hidden="true">
-          <rect x="1" y="5.5" width="9" height="7" rx="1.5" fill="currentColor"/>
-          <path d="M3 5.5V3.5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-        </svg>
-        Reversed
-      </button>
+      <button class="mode-btn" id="btn-reversed">Reversed</button>
     </div>
   </header>
 
@@ -51,11 +51,16 @@
 
 <script type="module">
   import { TRACKS } from './js/track-registry.js';
-  import { records } from './js/store.js';
-  import { parseSvgPath, chaikin } from './js/track-util.js';
+  import { records, collectedCaps, tireSwept, hasTrophy, hasPerpetual, wallet } from './js/store.js';
+  import { svgToCentreline, instanceId } from './js/track-util.js';
+  import { isDDK } from './js/economy.js';
+  import { initWalletHistory } from './js/wallet-history.js';
+  import { sfx, tapThenGo, soundThenGo } from './js/sound.js';
+
+  document.getElementById('wallet-amount').textContent = wallet();
+  initWalletHistory(document.querySelector('.wallet-pill'));
 
   // ── Track preview rendering on canvas ───────────────────────────────────────
-  const SCALE    = 0.25;
   const TRACK_GU = 100;
 
   async function drawThumb(canvas, svgSrc, theme) {
@@ -71,15 +76,8 @@
     catch { return; }
 
     try {
-      const doc   = new DOMParser().parseFromString(text, 'image/svg+xml');
-      const d     = doc.getElementById('track_path')?.getAttribute('d');
-      if (!d) return;
-
-      const vb    = doc.querySelector('svg').getAttribute('viewBox').trim().split(/\s+/).map(Number);
-      const svgCX = vb[2] / 2, svgCY = vb[3] / 2;
-
-      let pts = parseSvgPath(d).map(([x, y]) => ({ x: (x - svgCX) * SCALE, y: -(y - svgCY) * SCALE }));
-      for (let i = 0; i < 4; i++) pts = chaikin(pts);
+      const pts = svgToCentreline(text);
+      if (!pts) return;
 
       const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
       const minX = Math.min(...xs), maxX = Math.max(...xs);
@@ -120,78 +118,197 @@
     } catch { /* render error — canvas keeps its fallback background */ }
   }
 
-  // ── Best PPS record from store ───────────────────────────────────────────────
-  function bestRecord(trackId) {
-    const ta = records()?.[trackId]?.timeattack;
+  // ── Best PPS record (keyed by instance: trackId, or trackId:rev for reversed) ──
+  function bestRecord(instId) {
+    const ta = records()?.[instId]?.timeattack;
     if (ta?.bestPPS == null) return null;
     return { pps: Math.round(ta.bestPPS), total: ta.bestPPSTotal, time: ta.bestPPSTime };
   }
+  const starsOf       = (pps) => Math.min(5, Math.floor((pps ?? 0) / 100));
+  const REV_UNLOCK    = 3;   // reversed unlocks at 3★ on the forward lap
+  const forwardStars  = (trackId) => starsOf(bestRecord(trackId)?.pps);
 
-  // ── Build track cards ────────────────────────────────────────────────────────
+  // ── Build the track cards for a direction (normal / reversed) ──────────────────
   const container = document.getElementById('track-cards');
 
-  for (const track of TRACKS) {
-    const link = document.createElement('a');
-    link.className = 'track-card';
-    link.href = `select.html?track=${encodeURIComponent(track.id)}`;
+  function renderCards(reversed) {
+    container.innerHTML = '';
 
-    // Top: canvas + mobile score panel side by side
-    const top = document.createElement('div');
-    top.className = 'track-card-top';
+    for (const track of TRACKS) {
+      const inst   = instanceId(track.id, reversed);
+      const locked = reversed && forwardStars(track.id) < REV_UNLOCK;
+      const record = locked ? null : bestRecord(inst);
 
-    const canvas = document.createElement('canvas');
-    canvas.className = 'track-thumb';
-    canvas.width  = 260;
-    canvas.height = 140;
-    top.appendChild(canvas);
+      // Locked reversed cards are inert <div>s; everything else is a link into the garage.
+      const card = document.createElement(locked ? 'div' : 'a');
+      card.className = 'track-card' + (locked ? ' is-locked' : '');
+      if (!locked) {
+        card.href = `select.html?track=${encodeURIComponent(track.id)}${reversed ? '&dir=rev' : ''}`;
+        card.addEventListener('click', (e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+          e.preventDefault(); tapThenGo(card.getAttribute('href'));
+        });
+      }
 
-    const record = bestRecord(track.id);
+      const top = document.createElement('div');
+      top.className = 'track-card-top';
 
-    const scorePanel = document.createElement('div');
-    scorePanel.className = 'track-card-score';
-    if (record) {
-      scorePanel.innerHTML =
-        `<span class="tcs-label">Best score</span>` +
-        `<span class="tcs-pps">${record.pps.toLocaleString()} <span class="tcs-unit">PPS</span></span>` +
-        `<span class="tcs-label">Total</span>` +
-        `<span class="tcs-total">${record.total.toLocaleString()} pts</span>` +
-        `<span class="tcs-time">${record.time.toFixed(1)} s</span>`;
-    } else {
-      scorePanel.innerHTML = `<span class="tcs-none">—</span>`;
+      const canvas = document.createElement('canvas');
+      canvas.className = 'track-thumb';
+      canvas.width  = 260;
+      canvas.height = 140;
+      top.appendChild(canvas);
+
+      if (locked) {
+        const lock = document.createElement('div');
+        lock.className = 'track-lock';
+        lock.innerHTML = `<span class="track-lock-ico">🔒</span><span>Earn ★★★ on the forward lap</span>`;
+        top.appendChild(lock);
+      } else {
+        const badges = document.createElement('div');
+        badges.className = 'track-badges';
+
+        const stars = document.createElement('div');
+        stars.className = 'track-stars';
+        const starRow = document.createElement('div');
+        starRow.className = 'track-star-row';
+        const filled = starsOf(record?.pps);
+        for (let s = 0; s < 5; s++) {
+          const sp = document.createElement('span');
+          sp.textContent = '★';
+          sp.className = s < filled ? 'star-lit' : 'star-dim';
+          starRow.appendChild(sp);
+        }
+        stars.appendChild(starRow);
+        badges.appendChild(stars);
+
+        // DDK crown — its own badge to the RIGHT of the stars once this instance's best is 600+ PPS.
+        if (isDDK(record?.pps)) {
+          const crown = document.createElement('span');
+          crown.className = 'track-crown';
+          crown.textContent = '👑';
+          crown.title = 'DDK — 600+ PPS';
+          badges.appendChild(crown);
+        }
+        // Participation Trophy — 🏅 badge once this instance has had a 1-PPS finish.
+        if (hasTrophy(inst)) {
+          const trophy = document.createElement('span');
+          trophy.className = 'track-trophy';
+          trophy.textContent = '🏅';
+          trophy.title = 'Participation Trophy — finished a race with just 1 PPS';
+          badges.appendChild(trophy);
+        }
+        // Perpetual Motion — ♾️ badge once this instance has had an unbroken-drift finish.
+        if (hasPerpetual(inst)) {
+          const perp = document.createElement('span');
+          perp.className = 'track-perpetual';
+          perp.textContent = '♾️';
+          perp.title = 'Perpetual Motion — finished a race in one unbroken drift';
+          badges.appendChild(perp);
+        }
+        top.appendChild(badges);
+      }
+
+      const scorePanel = document.createElement('div');
+      scorePanel.className = 'track-card-score';
+      scorePanel.innerHTML = record
+        ? `<span class="tcs-label">Best score</span>` +
+          `<span class="tcs-pps">${record.pps.toLocaleString()} <span class="tcs-unit">PPS</span></span>` +
+          `<span class="tcs-label">Total</span>` +
+          `<span class="tcs-total">${record.total.toLocaleString()} pts</span>` +
+          `<span class="tcs-time">${record.time.toFixed(1)} s</span>`
+        : `<span class="tcs-none">—</span>`;
+      top.appendChild(scorePanel);
+      card.appendChild(top);
+
+      const body = document.createElement('div');
+      body.className = 'track-card-body';
+
+      const name = document.createElement('div');
+      name.className   = 'track-card-name';
+      name.textContent = track.name + (reversed ? ' ↺' : '');
+
+      const desc = document.createElement('div');
+      desc.className   = 'track-card-desc';
+      desc.textContent = locked
+        ? 'Locked — earn 3★ on the forward lap to unlock the reversed variant.'
+        : track.desc;
+
+      body.appendChild(name);
+      body.appendChild(desc);
+
+      if (!locked) {
+        const rec = document.createElement('div');
+        rec.className = 'track-card-record';
+        rec.innerHTML = record
+          ? `Score: <span class="val">${record.pps.toLocaleString()} PPS</span><span class="rec-sub">(Total: ${record.total.toLocaleString()} · ${record.time.toFixed(1)} s)</span>`
+          : '—';
+        body.appendChild(rec);
+
+        // Collectible chips (caps + tires), keyed by this instance.
+        const meta = document.createElement('div');
+        meta.className = 'track-meta';
+        if (track.caps > 0) {
+          const collected = collectedCaps(inst).length;
+          const chip = document.createElement('span');
+          chip.className = 'track-chip cap' + (collected >= track.caps ? ' is-done' : '');
+          chip.textContent = collected + '/' + track.caps + ' cap' + (track.caps !== 1 ? 's' : '');
+          meta.appendChild(chip);
+        }
+        // Tires respawn every race, so instead of a count we show a wheel badge once the
+        // player has clean-swept the track (collected every tire in a single run).
+        if (track.tires > 0 && tireSwept(inst)) {
+          const chip = document.createElement('span');
+          chip.className = 'track-chip tire is-done';
+          chip.textContent = '🛞 ✓';
+          chip.title = 'All tires collected in one run';
+          meta.appendChild(chip);
+        }
+        if (meta.children.length) body.appendChild(meta);
+      }
+
+      card.appendChild(body);
+      container.appendChild(card);
+
+      drawThumb(canvas, track.svgSrc, track.theme);   // same geometry both ways — no mirror
     }
-    top.appendChild(scorePanel);
-    link.appendChild(top);
 
-    // Body: name + desc (always) + desktop record line
-    const body = document.createElement('div');
-    body.className = 'track-card-body';
-
-    const name = document.createElement('div');
-    name.className   = 'track-card-name';
-    name.textContent = track.name;
-
-    const desc = document.createElement('div');
-    desc.className   = 'track-card-desc';
-    desc.textContent = track.desc;
-
-    const rec = document.createElement('div');
-    rec.className = 'track-card-record';
-    rec.innerHTML = record
-      ? `Score: <span class="val">${record.pps.toLocaleString()} PPS</span><span class="rec-sub">(Total: ${record.total.toLocaleString()} · ${record.time.toFixed(1)} s)</span>`
-      : '—';
-
-    body.appendChild(name);
-    body.appendChild(desc);
-    body.appendChild(rec);
-    link.appendChild(body);
-    container.appendChild(link);
-
-    drawThumb(canvas, track.svgSrc, track.theme);
+    requestAnimationFrame(() => { container.scrollTop = 0; });
   }
 
-  // Reset scroll after render (async drawThumb may shift the position)
-  requestAnimationFrame(() => { container.scrollTop = 0; });
+  // ── Direction toggle ───────────────────────────────────────────────────────────
+  const btnNormal   = document.getElementById('btn-normal');
+  const btnReversed = document.getElementById('btn-reversed');
+  const setMode = (reversed) => {
+    btnNormal.classList.toggle('is-active', !reversed);
+    btnReversed.classList.toggle('is-active', reversed);
+    renderCards(reversed);
+  };
+  btnNormal.addEventListener('click', () => { setMode(false); sfx.tap(); });
+  btnReversed.addEventListener('click', () => { setMode(true); sfx.tap(); });
+
+  const _back = document.querySelector('.ts-back');
+  if (_back) _back.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault(); soundThenGo(_back.getAttribute('href'), 'back');
+  });
+
+  // Swipe left/right anywhere on the screen flips direction (mirrors the toggle). Cards scroll
+  // vertically, so a clear horizontal swipe is unambiguous; passive listeners keep scroll smooth.
+  const swipeZone = document.getElementById('track-select');
+  let _sx = 0, _sy = 0;
+  const SWIPE_MIN = 60;
+  swipeZone.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; _sx = t.clientX; _sy = t.clientY; }, { passive: true });
+  swipeZone.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0], dx = t.clientX - _sx, dy = t.clientY - _sy;
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) return;   // must be a clear horizontal swipe
+    const reversedNow = btnReversed.classList.contains('is-active');
+    if (dx < 0 && !reversedNow) setMode(true);    // swipe left  → Reversed
+    if (dx > 0 &&  reversedNow) setMode(false);   // swipe right → Normal
+  }, { passive: true });
+
+  renderCards(false);
 </script>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+<script type="module" src="./js/sw-update.js"></script>
 </body>
 </html>

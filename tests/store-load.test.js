@@ -1,7 +1,7 @@
-// store.js — "load existing data" path: localStorage already contains a save
-// with a matching version; store must load it rather than reset to defaults.
-// Separate file (not a separate test) to get a fresh process and a clean
-// module cache for store.js (see the comment in store.test.js).
+// store.js — "load existing data" path: localStorage already contains a save.
+// The store must MERGE it over defaults (keep saved values, fill missing keys)
+// — never reset and lose data. Separate file (not a separate test) to get a fresh
+// process and a clean module cache for store.js (see the comment in store.test.js).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,33 +12,122 @@ installLocalStorage({
     version:      1,
     settings:     { units: 'mph' },
     garage:       { carIndex: 3, bodyColor: '#00ff00' },
-    records:      { oval: { timeattack: { bestLap: 12345, bestScore: 999 } } },
+    records:      { oval: { timeattack: { bestPPS: 1250, bestPPSTotal: 45000, bestPPSTime: 36 } } },
     achievements: { firstDrift: { unlocked: true, progress: 1 } },
   }),
 });
 
-const { settings, garage, records, achievements } =
+const { settings, garage, records, achievements, stats, collectedCaps, wallet,
+        owned, carLook } =
   await import('../js/store.js');
 
-test('loads persisted settings', () => {
-  assert.deepEqual(settings(), { units: 'mph' });
+test('loads persisted settings + fills missing fields from defaults', () => {
+  // Saved units kept; haptics absent in the save → filled from defaults (no data loss).
+  assert.deepEqual(settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 0.65 });
 });
 
-test('loads persisted garage', () => {
-  assert.deepEqual(garage(), { carIndex: 3, bodyColor: '#00ff00' });
+test('v1→v2 migration: old global look moves onto the active car (per-car looks)', () => {
+  // Saved carIndex 3 + a global bodyColor → migrated under cars['3'], top-level dropped.
+  const g = garage();
+  assert.equal(g.carIndex, 3);
+  assert.equal(g.bodyColor, undefined);            // no more top-level look fields
+  assert.deepEqual(carLook(3),
+    { bodyColor: '#00ff00', neonColor: null, finish: null, trailColor: null, neon: null });   // migrated look predates glass/outline (absent → read as null via ?? null)
+  assert.equal(carLook(0).bodyColor, null);        // other cars start clean
 });
 
-test('loads persisted records / achievements', () => {
-  assert.equal(records().oval.timeattack.bestLap, 12345);
+test('owned: missing slice on an old save is filled from defaults ([])', () => {
+  // The seeded save predates the shop — owned must appear as [], not undefined.
+  assert.deepEqual(owned(), []);
+});
+
+test('loads persisted records / achievements (real PPS record shape)', () => {
+  assert.deepEqual(records().oval.timeattack, { bestPPS: 1250, bestPPSTotal: 45000, bestPPSTime: 36 });
   assert.equal(achievements().firstDrift.unlocked, true);
 });
 
-// version mismatch → reset to defaults (guard against incompatible schema)
-test('version mismatch falls back to defaults', async () => {
+test('stats: missing slice is filled from defaults on an existing save', () => {
+  // The seeded save has no stats field — merge fills it; existing data is untouched.
+  assert.deepEqual(stats(), { caps: {}, tires: {}, tiresSwept: [], trophies: [], cleared: [], runs: 0, driftSecs: 0 });
+});
+
+test('wallet: missing field on an old save is filled from defaults (0)', () => {
+  // The seeded save predates the economy — wallet must appear, not be undefined.
+  assert.equal(wallet(), 0);
+});
+
+test('collectedCaps: returns [] when stats slice absent from save', () => {
+  assert.deepEqual(collectedCaps('green-study'), []);
+});
+
+// Unknown / "future" version (e.g. a rolled-back deploy) must NOT wipe data —
+// it is merged over defaults, same as any other save.
+test('unknown version preserves data (no reset)', async () => {
   installLocalStorage({
-    'desktop-drift': JSON.stringify({ version: 999, settings: { units: 'mph' } }),
+    'desktop-drift': JSON.stringify({
+      version: 999,
+      settings: { units: 'mph' },
+      records: { oval: { timeattack: { bestPPS: 42 } } },
+    }),
   });
-  // separate import with busting query — fresh module instance, clean _s
-  const fresh = await import('../js/store.js?v=mismatch');
-  assert.deepEqual(fresh.settings(), { units: 'kmh' });
+  const fresh = await import('../js/store.js?v=future');
+  assert.deepEqual(fresh.settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 0.65 }); // saved kept, gap filled
+  assert.equal(fresh.records().oval.timeattack.bestPPS, 42);           // records preserved
+});
+
+// Corrupt / unparseable data is the ONLY case that resets the whole store to defaults.
+test('corrupt save falls back to defaults', async () => {
+  installLocalStorage({ 'desktop-drift': '{ not valid json' });
+  const fresh = await import('../js/store.js?v=corrupt');
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 });
+  assert.deepEqual(fresh.records(), {});
+});
+
+// Content validation: a present-but-corrupt slice (wrong type / hand-deleted then a
+// garbage value) heals to its default instead of throwing in a consumer later.
+test('corrupt slice (wrong type) heals to default, other data kept', async () => {
+  installLocalStorage({
+    'desktop-drift': JSON.stringify({
+      version: 1,
+      settings: null,                 // garbled object → must heal to default shape
+      garage: 'oops',                 // wrong type → must heal to default shape
+      records: { oval: { timeattack: { bestPPS: 7 } } }, // valid → preserved
+    }),
+  });
+  const fresh = await import('../js/store.js?v=corruptslice');
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 }); // no TypeError
+  assert.equal(fresh.settings().units, 'kmh');
+  assert.deepEqual(fresh.garage(), { carIndex: 0, cars: {} });
+  assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
+});
+
+// v4 migration: an old save that had ALL a track's tires collected earns the clean-swept
+// wheel (grandfathered); a partially-collected track does not.
+test('v4 tire-sweep migration grandfathers fully-collected tracks', async () => {
+  installLocalStorage({
+    'desktop-drift': JSON.stringify({
+      version: 3,
+      stats: { caps: {}, tires: {
+        'green-study':   Array.from({ length: 12 }, (_, i) => 't' + i),   // 12/12 → swept
+        'steel-kitchen': ['t0', 't1', 't2'],                             // 3/11  → not swept
+      } },
+    }),
+  });
+  const fresh = await import('../js/store.js?v=v4mig');
+  assert.equal(fresh.tireSwept('green-study'), true);
+  assert.equal(fresh.tireSwept('steel-kitchen'), false);
+});
+
+// A saved wallet balance + the clean-swept-tracks list survive a load (economy persistence).
+test('wallet + swept tracks are preserved on load', async () => {
+  installLocalStorage({
+    'desktop-drift': JSON.stringify({
+      version: 1,
+      wallet: 137,
+      stats: { caps: {}, tiresSwept: ['green-study'] },
+    }),
+  });
+  const fresh = await import('../js/store.js?v=econ');
+  assert.equal(fresh.wallet(), 137);
+  assert.equal(fresh.tireSwept('green-study'), true);
 });

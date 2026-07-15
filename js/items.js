@@ -35,13 +35,13 @@ export const ITEM_PLATE_WHITE  = { hl: 0, r: 164, kind: 'plate', c: '#ffffff', i
 export const ITEM_PLATE_GREY   = { hl: 0, r: 164, kind: 'plate', c: '#dce3e8', imgSrc: 'items/plate2-ready.svg' };
 
 // --- Table knives (~21 cm, capsule 246×30) ---
-export const ITEM_KNIFE_1 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
-export const ITEM_KNIFE_2 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
-export const ITEM_KNIFE_3 = { hl: 108, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
+export const ITEM_KNIFE_1 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife1-ready.svg' };
+export const ITEM_KNIFE_2 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife2-ready.svg' };
+export const ITEM_KNIFE_3 = { hl: 75, r: 15, kind: 'knife', c: '#a4b3bc', imgSrc: 'items/knife3-ready.svg' };
 
 // --- Table forks (~21 cm, capsule 246×30) ---
-export const ITEM_FORK_1 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
-export const ITEM_FORK_2 = { hl: 108, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
+export const ITEM_FORK_1 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork1-ready.svg' };
+export const ITEM_FORK_2 = { hl: 75, r: 15, kind: 'fork', c: '#a4b3bc', imgSrc: 'items/fork2-ready.svg' };
 
 // --- Large meat fork (~32.5 cm, capsule 380×40) ---
 export const ITEM_TRIDENT = { hl: 170, r: 20, kind: 'fork', c: '#79c8f2', imgSrc: 'items/trident1-ready.svg' };
@@ -93,37 +93,7 @@ export const ITEM_DOUGHNUT_1 = { hl: 0, r: 88, kind: 'plate', c: '#ff6b5a', imgS
 export const ITEM_DOUGHNUT_2 = { hl: 0, r: 88, kind: 'plate', c: '#7b5c46', imgSrc: 'items/doughnut-2-ready.svg' };
 export const ITEM_DOUGHNUT_3 = { hl: 0, r: 88, kind: 'plate', c: '#f07178', imgSrc: 'items/doughnut-3-ready.svg' };
 
-// --- Food & tableware (1:64 scale) ---
-
-// Deep soup plate with spoon (~30×28 cm, enlarged round collider to cover spoon)
-export const ITEM_PLATE_SOUP_SPOON = { hl: 0, r: 175, kind: 'plate', c: '#dce2e8', imgSrc: 'items/plate-soup2-ready.svg' };
-
-// Frying pan with stew/sausages (~45 cm with handles, diameter 28 cm)
-export const ITEM_PAN_STEER = { hl: 80, r: 164, kind: 'bowl', c: '#3d434a', imgSrc: 'items/pan-steer-ready.svg' };
-
-// Fries in red packaging (~12×8 cm)
-export const ITEM_FRIES_RED = { hl: 35, r: 46, kind: 'board', c: '#f92a1c', imgSrc: 'items/fries2-ready.svg' };
-
-// Fries in orange packaging (~12×8 cm)
-export const ITEM_FRIES_ORANGE = { hl: 35, r: 46, kind: 'board', c: '#f27221', imgSrc: 'items/fries1-ready.svg' };
-
-// Plate with chicken drumsticks (diameter 28 cm)
-export const ITEM_PLATE_CHICKEN = { hl: 0, r: 164, kind: 'plate', c: '#a0b4ed', imgSrc: 'items/plate-chicken-ready.svg' };
-
-// Plate with BBQ skewers (diameter 28 cm)
-export const ITEM_PLATE_BBQ = { hl: 0, r: 164, kind: 'plate', c: '#faba02', imgSrc: 'items/plate-bbq-ready.svg' };
-
-// Plate with mashed potato and chicken (diameter 28 cm)
-export const ITEM_PLATE_MASHED = { hl: 0, r: 164, kind: 'plate', c: '#ededed', imgSrc: 'items/plate-mashed-chicken-ready.svg' };
-
-// Soup bowl 1 (diameter ~20 cm)
-export const ITEM_BOWL_SOUP_1 = { hl: 0, r: 117, kind: 'plate', c: '#f5f5f5', imgSrc: 'items/plate-soup3-ready.svg' };
-
-// Soup bowl with egg (diameter ~20 cm)
-export const ITEM_BOWL_SOUP_EGG = { hl: 0, r: 117, kind: 'plate', c: '#ffdb59', imgSrc: 'items/plate-soup1-ready.svg' };
-
-// Plate with sausages and cutlery (~30×28 cm, enlarged round collider to cover cutlery)
-export const ITEM_PLATE_SAUSAGE_SET = { hl: 0, r: 175, kind: 'plate', c: '#f5f2db', imgSrc: 'items/plate-sausage-ready.svg' };
+// --- Food & tableware descriptors are consolidated in the "FOOD & TABLEWARE" section below. ---
 
 
 // --- Tableware sets (composite SVGs) ---
@@ -158,21 +128,21 @@ export const ITEM_SPATULA_2 = { hl: 128, r: 46, kind: 'knife', c: '#c9ccce', img
 // Clipboard with clip (~32×23 cm)
 export const ITEM_CLIPBOARD = { hl: 52, r: 135, kind: 'board', c: '#70a441', imgSrc: 'items/writing-board-ready.svg' };
 // Planner / notepad (~21×15 cm)
-export const ITEM_NOTEBOOK  = { hl: 35, r: 88,  kind: 'board', c: '#6ca342', imgSrc: 'items/daily-ready.svg' };
-export const ITEM_NOTEBOOK_2 = { hl: 35, r: 88, kind: 'board', c: '#c8cfd5', imgSrc: 'items/notebook2-ready.svg' };
+export const ITEM_NOTEBOOK  = { hl: 55, r: 108,  kind: 'board', c: '#6ca342', imgSrc: 'items/daily-ready.svg' };
+export const ITEM_NOTEBOOK_2 = { hl: 55, r: 108, kind: 'board', c: '#c8cfd5', imgSrc: 'items/notebook2-ready.svg' };
 export const ITEM_RUBBER_DUCK = { hl: 12, r: 46, kind: 'board', c: '#fff2b2', imgSrc: 'items/rubber-duck-ready.svg' };
 // Smartphone (diagonal 16.94 cm, body ~16.5×7.5 cm)
-export const ITEM_SMARTPHONE_1 = { hl: 53, r: 44, kind: 'board', c: '#333333', imgSrc: 'items/smartphone1-ready.svg' };
-export const ITEM_SMARTPHONE_2 = { hl: 53, r: 44, kind: 'board', c: '#000000', imgSrc: 'items/smartphone2-ready.svg' };
+export const ITEM_SMARTPHONE_1 = { hl: 53, r: 74, kind: 'board', c: '#333333', imgSrc: 'items/smartphone1-ready.svg' };
+export const ITEM_SMARTPHONE_2 = { hl: 53, r: 74, kind: 'board', c: '#000000', imgSrc: 'items/smartphone2-ready.svg' };
 
 // Tablet (diagonal 25.4 cm, body ~24×17 cm, landscape)
 export const ITEM_TABLET_10 = { hl: 41, r: 99, kind: 'board', c: '#3d444d', imgSrc: 'items/tablet-10inch-ready.svg' };
 
 // --- Medium objects (stapler, tape dispenser, corrector) ---
 // Tape dispenser (~20×8 cm)
-export const ITEM_TAPE      = { hl: 70, r: 46,  kind: 'board', c: '#ffd13b', imgSrc: 'items/ducttape-dispensor-ready.svg' };
+export const ITEM_TAPE      = { hl: 30, r: 29,  kind: 'board', c: '#ffd13b', imgSrc: 'items/ducttape-dispensor-ready.svg' };
 // Stapler (~16×4 cm)
-export const ITEM_STAPLER   = { hl: 70, r: 24,  kind: 'board', c: '#b3b8bd', imgSrc: 'items/stapler-ready.svg' };
+export const ITEM_STAPLER   = { hl: 70, r: 64,  kind: 'board', c: '#b3b8bd', imgSrc: 'items/stapler-ready.svg' };
 // Correction tape (~10×5 cm)
 export const ITEM_CORRECTOR = { hl: 30, r: 29,  kind: 'board', c: '#609f40', imgSrc: 'items/corrector-ready.svg' };
 
@@ -186,13 +156,13 @@ export const ITEM_PENCIL_PLUS = { hl: 67, r: 32, kind: 'board', c: '#fed42d', im
 
 // --- Compasses (folded, ~15 cm) ---
 export const ITEM_COMPASS_1 = { hl: 73, r: 15,  kind: 'knife', c: '#b5bcc2', imgSrc: 'items/compass-ready.svg' };
-export const ITEM_COMPASS_2 = { hl: 73, r: 15,  kind: 'knife', c: '#7db9d6', imgSrc: 'items/compass2-ready.svg' };
+export const ITEM_COMPASS_2 = { hl: 73, r: 55,  kind: 'knife', c: '#7db9d6', imgSrc: 'items/compass2-ready.svg' };
 
 // Protractor (~12×6 cm, capsule)
 export const ITEM_RULER = { hl: 35, r: 35, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-ready.svg' };
 
 // Protractor + compass set (~15×10 cm, wide capsule)
-export const ITEM_COMPASS_RULER = { hl: 29, r: 58, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-plus-ready.svg' };
+export const ITEM_COMPASS_RULER = { hl: 29, r: 78, kind: 'board', c: '#a4acb4', imgSrc: 'items/ruler-plus-ready.svg' };
 
 // --- Additional stationery ---
 // Pencil (~19 cm)
@@ -206,28 +176,28 @@ export const ITEM_RULER_LONG = { hl: 158, r: 17, kind: 'knife', c: '#f59e0b', im
 
 // --- Tools (Workshop) ---
 // Drill (~20×20 cm)
-export const ITEM_DRILL = { hl: 27, r: 90, kind: 'board', c: '#fca311', imgSrc: 'items/drill-ready.svg' };
+export const ITEM_DRILL = { hl: 27, r: 200, kind: 'board', c: '#fca311', imgSrc: 'items/drill-ready.svg' };
 // Open-end spanner (~15×3 cm)
-export const ITEM_WRENCH_1 = { hl: 70, r: 17, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench1-ready.svg' };
+export const ITEM_WRENCH_1 = { hl: 70, r: 27, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench1-ready.svg' };
 // Adjustable spanner (~20×5 cm)
-export const ITEM_WRENCH_2 = { hl: 88, r: 29, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench2-ready.svg' };
+export const ITEM_WRENCH_2 = { hl: 88, r: 39, kind: 'knife', c: '#cccccc', imgSrc: 'items/wrench2-ready.svg' };
 // Hammer (~30×12 cm, capsule covers handle and head)
-export const ITEM_HAMMER_1 = { hl: 120, r: 60, kind: 'knife', c: '#787676', imgSrc: 'items/hummer1-ready.svg' };
+export const ITEM_HAMMER_1 = { hl: 120, r: 110, kind: 'knife', c: '#787676', imgSrc: 'items/hummer1-ready.svg' };
 // Screwdriver 1 (red handle, ~20×3 cm)
 export const ITEM_SCREWDRIVER_1 = { hl: 100, r: 17, kind: 'knife', c: '#d94b4b', imgSrc: 'items/screwdriver1-ready.svg' };
 // Screwdriver 2 (orange handle, ~20×3 cm)
-export const ITEM_SCREWDRIVER_2 = { hl: 100, r: 17, kind: 'knife', c: '#eb7152', imgSrc: 'items/screwdriver2-ready.svg' };
+export const ITEM_SCREWDRIVER_2 = { hl: 100, r: 27, kind: 'knife', c: '#eb7152', imgSrc: 'items/screwdriver2-ready.svg' };
 
 // --- Tool sets ---
 // Set of 3 tools in a row (~20×10 cm)
-export const ITEM_TOOLSET_1 = { hl: 59, r: 58, kind: 'board', c: '#cccccc', imgSrc: 'items/toolset1-ready.svg' };
+export const ITEM_TOOLSET_1 = { hl: 59, r: 128, kind: 'board', c: '#cccccc', imgSrc: 'items/toolset1-ready.svg' };
 // Hammer and screwdriver crossed (~25×25 cm, round collider)
 export const ITEM_TOOLSET_2 = { hl: 0, r: 146, kind: 'plate', c: '#737373', imgSrc: 'items/toolset2-ready.svg' };
 
 // --- Miscellaneous (Workshop / Household) ---
 
 // Comb (~20×4 cm)
-export const ITEM_COMB = { hl: 94, r: 23, kind: 'knife', c: '#568ae5', imgSrc: 'items/comb-ready.svg' };
+export const ITEM_COMB = { hl: 94, r: 53, kind: 'knife', c: '#568ae5', imgSrc: 'items/comb-ready.svg' };
 // Work gloves (~25×20 cm)
 export const ITEM_GLOVES = { hl: 29, r: 117, kind: 'board', c: '#eed247', imgSrc: 'items/gloves1-ready.svg' };
 // 3 nails in a row (~10×8 cm)
@@ -235,4 +205,99 @@ export const ITEM_NAILS_ROW = { hl: 12, r: 46, kind: 'board', c: '#ffd600', imgS
 // Nails crossed (~10×10 cm, round collider)
 export const ITEM_NAILS_CROSS = { hl: 0, r: 58, kind: 'plate', c: '#ffd600', imgSrc: 'items/nails1-ready.svg' };
 // Horseshoe (~12×12 cm, round collider)
-export const ITEM_HORSESHOE = { hl: 0, r: 70, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };
+export const ITEM_HORSESHOE = { hl: 0, r: 110, kind: 'plate', c: '#fabf48', imgSrc: 'items/horseshoe-ready.svg' };
+
+
+// ==========================================
+// 🍽️ FOOD & TABLEWARE (1:64 scale)
+// ==========================================
+
+// Deep soup plate with spoon (~30×28 cm, enlarged round collider to include spoon)
+export const ITEM_PLATE_SOUP_SPOON = {
+  hl: 40,
+  r: 175,
+  kind: 'plate',
+  c: '#dce2e8',
+  imgSrc: 'items/plate-soup2-ready.svg'
+};
+
+// Frying pan with stew / sausages (~45 cm with handle, pan diameter 28 cm)
+export const ITEM_PAN_STEER = {
+  hl: 0,
+  r: 184,
+  kind: 'bowl',
+  c: '#3d434a',
+  imgSrc: 'items/pan-steer-ready.svg'
+};
+
+// Fries in red package (~12×8 cm)
+export const ITEM_FRIES_RED = {
+  hl: 35,
+  r: 66,
+  kind: 'board',
+  c: '#f92a1c',
+  imgSrc: 'items/fries2-ready.svg'
+};
+
+// Fries in orange package (~12×8 cm)
+export const ITEM_FRIES_ORANGE = {
+  hl: 35,
+  r: 76,
+  kind: 'board',
+  c: '#f27221',
+  imgSrc: 'items/fries1-ready.svg'
+};
+
+// Plate with chicken drumsticks (28 cm plate)
+export const ITEM_PLATE_CHICKEN = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#a0b4ed',
+  imgSrc: 'items/plate-chicken-ready.svg'
+};
+
+// Plate with BBQ skewers (28 cm plate)
+export const ITEM_PLATE_BBQ = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#faba02',
+  imgSrc: 'items/plate-bbq-ready.svg'
+};
+
+// Plate with mashed potato and chicken (28 cm plate)
+export const ITEM_PLATE_MASHED = {
+  hl: 0,
+  r: 164,
+  kind: 'plate',
+  c: '#ededed',
+  imgSrc: 'items/plate-mashed-chicken-ready.svg'
+};
+
+// Soup bowl (diameter ~20 cm)
+export const ITEM_BOWL_SOUP_1 = {
+  hl: 0,
+  r: 117,
+  kind: 'plate',
+  c: '#f5f5f5',
+  imgSrc: 'items/plate-soup3-ready.svg'
+};
+
+// Soup bowl with egg (diameter ~20 cm)
+export const ITEM_BOWL_SOUP_EGG = {
+  hl: 0,
+  r: 117,
+  kind: 'plate',
+  c: '#ffdb59',
+  imgSrc: 'items/plate-soup1-ready.svg'
+};
+
+// Plate with sausages and cutlery (~30×28 cm, enlarged collider to include cutlery)
+export const ITEM_PLATE_SAUSAGE_SET = {
+  hl: 40,
+  r: 175,
+  kind: 'plate',
+  c: '#f5f2db',
+  imgSrc: 'items/plate-sausage-ready.svg'
+};

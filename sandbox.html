@@ -37,7 +37,7 @@
       <div class="dim" id="lapScores"></div>
       <div class="dim">speed: <span id="spd">0.0</span> <span id="spdUnit"></span></div>
     </div>
-    <div id="lapCounter"><span id="lapNum">1</span>/-</div>
+    <div id="lapCounter"><span id="lapNum">1</span>/<span id="lapTotal">-</span></div>
   </div>
 </div>
 <div id="combo"></div>
@@ -48,8 +48,8 @@
 <script type="module">
   import * as T from './js/track-oval.js';
   import { startGame } from './js/game-engine.js';
-  startGame(T);
+  startGame(T, { stock: true });   // free test-drive: always the factory car, no tuning
 </script>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+<script type="module" src="./js/sw-update.js"></script>
 </body>
 </html>

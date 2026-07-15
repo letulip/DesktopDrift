@@ -20,23 +20,108 @@
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 #garage h2 { margin: 0; font: 600 16px var(--font-body); opacity: .6; }
-#cars { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+/* Coverflow carousel: the active car is big + centred, neighbours shrink back behind it.
+   Cards are absolutely positioned; layout() in select.html sets each card's transform by its
+   distance from the active index. Desktop shows ±2 (5 cards), mobile ±1 (3). Swipe / tap a
+   neighbour / dots / arrow keys to change the active car. */
+#cars {
+  --card-w: min(320px, 86vw);
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;               /* full-bleed: escape the narrow column so the coverflow has room */
+  height: 340px;
+  overflow: hidden;                 /* clip the far, faded cards */
+  touch-action: pan-y;              /* let the page scroll vertically; we handle horizontal swipes */
+  user-select: none; -webkit-user-select: none;
+}
+#cars.dragging .car-card { transition: none; }   /* follow the finger without transition lag */
+
+/* Prev / next arrows — circular, on top of the back cards, big easy tap targets */
+.car-nav {
+  position: absolute; top: 50%; z-index: 200;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(20,17,15,.72); border: 1px solid var(--surface-line);
+  color: var(--accent); font: 700 24px/1 var(--font-body);
+  cursor: pointer; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  transition: background var(--ease), border-color var(--ease), opacity var(--ease);
+}
+.car-nav.prev { left: calc(50% - var(--card-w) / 2 - 8px); transform: translate(-50%, -50%); }
+.car-nav.next { left: calc(50% + var(--card-w) / 2 + 8px); transform: translate(-50%, -50%); }
+.car-nav:hover { background: rgba(20,17,15,.92); border-color: var(--accent-line); }
+.car-nav:active { background: var(--accent-tint); }
+.car-nav.is-off { opacity: .25; pointer-events: none; }
+
+/* Carousel position dots (below the strip) */
+.car-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+.car-dot {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--surface-line); cursor: pointer;
+  transition: background var(--ease), transform var(--ease);
+}
+.car-dot.is-on { background: var(--accent); transform: scale(1.25); }
 
 /* ── Car cards ──────────────────────────────────────────────────────────── */
 .car-card {
-  max-width: 170px;
+  position: absolute;          /* coverflow item — placed by layout() */
+  top: 50%; left: 50%;         /* centred; JS translate(-50%,-50%) + offset + scale */
+  width: var(--card-w);
   box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 14px; border-radius: var(--r-card);
-  background: var(--surface); border: 2px solid var(--surface-line);
-  cursor: pointer; transition: border-color var(--ease), background var(--ease);
+  padding: 30px 14px 14px; border-radius: var(--r-card);
+  background: #221f1d;         /* OPAQUE so overlapping cards don't show through each other */
+  border: 2px solid var(--surface-line);
+  cursor: pointer;
+  transform-origin: center center;
+  transition: transform .38s cubic-bezier(.2, .8, .2, 1), opacity .3s var(--ease),
+              filter .3s var(--ease), border-color var(--ease), background var(--ease);
+  will-change: transform, opacity;
+  /* transform / z-index / opacity / filter are set per-card by layout() */
+}
+
+/* Modify (gear) button — top-right of each car card. The icon is icons/settings.svg
+   recoloured to the accent via CSS mask (source SVG untouched). Hover: gold glow + lift. */
+.car-modify {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 22px; height: 22px;
+  background-color: var(--accent);
+  -webkit-mask: url(../icons/settings.svg) center / contain no-repeat;
+          mask: url(../icons/settings.svg) center / contain no-repeat;
+  transition: background-color var(--ease), filter var(--ease), transform var(--ease);
+}
+.car-modify:hover {
+  background-color: var(--accent-gold);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+  transform: translateY(-2px);
 }
 .car-card:hover { border-color: var(--accent); }
-.car-card.sel { border-color: var(--accent); background: var(--accent-tint); }
+.car-card.sel { border-color: var(--accent); background: #302416; }   /* opaque warm tint for the active card */
+
+/* Locked car (paid + not owned, in a gated mode): a light overlay + lock + price. Taps still
+   centre the card; buying is done with the main Race/Buy button. */
+.car-lock {
+  position: absolute; inset: 0; z-index: 3;
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  border-radius: var(--r-card);
+  background: rgba(12,10,9,.42);
+  -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px);
+  pointer-events: none;
+}
+.car-card.is-locked .car-lock { display: flex; }
+.car-lock-ico { font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.55)); }
+.car-lock-price {
+  font: 800 14px var(--font-display); letter-spacing: .3px;
+  color: var(--accent-gold);
+  background: rgba(0,0,0,.45); padding: 3px 11px; border-radius: 999px;
+}
+#raceBtn.cant-afford { opacity: .5; }   /* can't afford the centred car — price stays visible */
+#raceBtn.confirm { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }   /* armed buy-confirm */
 .car-card canvas {
   display: block;
-  width: min(200px, 38vw);
-  aspect-ratio: 220 / 82;
+  width: 100%; max-width: 260px;
+  aspect-ratio: 240 / 140;
 }
 .car-name { font: 800 13px var(--font-display); letter-spacing: .3px; }
 
@@ -59,12 +144,13 @@
 
 /* ── Colour palette ─────────────────────────────────────────────────────── */
 .palette-section {
-  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
 }
+/* Section heading — Body colour (matches the shop tab styling: accent, uppercase). */
 .palette-label {
-  font: 600 11px var(--font-body);
-  letter-spacing: .6px; text-transform: uppercase;
-  color: rgba(255,255,255,.38);
+  font: 700 13px var(--font-body);
+  letter-spacing: .7px; text-transform: uppercase;
+  color: var(--accent);
 }
 .swatch-grid {
   display: grid;
@@ -130,6 +216,206 @@
     inset 0 1px 2px rgba(0,0,0,.4);
 }
 
+/* ── Two-part header (garage + modify): title/subtitle left, balance right ─── */
+#garage #ts-header,
+#modify #ts-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(440px, calc(100vw - 28px));
+  text-align: left;
+}
+.ts-header-text {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;            /* allow a long title to wrap instead of pushing the pill */
+}
+#garage #ts-header .wallet-pill,
+#modify #ts-header .wallet-pill { flex-shrink: 0; }
+
+/* ── Wallet pill — tire-coin balance ─────────────────────────────────────── */
+.wallet-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(255,180,60,.14);
+  border: 1px solid rgba(255,180,60,.3);
+  color: #ffce6a; font: 700 14px var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Shop (cosmetics) ───────────────────────────────────────────────────── */
+#shop-section {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: min(340px, calc(100vw - 40px));
+}
+.shop-grid {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  max-width: min(360px, calc(100vw - 32px));   /* wrap + stay centered */
+}
+.shop-card {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 10px;
+  background: var(--surface); border: 1.5px solid var(--surface-line);
+  color: var(--ink); font: 600 11px var(--font-body); cursor: pointer;
+  transition: border-color var(--ease), background var(--ease), opacity var(--ease);
+}
+.shop-card:hover { border-color: var(--accent); }
+/* Not-yet-purchased items recede (greyer + faded) so owned + active ones clearly stand out. */
+.shop-card:not(.owned):not(.sel) { opacity: .5; filter: saturate(.7); }
+.shop-card:not(.owned):not(.sel):hover { opacity: 1; filter: none; }
+/* selected = part of the previewed look; in-cart = selected but not yet owned (will buy) */
+.shop-card.sel {
+  border-color: var(--accent); background: var(--accent-tint); color: var(--accent);
+}
+.shop-card.in-cart { border-color: var(--accent-glow); box-shadow: 0 0 10px rgba(255,177,77,.2); }
+/* owned = clearly marked: a faint green edge (when not the active pick) + a green check tag */
+.shop-card.owned:not(.sel) { border-color: rgba(155,227,122,.4); }
+.shop-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
+}
+.shop-card-tag {
+  font: 700 10px var(--font-body);
+  color: rgba(255,206,106,.85);
+  font-variant-numeric: tabular-nums;
+}
+.shop-card.owned .shop-card-tag { color: var(--stat-acc); font-size: 12px; }  /* green ✓ */
+
+/* Customization selector (modify.html): tabs show one panel at a time */
+#custom {
+  position: relative;  /* for the ::before gradient */
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  flex: 1; min-height: 0;      /* fill the space under the preview; #panels scrolls inside */
+}
+#custom::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 100%;
+  top: 49px;
+  background: linear-gradient(to bottom, #1a1614 10%, transparent);
+}
+.shop-tabs {
+  flex-shrink: 0;              /* pinned above the scrolling panels */
+  display: inline-flex; gap: 4px;
+  padding: 4px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--surface-line);
+}
+/* Only the customization panels scroll — header, preview and the shop tabs stay pinned. */
+#panels {
+  flex: 1; min-height: 0; width: 100%;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: 6px 0 148px;        /* clears the fixed apply / buy bar + its gradient */
+}
+#panels::-webkit-scrollbar { display: none; }
+.shop-tab {
+  padding: 7px 14px; border-radius: 9px; cursor: pointer; border: none; background: none;
+  color: rgba(255,255,255,.5);
+  font: 700 12px var(--font-body); letter-spacing: .5px; text-transform: uppercase;
+  transition: background var(--ease), color var(--ease);
+}
+.shop-tab:hover { color: var(--ink); }
+.shop-tab.is-active { background: var(--accent-tint); color: var(--accent); }
+
+/* One customization panel (Colour / Neon / Trail) */
+.cust-panel {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding-block-start: 16px;
+}
+.cust-panel[hidden] { display: none; }
+
+/* Finish sub-section, grouped under the body colour (they're related) */
+.finish-sub {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 6px;
+}
+.cust-sublabel {
+  font: 700 11px var(--font-body);
+  letter-spacing: .6px; text-transform: uppercase;
+  color: var(--accent-gold);
+}
+
+/* ── Modify screen (modify.html) ────────────────────────────────────────── */
+#modify {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--bg-screen);
+  font: 14px/1.4 var(--font-body); color: var(--ink);
+  /* gap: 12px; */
+}
+#modify #content {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 8px 0 0;
+  min-height: 0;             /* let #custom shrink so #panels (not the page) scrolls */
+}
+#car-name {
+  margin: 0; font: 800 clamp(20px, 6vw, 34px) var(--font-display);
+  letter-spacing: .5px; line-height: 1.3;
+  background: var(--accent-text);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+/* Car preview sits on a soft lit "stage" with air around it, so the neon glow reads. */
+.preview-stage {
+  flex-shrink: 0;             /* the car stays visible above the scrolling panels */
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 26px;
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.07), rgba(255,255,255,0) 72%),
+    var(--surface);
+  border: 1px solid var(--surface-line);
+}
+#preview {
+  display: block;
+  width: min(300px, 78vw); aspect-ratio: 440 / 164;
+  background: transparent;
+}
+
+/* bottom apply / buy bar — a warning line stacked above the action row */
+#modify-bar {
+  position: relative;  /* for the ::before gradient */
+  /* position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; */
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 100%; box-sizing: border-box;
+  /* padding: 24px 18px calc(12px + env(safe-area-inset-bottom)); */
+  padding-block-end: calc(12px + env(safe-area-inset-bottom));
+  padding-inline: 18px;
+}
+#modify-bar::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 100%;
+  top: -20px;
+  background: linear-gradient(to top, #14110f 20%, transparent);
+}
+.modify-bar-row {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  width: 100%;
+}
+.buy-warning {
+  font: 700 12px var(--font-body);
+  color: #ffce6a; text-align: center;          /* total (affordable) */
+  font-variant-numeric: tabular-nums;
+}
+.buy-warning.is-short { color: #ff8a6a; }       /* not enough tires */
+.buy-warning[hidden] { display: none; }
+#applyBtn {
+  flex: 1; max-width: 300px;
+  padding: 13px 24px; border-radius: 14px; cursor: pointer;
+  background: rgba(255,177,77,.18); border: 1px solid var(--accent-line);
+  color: var(--accent); font: 800 15px var(--font-display); letter-spacing: .3px;
+  transition: background var(--ease), border-color var(--ease), opacity var(--ease);
+}
+#applyBtn:hover:not(:disabled) { background: rgba(255,177,77,.28); border-color: var(--accent-glow); }
+#applyBtn:disabled { opacity: .4; cursor: not-allowed; }
+#modify-bar .ts-back { flex-shrink: 0; }
+
 /* ── Buttons & nav ──────────────────────────────────────────────────────── */
 #raceBtn {
   padding: 14px 48px;
@@ -147,5 +433,7 @@
 #backLink:hover { color: rgba(255,255,255,.6); }
 
 @media (min-width: 480px) {
-  .car-card { max-width: none; box-sizing: content-box; }
+  #custom::before {
+    background: linear-gradient(to bottom, #1f1d1b 10%, transparent);
+  }
 }
