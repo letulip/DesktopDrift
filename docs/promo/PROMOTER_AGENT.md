@@ -136,6 +136,12 @@ or the agent posts with approval where the account is already logged in.
   overlay). Captured with a seeded-save Playwright screenshot script (equipped
   neon / `garage.cars[0].expression` set) — see `tools/capture/capture.js` for
   the seeding pattern.
+- Neon livery showcase (#screenshotsaturday): `docs/promo/assets/` ✅ —
+  `neon-showcase.gif` (600 px, ~4 s, 1.3 MB) + `neon-showcase.mp4`. Same green-study
+  drift line, car cycling through 6 body+neon liveries mid-drift (looks like it
+  switches livery on one racing line). Made by `tools/capture/neon-showcase.js`
+  (deterministic: seeded steering + seeded `Math.random` so all runs share the
+  path) → ffmpeg montage cutting between liveries every ~0.7 s.
 - Cover art 16:9: `docs/promo/assets/desktop-drift-thumbnail.png` ✅ (1672×941,
   16:9 — owner has the source; ask for a native 1920×1080 re-export if a
   platform demands exact pixels, don't upscale). Logo PNG:
