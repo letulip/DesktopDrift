@@ -12,6 +12,13 @@ project (see Week 6) — the repo is public and the commit history shows it.
 
 Launch post (already published): the owner's "It's out!" teaser.
 
+**Cadence in practice:** 1 heavy article/week (below) + 1–2 light filler posts/week
+(GIF / screenshot / poll — see "Filler pool") to keep the feed alive without
+burning the article backlog. Time a visual post for **Saturday** with the
+`screenshotsaturday` tag + Game Dev community — those get featured. The real
+growth levers beyond cadence: posting into communities, #screenshotsaturday, and
+replying/engaging.
+
 ---
 
 ## Week 1 — Reversed tracks
@@ -61,3 +68,27 @@ Launch post (already published): the owner's "It's out!" teaser.
 **Article title:** Where Desktop Drift goes from here
 **Article:** The game's live, but the roadmap is long. Next I want per-car tuning (grip/thrust/steer that unlocks as you clear tracks), a ghost car so you can race your own best lap, and more hand-made tracks. Further out there's the online era – leaderboards and cloud saves – but only once the single-player loop is as good as it can be. If you play it and something feels off, or you've got an idea, tell me: this is a solo project and player feedback genuinely steers it. Follow along here or on the devlog (youtube.com/@DesktopDrift).
 **Attach:** `docs/promo/screenshots/desk-gameplay-devdesk-nearmiss.png`
+
+---
+
+## Filler pool (light posts to interleave, ≤250 chars each)
+
+Rotate 1–2 of these between the weekly articles. Polls and questions drive
+engagement; GIF/screenshot drops keep the feed visual.
+
+- **Poll — favourite car** (set the options to the real car names):
+  Quick one: which car in Desktop Drift is your favourite? Vote below 👇 Set your pick in the garage if you haven't yet – they all drift differently.
+- **GIF drop** (`docs/promo/assets/cover-630x500.gif`):
+  Sometimes you thread the line, sometimes the stapler wins 🏎️💥 A few seconds of Desktop Drift – free, in your browser. What's your best lap so far?
+- **Screenshot — a track** (`docs/promo/screenshots/mob-gameplay-diningoak-soup.png`):
+  Drifting through breakfast 🍳 One of the tracks is a dining table – mind the soup. Desktop Drift, free in your browser.
+- **Poll — controls**:
+  How do you drift – keyboard or touch? Desktop Drift plays both: arrows on desktop, hold left/right on mobile. Curious which most of you reach for 👇
+- **Tip — cola caps** (any gameplay screenshot):
+  Hidden trick: find a cola cap on a track and drift two full donuts around it to claim it. A small flex with a permanent badge. Found them all yet?
+- **Community question — next track** (text/poll, doubles as roadmap feedback):
+  Solo-dev question, building this in the open: what desktop scene should the next track be? Kitchen counter, workshop bench, office desk, something weirder? Tell me what you'd want to drift on 👇
+
+## Saturday special — #screenshotsaturday
+Teaser (pair with the neon-showcase GIF once it lands, `docs/promo/assets/neon-showcase.gif`):
+Neon lit, rear stepping out, one coffee cup between me and a clean lap 🏎️💨 Desktop Drift – a top-down drift racer where the track is your desk. Vanilla JS. #screenshotsaturday #gamedev #indiedev
