@@ -142,6 +142,16 @@ or the agent posts with approval where the account is already logged in.
   switches livery on one racing line). Made by `tools/capture/neon-showcase.js`
   (deterministic: seeded steering + seeded `Math.random` so all runs share the
   path) → ffmpeg montage cutting between liveries every ~0.7 s.
+- Neon MODES reel (shop neon animations): `docs/promo/assets/` ✅ —
+  `neon-modes.mp4` (960×600, 12.6 s, ~0.4 MB — primary) + `neon-modes.gif`
+  (560×350, 13 fps, ~2.6 MB — social fallback). A clean studio reel: one big
+  stationary car on a dark desk cycling 6 cars × the shop's neon animations —
+  Pulse (breathing), Rainbow (hue spinning), Circular Flow (colours chasing the
+  ring, 6-colour + 3-colour), each labelled. Shows off the *animated* modes that
+  a still can't. Made by `tools/capture/neon-modes.html` (renders with the game's
+  own `drawCarPreview`/`drawNeon` — real neon) + `tools/capture/neon-modes.js`
+  (deterministic frame grab: every frame = f(panel, phase)) → ffmpeg. Re-tune the
+  panel list / spread / brightness at the top of the `.html`.
 - Cover art 16:9: `docs/promo/assets/desktop-drift-thumbnail.png` ✅ (1672×941,
   16:9 — owner has the source; ask for a native 1920×1080 re-export if a
   platform demands exact pixels, don't upscale). Logo PNG:
