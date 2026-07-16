@@ -61,9 +61,17 @@
 }
 
 html, body {
-  margin: 0; height: 100%; overflow: hidden; background: var(--bg-deep);
-  touch-action: none;          /* disable scroll/zoom */
+  margin: 0; min-height: 100%; background: var(--bg-deep);
+  overflow-x: hidden;          /* never scroll sideways */
+  overflow-y: auto;            /* HTML-UI pages scroll when the viewport is too short (e.g. embed frames) */
+  touch-action: pan-y;         /* allow vertical pan/scroll; block horizontal + zoom */
   user-select: none;           /* disable text selection */
   -webkit-user-select: none;   /* Safari / iOS */
   -webkit-touch-callout: none; /* disable callout menu on long press (iOS) */
+}
+
+/* Canvas gameplay pages (game.html, sandbox.html carry class="fixed-viewport" on <html>):
+   the canvas fills the viewport and must never scroll — pin to the viewport, no scroll. */
+html.fixed-viewport, html.fixed-viewport body {
+  height: 100%; overflow: hidden; touch-action: none;
 }
