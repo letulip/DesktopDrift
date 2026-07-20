@@ -205,6 +205,9 @@ canvas { display: block; }
   font: 600 12px var(--font-body); color: rgba(255,255,255,.9); white-space: nowrap;
 }
 .rr-ach b { color: #ffce6a; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* Overflow guard: past the first few, chips drop the name and keep icon + reward, so several
+   at once pack onto one row instead of growing the card off a short screen (see ACH_NAMED). */
+.rr-ach-mini { padding: 3px 7px; gap: 3px; }
 
 /* Tire earnings breakdown */
 #rr-tires:empty { display: none; }
