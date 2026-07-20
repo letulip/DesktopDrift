@@ -44,12 +44,22 @@ test('clampVolume: clamps to [0,1] and falls back to default on garbage', () => 
   assert.equal(clampVolume(null), 0);                     // Number(null) === 0 (finite) → clamped, not default
 });
 
-test('gainForVolume: squared curve, monotonic, endpoints exact', () => {
+test('gainForVolume: the stored value IS the gain (no curve), monotonic, clamped', () => {
   assert.equal(gainForVolume(0), 0);
   assert.equal(gainForVolume(1), 1);
-  assert.equal(gainForVolume(0.5), 0.25);
+  assert.equal(gainForVolume(0.5), 0.5);                // was 0.25 under the old squared curve
   assert.ok(gainForVolume(0.3) < gainForVolume(0.6));   // monotonic increasing
-  assert.equal(gainForVolume(2), 1);                    // clamps before squaring
+  assert.equal(gainForVolume(2), 1);                    // clamps out-of-range input
+  assert.equal(gainForVolume(-1), 0);
+});
+
+// The default level is what most players ever hear, so pin what it actually outputs: squaring
+// used to drop it to 0.42 of full scale.
+test('gainForVolume: the three discrete levels map to their own values', () => {
+  assert.equal(gainForVolume(VOLUME_LEVELS.low), VOLUME_LEVELS.low);
+  assert.equal(gainForVolume(VOLUME_LEVELS.med), VOLUME_LEVELS.med);
+  assert.equal(gainForVolume(VOLUME_LEVELS.high), 1);
+  assert.ok(gainForVolume(VOLUME_LEVELS.med) > 0.6);    // med is genuinely mid, not 0.42
 });
 
 test('VOLUME_LEVELS + levelForVolume: nearest discrete level for the button-row', () => {

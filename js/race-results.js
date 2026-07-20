@@ -11,6 +11,10 @@ import { sfx, soundThenGo } from './sound.js';
 import { commercialBreak } from './platform.js';
 import { createShareModal } from './share.js';
 
+// How many unlocked achievements keep their full name on the results card; everything past
+// this collapses to an icon + reward chip so a big burst can't overflow a short screen.
+const ACH_NAMED = 4;
+
 export const createRaceResults = () => {
   const overlay = document.createElement('div');
   overlay.id = 'raceResultsOverlay';
@@ -89,12 +93,19 @@ export const createRaceResults = () => {
         `<span class="rr-tires-parts">${tireParts.join(' · ')}</span>`
       : '';
 
-    // Achievements unlocked this race (hidden when none) — compact wrapping chips.
+    // Achievements unlocked this race (hidden when none) — compact wrapping chips. A big unlock
+    // burst (a returning player can clear half a dozen at once) used to grow the card past a short
+    // screen and push the buttons out of reach, so only the first few keep their name; the rest
+    // collapse to icon + reward, with the name preserved in the title attribute.
     const unlockedList = unlocked || [];
     overlay.querySelector('#rr-achievements').innerHTML = unlockedList.length
       ? `<span class="rr-ach-head">🏆 Unlocked</span>` +
-        unlockedList.map(u =>
-          `<span class="rr-ach">${u.icon} ${u.name}${u.reward ? ` <b>+${u.reward}</b>` : ''}</span>`).join('')
+        unlockedList.map((u, i) => {
+          const rw = u.reward ? ` <b>+${u.reward}</b>` : '';
+          return i < ACH_NAMED
+            ? `<span class="rr-ach">${u.icon} ${u.name}${rw}</span>`
+            : `<span class="rr-ach rr-ach-mini" title="${u.name}">${u.icon}${rw}</span>`;
+        }).join('')
       : '';
 
     overlay.querySelector('#rr-laps').innerHTML = lapScores.map(l => {

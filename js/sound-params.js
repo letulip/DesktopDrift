@@ -49,8 +49,11 @@ export const clampVolume = (v) => {
   return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : VOLUME_DEFAULT;
 };
 
-// Perceptual master gain for a volume setting: squared so 0→0, 1→1, mid is quieter than linear.
-export const gainForVolume = (v) => { const c = clampVolume(v); return c * c; };
+// Master gain for a volume setting — the stored value IS the gain. The UI offers three discrete
+// steps (VOLUME_LEVELS), so a perceptual curve buys nothing: we just pick the three amplitudes we
+// want. It used to square the value, which made the default "med" play at 0.65² = 0.42 — the main
+// reason the game read as too quiet. Linear keeps low/high unchanged in meaning and lifts med.
+export const gainForVolume = (v) => clampVolume(v);
 
 // Nearest discrete level key ('low'|'med'|'high') for a stored volume — restores the UI selection.
 export const levelForVolume = (v) => {
