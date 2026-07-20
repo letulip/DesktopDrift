@@ -348,7 +348,13 @@ const drawCar = (M) => {
 // canvas (deduped by imgSrc) and hand it to every prop that uses it — ~20× less resident texture
 // memory and a far cheaper per-frame sample. o._portrait caches the tall/wide flag (a canvas has
 // no naturalWidth, so drawProp can't probe it live). The cache persists across tracks.
-const TEX_CAP = 512;                  // max texture side — items never draw larger than this
+// 256, not 512. The old 512 cap shrank 63 of 77 item assets, but it sat ABOVE the very sprites
+// this mechanism was added for: cup-ready is 438² and the doughnuts are ~350², so the coffee/donut
+// gradient art blamed for the Mali corruption was never downscaled at all (14 assets fell in that
+// 256–512 blind spot). At 256 every asset is covered, the cup drops to 0.34× texture area and the
+// already-capped ones to a quarter. 256 still never upscales: the largest an item draws is ~255
+// device px (desktop ZOOM 1.0 at the 1.5 DPR cap); in-game on mobile it is ~170.
+const TEX_CAP = 256;                  // max texture side — items never draw larger than this
 const _texCache = new Map();          // imgSrc -> { img, portrait }
 
 export const initItems = (propList) => {
