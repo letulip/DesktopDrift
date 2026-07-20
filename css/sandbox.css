@@ -147,7 +147,11 @@ canvas { display: block; }
 /* z-index 110 — above the HUD (#hud is z-index 100) and all pause/exit overlays */
 #raceResultsOverlay {
   position: fixed; inset: 0; z-index: 110;
-  display: none; align-items: center; justify-content: center;
+  display: none; align-items: flex-start; justify-content: center;
+  /* Safety net for short screens: the card can outgrow the viewport (big unlock burst, crown +
+     NEW RECORD). `align-items:flex-start` + `margin:auto` on the box centres it while it fits and
+     lets it scroll when it doesn't — plain `align-items:center` would clip the top out of reach. */
+  overflow-y: auto; overscroll-behavior: contain; padding: 16px 0;
   background: rgba(8,10,14,.88);
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   pointer-events: auto;
@@ -159,6 +163,7 @@ canvas { display: block; }
   border-radius: 20px; padding: 28px 28px 24px;
   text-align: center; width: min(320px, 90vw);
   display: flex; flex-direction: column; gap: 14px;
+  margin: auto;   /* centred while it fits; scrolls (not clipped) once it outgrows the viewport */
 }
 #rr-title {
   margin: 0;
