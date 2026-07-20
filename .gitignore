@@ -13,3 +13,8 @@ dist*.zip
 
 # Node
 node_modules/
+
+# Promo capture artifacts — large, regenerable binaries produced by tools/capture/
+# (see docs/promo/steps/). Keep them out of git; render locally when a store needs one.
+*.gif
+*.mp4
