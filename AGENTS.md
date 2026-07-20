@@ -251,9 +251,15 @@ stays readable. No framework, no bundler.
     in `draw()`): the camera zooms on the car, so most items aren't visible — skip them.
     Culling alone was NOT enough on cafe-marble (winding layout clusters the coffee/donut items,
     so several stay on-screen at once). The durable Mali fix is `initItems()` **pre-rendering
-    oversized item art once into a ≤`TEX_CAP`(512) canvas, deduped by `imgSrc`** — the source SVGs
-    are 1152² but items draw ~170 px, so the raw textures were minified ~6.7×/frame with no
-    mipmaps; the downscale cuts resident texture memory ~20× and the per-frame sample cost. Props
+    oversized item art once into a ≤`TEX_CAP`(256) canvas, deduped by `imgSrc`** — sources run
+    ~350²–1800² while items draw ~170 px in-game, so raw textures were minified every frame with no
+    mipmaps; the downscale cuts resident texture memory and the per-frame sample cost. **Gotcha
+    (fixed 2026-07):** `TEX_CAP` was 512, which covered 63 of 77 assets but sat *above* the coffee
+    cup (438²) and doughnuts (~350²) — precisely the gradient sprites blamed for the Mali
+    corruption, so the targeted fix never touched its own target (14 assets sat in that 256–512
+    blind spot). Earlier notes claiming "1152² sources" were wrong; no such asset exists. When
+    tuning `TEX_CAP`, check it against the ACTUAL asset sizes (`items/*-ready.svg` viewBox) —
+    a cap above them is silently a no-op. Props
     carry a cached `o._portrait` flag (a downscaled canvas has no `naturalWidth`). Also: the main
     2d context is `{ alpha:false }` (canvas is repainted opaque every frame), and a `?dpr=1|1.25|1.5`
     override (`_dprCap`, sticky) shrinks the backbuffer for on-device Mali A/B.
