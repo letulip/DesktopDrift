@@ -32,8 +32,15 @@ const _norm = (ctx = {}) => ({
   content:  _content(ctx.content),
 });
 
+// Instances the player has provably finished: stats.cleared PLUS anything with a persisted
+// best. A bestPPS is only ever written on a Time-Attack finish (Zen runs with TOTAL_LAPS=0, so
+// the finish branch never executes) and flattenRecords drops empty slots — so a record is proof
+// of a clear. Without this, saves that predate stats.cleared never earn the "clear every track"
+// family even though their records show every track finished.
+const _clearedIds = (x) => new Set([...x.cleared, ...Object.keys(x.records)]);
+
 // Every forward/reversed/all instance is finished (and there is at least one to finish).
-const _allCleared = (ids, cleared) => ids.length > 0 && ids.every(id => cleared.includes(id));
+const _allCleared = (ids, x) => { const done = _clearedIds(x); return ids.length > 0 && ids.every(id => done.has(id)); };
 
 // The best star rating the player has ever recorded (from persisted bestPPS). Lets the
 // star-milestone achievements fire from history — a returning player with a 5-star record
@@ -57,16 +64,16 @@ const STATIC = [
     check: (x) => _hasFinishedEver(x) },
   { id: 'road-tripper', name: 'Road Tripper', desc: 'Clear every track (forward).',
     icon: '🗺️', category: 'progression', hidden: false, reward: 30,
-    check: (x) => _allCleared(x.content.forwardIds, x.cleared) },
+    check: (x) => _allCleared(x.content.forwardIds, x) },
   { id: 'mirror-walker', name: 'Through the Looking Glass', desc: 'Clear a reversed track.',
     icon: '🪞', category: 'progression', hidden: false, reward: 15,
-    check: (x) => x.content.reversedIds.some(id => x.cleared.includes(id)) },
+    check: (x) => { const done = _clearedIds(x); return x.content.reversedIds.some(id => done.has(id)); } },
   { id: 'backwards', name: 'Reverse Psychology', desc: 'Clear every reversed track.',
     icon: '↩️', category: 'progression', hidden: false, reward: 30,
-    check: (x) => _allCleared(x.content.reversedIds, x.cleared) },
+    check: (x) => _allCleared(x.content.reversedIds, x) },
   { id: 'completionist', name: 'Completionist', desc: 'Clear every track, both directions.',
     icon: '🏆', category: 'progression', hidden: false, reward: 75,
-    check: (x) => _allCleared(x.content.allInstanceIds, x.cleared) },
+    check: (x) => _allCleared(x.content.allInstanceIds, x) },
 
   // Skill ---------------------------------------------------------------------
   // Star milestones fire from this run OR the best rating ever recorded (reconstructable).

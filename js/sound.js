@@ -39,7 +39,9 @@ const _ensureCtx = () => {
   // Bus → gentle lowpass (rounds off any harsh top) → destination (dry), plus a parallel
   // convolver reverb send mixed in low for a soft, semi-atmospheric tail.
   _bus = _ctx.createGain(); _bus.gain.value = 1;
-  const lp = _ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.4;
+  // 7 kHz, not 2.6 kHz: the old corner rolled off most of the top end, which read as muffled and
+  // therefore quiet. This still rounds off genuinely harsh highs without dulling the whole mix.
+  const lp = _ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000; lp.Q.value = 0.4;
   const conv = _ctx.createConvolver(); conv.buffer = _impulse(_ctx);
   const wet = _ctx.createGain(); wet.gain.value = 0.16;   // subtle reverb mix
   _bus.connect(lp);
