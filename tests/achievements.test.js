@@ -100,6 +100,29 @@ test('completionist needs every instance, both directions', () => {
   assert.ok(firing({ cleared: CONTENT.allInstanceIds }).has('completionist'));
 });
 
+// A persisted bestPPS only exists if that instance was finished in Time Attack, so the
+// clear-family must count records too — otherwise saves written before stats.cleared existed
+// (records present, cleared empty) never earn these, which is exactly what players hit.
+test('clear-family is retrospective: records count as proof of a clear', () => {
+  const recs = (ids) => Object.fromEntries(ids.map(id => [id, 200]));
+  const noCleared = (ids) => firing({ cleared: [], records: recs(ids) });
+
+  assert.ok(noCleared(CONTENT.forwardIds).has('road-tripper'));
+  assert.ok(noCleared(CONTENT.reversedIds).has('backwards'));
+  assert.ok(noCleared(['green-study:rev']).has('mirror-walker'));
+  assert.ok(noCleared(CONTENT.allInstanceIds).has('completionist'));
+
+  // cleared and records combine rather than replace each other
+  const split = firing({ cleared: CONTENT.forwardIds, records: recs(CONTENT.reversedIds) });
+  assert.ok(split.has('completionist'));
+});
+
+test('clear-family still requires EVERY instance (records do not over-credit)', () => {
+  const partial = CONTENT.forwardIds.slice(0, -1);
+  assert.ok(!firing({ cleared: [], records: Object.fromEntries(partial.map(id => [id, 200])) }).has('road-tripper'));
+  assert.ok(!firing({ cleared: [], records: { 'green-study': 200 } }).has('completionist'));
+});
+
 // ── Skill ───────────────────────────────────────────────────────────────────────
 test('star tiers fire at their thresholds and not below (this run)', () => {
   assert.ok(!firing({ run: { ...RUN, stars: 2 } }).has('three-star'));
