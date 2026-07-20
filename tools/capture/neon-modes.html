@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  Desktop Drift — neon MODES studio (dev tooling, not shipped / not in the build).
+  A clean showcase surface for the neon underglow ANIMATIONS (pulse / rainbow /
+  circular flow) that the shop sells: one big stationary car on a dark studio
+  desk, so the eye can follow the animation — far more legible than the cramped
+  440x164 garage preview or a driving car. Renders with the game's OWN
+  drawCarPreview (single source of truth for neon), so the glow is the real thing.
+
+  Deterministic: every frame is a pure function of (panelIndex, phase) — no RAF,
+  no wall-clock. tools/capture/neon-modes.js drives it frame-by-frame over http
+  and screenshots the canvas; ffmpeg assembles the montage. Serve the repo root
+  (python3 -m http.server 8789) and open /tools/capture/neon-modes.html.
+-->
+<meta charset="utf-8">
+<title>neon modes studio</title>
+<style>html,body{margin:0;background:#000;}#stage{display:block;}</style>
+<canvas id="stage"></canvas>
+<script type="module">
+  import { CARS } from '../../js/config.js';
+  import { drawCarPreview } from '../../js/car-preview.js';
+  import { drawNeon } from '../../js/neon-draw.js';
+
+  const W = 960, H = 600;          // stage (output) size — car band on top, label band below
+  const CAR_H = 500;               // the car preview occupies the top 500px; label lives 500..600
+  const cvs = document.getElementById('stage');
+  cvs.width = W; cvs.height = H; cvs.style.width = W + 'px'; cvs.style.height = H + 'px';
+  const ctx = cvs.getContext('2d');
+  // Offscreen for the car (drawCarPreview clears its own canvas each call).
+  const carCvs = document.createElement('canvas'); carCvs.width = W; carCvs.height = CAR_H;
+
+  // Car index → js/config.js CARS (0 Bismark, 1 Panda, 2 Plum, 3 Bavarian,
+  // 4 Toretto, 5 Stallion, 6 Smasher, 7 Catana). Body from js/palette.js PALETTE,
+  // neon colours from NEON_PALETTE. speed 1.25 = a touch livelier than in-race so a
+  // full cycle reads inside a ~2s panel. Emphasis: pulse + circular multicolour.
+  // Multicolour modes (flow / rainbow) go on DARK bodies where the glow pops; pulse
+  // rides the brighter/coloured cars. Emphasis per the brief: pulse + circular multicolour.
+  // Multicolour modes (flow / rainbow) go on MID-DARK bodies — dark enough that the glow
+  // pops, light enough to stay visible on the charcoal desk (pure black vanished). Pulse
+  // rides the bright/light cars. Emphasis per the brief: pulse + circular multicolour.
+  const PANELS = [
+    { carIdx: 4, body: '#D32F2F', label: 'Pulse',         sub: 'Toretto · breathing cyan',
+      neon: { layout: 'solid',          anim: 'pulse',   colors: ['#00CFFF'], speed: 1.25 } },
+    { carIdx: 0, body: '#455A64', label: 'Circular Flow', sub: 'Bismark · six colours chasing the ring',
+      neon: { layout: 'per-zone',       anim: 'flow',    colors: ['#FF073A','#FF6700','#FFE600','#39FF14','#00CFFF','#BF00FF'], speed: 1.25 } },
+    { carIdx: 3, body: '#283593', label: 'Rainbow',       sub: 'Bavarian · hue spinning around',
+      neon: { layout: 'per-zone',       anim: 'rainbow', colors: ['#39FF14'], speed: 1.25 } },
+    { carIdx: 7, body: '#F5F5F5', label: 'Pulse',         sub: 'Catana · breathing magenta',
+      neon: { layout: 'solid',          anim: 'pulse',   colors: ['#FF00FF'], speed: 1.25 } },
+    { carIdx: 6, body: '#6A1B9A', label: 'Circular Flow', sub: 'Smasher · front / sides / rear',
+      neon: { layout: 'front-mid-rear', anim: 'flow',    colors: ['#00CFFF','#FF00FF','#39FF14'], speed: 1.25 } },
+    { carIdx: 2, body: '#AD1457', label: 'Rainbow',       sub: 'Plum · full-spectrum sweep',
+      neon: { layout: 'solid',          anim: 'rainbow', colors: ['#39FF14'], speed: 1.25 } },
+  ];
+
+  // Matches drawCarPreview's fit math (js/car-preview.js) so the manually-drawn neon
+  // lines up with the car exactly. Neon spread/brightness copied from there (4.0 / 1.45).
+  // Tighter than the in-game 4.0 spread → a punchier, more saturated glow band that reads
+  // on a big frame; brightness at the clamp so the colour is at full strength.
+  const NEON_SPREAD = 3.1, NEON_ALPHA = 1.6;
+  // Pull the nose/tail light-strips inward so a car with a tapered nose/tail covers
+  // them (otherwise the hard rect fill pokes past the silhouette at showcase size).
+  const HL_COVER = 0.85;
+  // Shrink car + glow together (identical proportions) so the halo has breathing room and
+  // tall cars don't clip the frame top.
+  const CAR_SCALE = 0.88;
+  const geomFor = (M) => {
+    const pad = Math.min(W, CAR_H) * 0.15;
+    const s = Math.min((W - pad * 2) / M.vw, (CAR_H - pad * 2) / M.vh);
+    return { s, cx: W / 2, cy: CAR_H / 2 };
+  };
+
+  const background = () => {
+    const g = ctx.createRadialGradient(W / 2, CAR_H * 0.46, 40, W / 2, CAR_H * 0.5, W * 0.72);
+    g.addColorStop(0, '#181c24'); g.addColorStop(1, '#0a0c11');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  };
+
+  const label = (p) => {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+    ctx.font = '700 42px system-ui,-apple-system,"Segoe UI",sans-serif';
+    ctx.fillText(p.label, W / 2, H - 46);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '500 20px system-ui,-apple-system,"Segoe UI",sans-serif';
+    ctx.fillText(p.sub, W / 2, H - 20);
+    // brand mark, top-left
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.font = '600 18px system-ui,-apple-system,"Segoe UI",sans-serif';
+    ctx.fillText('Desktop Drift — neon underglow', 28, 38);
+  };
+
+  window.STUDIO = {
+    size: { w: W, h: H },
+    count: PANELS.length,
+    panel: (i) => PANELS[i],
+    // Pure: draw panel i at animation time `phase` seconds. No state between calls
+    // except M.body (set per panel; CARS models are shared singletons — fine sequentially).
+    // Layered so the neon glow sits UNDER the car: neon on the stage, car composited over
+    // it — lets us shrink the nose/tail strips (HL_COVER) without touching game rendering.
+    render(i, phase) {
+      const p = PANELS[i];
+      const M = CARS[p.carIdx];
+      M.body = p.body;
+      const { s, cx, cy } = geomFor(M);
+      const sc = s * CAR_SCALE;
+      // 1) car body only (no neon) on a transparent offscreen (full-fit; downscaled on composite)
+      drawCarPreview(carCvs, M, null, null, null, phase, null, null, null);
+      // 2) background + neon underglow on the stage, in the same (scaled) car-local frame
+      background();
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (M.flip) ctx.scale(-1, 1);
+      drawNeon(ctx, (M.vw / 2) * sc * HL_COVER, (M.vh / 2) * sc, p.neon, phase, sc * NEON_SPREAD, NEON_ALPHA);
+      ctx.restore();
+      // 3) car over the glow (composited at CAR_SCALE, kept centred), then the label band
+      const dw = W * CAR_SCALE, dh = CAR_H * CAR_SCALE;
+      ctx.drawImage(carCvs, (W - dw) / 2, (CAR_H - dh) / 2, dw, dh);
+      label(p);
+    },
+  };
+  window.__studioReady = true;
+</script>
