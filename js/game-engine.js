@@ -16,7 +16,7 @@ import {
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS, MULT_MAX,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
-import { hapticCone, hapticCrash } from './haptics.js';
+import { hapticCone, hapticCrash, hapticCheckpoint } from './haptics.js';
 import { sfx, drift, stopDrift } from './sound.js';
 import { stepCar } from './physics.js';
 import { nearestCenter, circularAdvance, instanceId, resetCones } from './track-util.js';
@@ -620,6 +620,9 @@ export const startGame = (T, opts = {}) => {
       // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
       const nx = advanceCheckpoint(S.nextCp, car.x, car.y, checkpoints, CP_R);
       if (nx !== S.nextCp) {
+        // Passed an intermediate checkpoint — a light audio + haptic cue. Gated on !ZEN to match the
+        // checkpoint ring, which draw() only shows outside Zen (Zen surfaces no checkpoints at all).
+        if (!ZEN) { sfx.checkpoint(); hapticCheckpoint(); }
         S.nextCp = nx;
         if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
