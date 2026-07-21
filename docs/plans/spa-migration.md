@@ -3,6 +3,12 @@
 Status: **parked, window not open yet** (see Trigger below). This plan exists so
 the decision and its reasoning survive; do not start it ad hoc.
 
+> **Companion:** `docs/plans/spa-migration-analysis.md` is the code-grounded impact
+> map (advantages, a ranked risk register with `file:line`, invariants, open
+> questions). Read it before committing to Phase C — it names the re-entrancy
+> blockers this plan only gestures at (the `S` singleton reset, cone knocked-state
+> leak, `reverseTrack` cones-by-reference, stale `render.js` DOM refs).
+
 ## Why (what a single-page app buys)
 
 1. **The audio-activation problem dies as a class.** Today every page is a fresh
