@@ -66,3 +66,22 @@ test('routeToHash → parseRoute round-trips the params', () => {
   assert.equal(back.dpr, '1');
   assert.equal(back.surface, 'bake');
 });
+
+test('the game screen is routable (SPA Phase C)', () => {
+  assert.ok(SCREENS.includes('game'));
+  assert.deepEqual(parseRoute('#/game?track=steel-kitchen&dir=rev'),
+    { screen: 'game', ...empty, track: 'steel-kitchen', dir: 'rev' });
+  assert.equal(routeToHash('game', { track: 'steel-kitchen', dir: 'rev' }),
+    '#/game?track=steel-kitchen&dir=rev');
+  assert.equal(parseRoute('#/game?mode=zen').mode, 'zen');
+  assert.equal(parseRoute('#/game?dpr=1&surface=bake').dpr, '1');
+  assert.equal(parseRoute('#/game?dpr=1&surface=bake').surface, 'bake');
+  // Exit targets the game screen routes back to are all valid screens.
+  assert.equal(routeToHash('tracks', {}), '#/tracks');
+  assert.equal(routeToHash('zen', {}), '#/zen');
+  assert.equal(routeToHash('menu', {}), '#/menu');
+  // round-trip stable
+  const back = parseRoute(routeToHash('game', { track: 'x', mode: 'sandbox' }));
+  assert.equal(back.screen, 'game');
+  assert.equal(back.mode, 'sandbox');
+});

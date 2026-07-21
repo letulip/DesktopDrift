@@ -2,12 +2,13 @@
 // DOM router (js/router.js) imports from here. See docs/plans/spa-migration.md + the analysis.
 //
 // Menu routes live in the hash so a GitHub-Pages refresh never 404s and a sandboxed portal iframe
-// never throws on pushState. Shape: `#/<screen>?<query>`. game / sandbox / donate stay SEPARATE
-// documents (hard navigations), so they are NOT screens here.
+// never throws on pushState. Shape: `#/<screen>?<query>`. sandbox / donate stay SEPARATE documents
+// (hard navigations), so they are NOT screens here. 'game' IS a screen (SPA Phase C) — the race
+// runs in-document so restart/exit keep the single AudioContext alive.
 
-// The menu screens the shell can mount. 'menu' is the landing (index) screen; the rest match the
+// The screens the shell can mount. 'menu' is the landing (index) screen; the rest match the
 // js/screens/*.js modules. An unknown screen name falls back to 'menu'.
-export const SCREENS = ['menu', 'tracks', 'zen', 'select', 'modify', 'settings', 'achievements'];
+export const SCREENS = ['menu', 'tracks', 'zen', 'select', 'modify', 'settings', 'achievements', 'game'];
 
 // Parse a hash route into a flat, dependency-free descriptor. Accepts a full URL
 // ('https://…/index.html#/select?track=x'), a bare hash ('#/select?track=x'), or just the path
@@ -45,3 +46,16 @@ export const routeToHash = (screen, params = {}) => {
   const qs = q.toString();
   return '#/' + scr + (qs ? '?' + qs : '');
 };
+
+// Map a parsed game route to the opts object startGame(T, opts) expects (SPA Phase C). Mirrors the
+// old game.html inline bootstrap: startGame(T, { initItems:true, zen, reversed }), plus `stock`
+// (a sandbox test-drive ignores equipped paint) and the `trackId`/`car` the game screen needs to
+// pick the track. laps is intentionally absent — the engine reads T.laps, never a route field.
+export const optsFromRoute = (route = {}) => ({
+  trackId:   route.track ?? null,
+  zen:       route.mode === 'zen',
+  reversed:  route.dir === 'rev',
+  stock:     route.mode === 'sandbox',
+  initItems: true,
+  car:       route.car ?? null,
+});
