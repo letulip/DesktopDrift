@@ -76,6 +76,7 @@ const ASSETS = [
   'js/screens/select.js',
   'js/screens/modify.js',
   'js/physics.js',
+  'js/render-config.js',
   'js/track-util.js',
   'js/track-thumb.js',
   'js/collision.js',

@@ -5,6 +5,7 @@ import { paintBody, hexToRgbStr } from './finish.js';
 import { drawNeon } from './neon-draw.js';
 import { bakeSurfaceDims } from './track-surface.js';
 import { preloadEmotion, getEmotionBitmap } from './emotion-overlay.js';
+import { resolveDprCap, resolveSurfaceMode } from './render-config.js';
 
 // --- Canvas ---
 export const canvas = document.getElementById('c');
@@ -41,13 +42,9 @@ let _prevWallet    = -1;
 // Per-device DPR cap (default 1.5). ?dpr=1|1.25|1.5 overrides for on-device A/B (sticks in
 // localStorage). Lowering it shrinks the canvas backbuffer — DPR 1.5→1.0 = 2.25× fewer fragments
 // AND 2.25× less tiler write-out (the buffer whose stale tiles show as scanline garbage on Mali).
-const _dprCap = (() => {
-  try {
-    const q = new URLSearchParams(location.search).get('dpr');
-    if (q === '1' || q === '1.25' || q === '1.5') localStorage.setItem('dd-dpr', q);
-    return parseFloat(localStorage.getItem('dd-dpr')) || 1.5;
-  } catch { return 1.5; }
-})();
+// Pure resolver in render-config.js; the param source (location.search now, route hash in the
+// shell) is threaded in by the caller.
+const _dprCap = resolveDprCap(new URLSearchParams(location.search).get('dpr'), localStorage);
 
 export let W, H, DPR;
 export const resize = () => {
@@ -127,13 +124,7 @@ let trackSurface = null;
 // Mali gradient-overdraw glitch. So it is OFF by default: draw() falls back to the decimated
 // live stroke. Override per device with ?surface=bake (or ?surface=live); the choice sticks in
 // localStorage so it survives track re-selection while testing on a phone.
-const _surfaceMode = (() => {
-  try {
-    const q = new URLSearchParams(location.search).get('surface');
-    if (q === 'bake' || q === 'live') localStorage.setItem('dd-surface', q);
-    return localStorage.getItem('dd-surface') || 'live';
-  } catch { return 'live'; }
-})();
+const _surfaceMode = resolveSurfaceMode(new URLSearchParams(location.search).get('surface'), localStorage);
 const USE_SURFACE_BAKE = _surfaceMode === 'bake';
 
 // Bake the static table + track ribbon into an offscreen canvas. Reads _T / _TABLE / TH /
