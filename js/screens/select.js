@@ -20,7 +20,7 @@ import { syncStateAchievements } from '../ach-sync.js';
 import { speedRating, handlingRating, accRating } from '../car-stats.js';
 import { sfx, tapThenGo, soundThenGo } from '../sound.js';
 
-export const createSelectScreen = (root = document) => {
+export const createSelectScreen = (root = document, route = null) => {
   const $ = (id) => root.getElementById(id);
 
   const listeners = [];
@@ -28,7 +28,17 @@ export const createSelectScreen = (root = document) => {
   let neonRaf = 0;
   let emotionOff = null;
 
-  const params    = new URLSearchParams(location.search);
+  // Params come from the SPA router (a parsed hash route) or, when this runs as the standalone
+  // select.html page, from the query string. Downstream reads params.get(...) either way, and
+  // modifyHref rebuilds the child URL from `params`, so both paths carry track/mode/dir forward.
+  const params = new URLSearchParams();
+  if (route) {
+    if (route.track) params.set('track', route.track);
+    if (route.mode)  params.set('mode', route.mode);
+    if (route.dir === 'rev') params.set('dir', 'rev');
+  } else {
+    for (const [k, v] of new URLSearchParams(location.search)) params.set(k, v);
+  }
   const trackId   = params.get('track');                          // e.g. 'green-study'
   const rawMode   = params.get('mode');                           // 'zen', 'sandbox', or null
   const isZen     = rawMode === 'zen';

@@ -22,14 +22,24 @@ import { LAYOUTS, ANIMS, defaultNeon } from '../neon.js';
 import { initWalletHistory } from '../wallet-history.js';
 import { sfx, soundThenGo } from '../sound.js';
 
-export const createModifyScreen = (root = document) => {
+export const createModifyScreen = (root = document, route = null) => {
   const $ = (id) => root.getElementById(id);
 
   const listeners = [];
   const on = (el, type, fn, opts) => { el.addEventListener(type, fn, opts); listeners.push([el, type, fn, opts]); };
   let emotionOff = null;
 
-  const params = new URLSearchParams(location.search);
+  // Params come from the SPA router (a parsed hash route) or, standalone (modify.html), the query
+  // string. carIdx + the backHref (select.html minus car) rebuild from `params` either way.
+  const params = new URLSearchParams();
+  if (route) {
+    if (route.track) params.set('track', route.track);
+    if (route.mode)  params.set('mode', route.mode);
+    if (route.dir === 'rev') params.set('dir', 'rev');
+    if (route.car != null) params.set('car', String(route.car));
+  } else {
+    for (const [k, v] of new URLSearchParams(location.search)) params.set(k, v);
+  }
   const carIdx = Math.max(0, Math.min(parseInt(params.get('car'), 10) || 0, CARS.length - 1));
   const M = CARS[carIdx];
   const factoryBody = M.body;   // the car's STOCK colour — used when no custom body colour is picked
