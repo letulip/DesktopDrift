@@ -526,6 +526,34 @@ stays readable. No framework, no bundler.
 
 ## Architecture
 
+### Screens (`js/screens/*.js`) — SPA Phase A
+
+Each menu page's logic lives in a screen module, not inline in the HTML: `settings`,
+`achievements`, `zen`, `tracks`, `select`, `modify`. The `.html` is a thin shell that
+imports and calls the factory once:
+```html
+<script type="module">
+  import { createSettingsScreen } from './js/screens/settings.js';
+  createSettingsScreen();
+</script>
+```
+**Contract:** `create<Screen>(root = document) -> { destroy }`. `root` is always `document`
+today; it is a parameter so the Phase-B router can mount a screen into a subtree without
+touching the modules. Every listener on a **persistent/static element or `window`** goes
+through a local `on(el, type, fn, opts)` accumulator; `destroy()` removes them, cancels any
+rAF, calls captured unsubscribes (`onEmotionReady`), clears the containers the screen filled,
+and undoes shared-state mutations. Listeners on **created** elements stay direct (they die
+when `destroy()` empties their container). `destroy()` is **inert at mount** — nothing calls
+it until the Phase-B router; the extraction is otherwise byte-for-byte 1:1 with the old inline
+scripts (see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
+- **Gotcha (`modify.js`):** `draw()` mutates the shared `CARS[carIdx].body` and does **not**
+  restore it (verbatim with the original — harmless while each page is its own document). The
+  restore `M.body = factoryBody` lives **only in `destroy()`**, so it fixes the colour-leak the
+  moment screens share a document (Phase B/C) without changing Phase-A behaviour.
+- `js/track-thumb.js` — shared minimap renderer (`drawThumb` + `TRACK_GU`), used by `tracks`
+  and `zen` (was duplicated byte-identically in both).
+- The **game / sandbox** pages are NOT screens yet — they stay separate documents until Phase C.
+
 ### Track dependency injection
 
 Neither `state.js` nor `render.js` imports any track module. Instead, each
