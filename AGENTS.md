@@ -575,11 +575,44 @@ page + query to the hash route and `location.replace` into the shell — so book
   hard-navs game/sandbox/donate/external. A global `document` click interceptor catches bare
   `<a href>` clicks a screen didn't handle (skipped via `e.defaultPrevented`). One document ⇒
   **one AudioContext for the whole menu session** — the payoff.
-- **Still separate documents:** `game.html`, `sandbox.html`, `donate.html` (hard navs). Because of
-  that, the `sw-update` nudge's `isGameplayPage(pathname)` gate and the SW precache are **unchanged
-  and still correct** in Phase B (game→menu is a real document load, so a waiting worker resurfaces
-  on return). Moving the nudge to engine-state gating and disposing GPU surfaces on screen exit are
-  **Phase C** (when the game joins the shell and there is no document reload between race and menu).
+- **Still separate documents:** `sandbox.html`, `donate.html` (hard navs). `game.html` also still
+  exists as a standalone page (deep-link + on-error redirect back-compat), but the shell now routes
+  the race **in-document** — see Phase C below.
+
+### SPA shell — the game joins the document (`js/screens/game.js`) — Phase C
+
+The race now runs **inside the shell** as the `game` screen (`#/game?track=x&mode=zen&dir=rev`),
+so a restart/exit no longer reloads the document — the single session `AudioContext` survives
+(the payoff). `game.html` stays a standalone page (deep links, `game.html` on-error redirects), and
+its inline bootstrap is unchanged; `sandbox.html` deliberately stays standalone to bound the blast
+radius. The engine is now **re-entrant** — `location.reload()` used to be the correctness crutch:
+- **State reset:** `startGame()` calls `resetState()` (js/state.js — resets the shared `S` singleton
+  from one `S_DEFAULTS` literal, clears `keys`/`pointers`, empties `S.skids`/`S.lapScores` **in place**
+  so render.js's array bindings survive) and `resetCones(cones)` (js/track-util.js — stands cones back
+  up at their `x0/y0`; `cones[]` is ES-module-cached and shared by `reverseTrack`, so a replay would
+  otherwise reuse knocked/displaced cones). Both are pure + unit-tested.
+- **render.js is DOM-late:** it no longer captures `#c`/HUD at import (the shell loads it before the
+  `tpl-game` clone exists). `canvas`/`ctx`/`mini`/HUD refs are `let`, (re)acquired by the idempotent
+  `initCanvas()` called at the top of `initRender()`; `resize()` is guarded `if(!canvas)return`; the
+  window resize listener registers once. `_texCache` (cross-track) is NOT reset per mount. dpr/surface
+  resolve per-mount via `js/render-config.js` (pure, unit-tested) — the shell threads the route hash
+  via `setDeviceTuning()`; standalone pages fall back to `location.search`.
+- **Injected exit/restart:** `startGame(T, opts)` takes `opts.onExit`/`opts.onRestart` (defaults keep
+  standalone `location.href`/`location.reload`). The shell passes a seam-routed exit (`soundThenGo` →
+  `navTo` → `#/menu`) and an **in-place restart** (`engine.stop(true)` + `startGame` again — never
+  re-set an identical `#/game` hash, it fires no `hashchange`). `stop(full)` tears down the results
+  overlay on a full stop so Race-Again can't stack a second `#raceResultsOverlay`; a `gameplayActive`
+  flag emits exactly one `gameplayStop()` per `gameplayStart()` across finish / exit / mid-race
+  `destroy()` (router nav / Back). `createGameScreen.destroy()` calls `stop(true)` + restores the shell
+  chrome (`fixed-viewport` / `body.zen` / `document.title`); a `destroyed` flag blocks a late
+  import/restart from mounting a zombie.
+- **Routing/CSS:** `route.js` `SCREENS` includes `game`; `optsFromRoute(route)` maps a route to
+  `startGame` opts (pure, unit-tested). `router.js` has `REGISTRY.game` + `PAGE_TO_SCREEN['game.html']
+  ='game'` (Race routes in-document; `sandbox.html` stays a hard nav). `index.html` links
+  `css/sandbox.css` (its bare `canvas` rule was scoped to `#c,#mini` so it can't touch the modify
+  `#preview`) and holds `<template id="tpl-game">`.
+- **Still deferred:** music/crossfade over the now-session-long `AudioContext`, moving the `sw-update`
+  nudge off `isGameplayPage(pathname)` to engine-state gating, and any GPU-surface disposal tuning.
 
 ### Track dependency injection
 
