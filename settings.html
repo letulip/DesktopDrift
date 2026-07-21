@@ -77,80 +77,8 @@
 </div>
 
 <script type="module">
-  import { settings, save } from './js/store.js';
-  import { initProfileSync } from './js/profile-sync.js';
-  import { sfx } from './js/sound.js';
-  import { VOLUME_LEVELS, levelForVolume } from './js/sound-params.js';
-
-  const s      = settings();
-  const btnKmh = document.getElementById('btn-kmh');
-  const btnMph = document.getElementById('btn-mph');
-
-  const apply = (units) => {
-    s.units = units;
-    save();
-    btnKmh.classList.toggle('sel', units === 'kmh');
-    btnMph.classList.toggle('sel', units === 'mph');
-  };
-
-  btnKmh.addEventListener('click', () => apply('kmh'));
-  btnMph.addEventListener('click', () => apply('mph'));
-
-  // Restore saved choice
-  apply(s.units ?? 'kmh');
-
-  // Haptic feedback toggle — only shown when the Vibration API is available.
-  if ('vibrate' in navigator) {
-    const group   = document.getElementById('haptics-group');
-    const btnOn   = document.getElementById('btn-hap-on');
-    const btnOff  = document.getElementById('btn-hap-off');
-
-    const applyHaptics = (on) => {
-      s.haptics = on;
-      save();
-      btnOn .classList.toggle('sel', on);
-      btnOff.classList.toggle('sel', !on);
-    };
-
-    btnOn .addEventListener('click', () => applyHaptics(true));
-    btnOff.addEventListener('click', () => applyHaptics(false));
-
-    group.style.display = '';   // show only on supported devices
-    applyHaptics(s.haptics ?? true);
-  }
-
-  // Sound on/off — always shown (Web Audio is universal). `quiet` skips the confirmation
-  // blip on initial restore so the page doesn't chirp on load.
-  const btnSndOn  = document.getElementById('btn-snd-on');
-  const btnSndOff = document.getElementById('btn-snd-off');
-  const applySound = (on, quiet) => {
-    s.soundEnabled = on;
-    save();
-    btnSndOn .classList.toggle('sel', on);
-    btnSndOff.classList.toggle('sel', !on);
-    if (on && !quiet) sfx.toggle();
-  };
-  btnSndOn .addEventListener('click', () => applySound(true));
-  btnSndOff.addEventListener('click', () => applySound(false));
-  applySound(s.soundEnabled ?? true, true);
-
-  // Volume — three discrete levels (a button-row, no slider). Auditions the new level on click.
-  const volBtns = {
-    low:  document.getElementById('btn-vol-low'),
-    med:  document.getElementById('btn-vol-med'),
-    high: document.getElementById('btn-vol-high'),
-  };
-  const applyVolume = (level, quiet) => {
-    s.volume = VOLUME_LEVELS[level] ?? VOLUME_LEVELS.med;
-    save();
-    for (const k in volBtns) volBtns[k].classList.toggle('sel', k === level);
-    if (!quiet && (s.soundEnabled ?? true)) sfx.tap();
-  };
-  for (const k in volBtns) volBtns[k].addEventListener('click', () => applyVolume(k));
-  applyVolume(levelForVolume(s.volume), true);
-
-  // Profile / Sync — export & import the full save (see js/profile-sync.js).
-  initProfileSync();
+  import { createSettingsScreen } from './js/screens/settings.js';
+  createSettingsScreen();
 </script>
 
 <script type="module" src="./js/sw-update.js"></script>
