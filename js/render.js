@@ -7,27 +7,19 @@ import { bakeSurfaceDims } from './track-surface.js';
 import { preloadEmotion, getEmotionBitmap } from './emotion-overlay.js';
 import { resolveDprCap, resolveSurfaceMode } from './render-config.js';
 
-// --- Canvas ---
-export const canvas = document.getElementById('c');
-// alpha:false — draw() repaints the whole viewport opaque every frame (floor fillRect), so the
-// canvas never needs a transparent layer. Opaque compositing is cheaper at the exact stage where
-// the Mali scanline garbage appears, and costs nothing visually.
-export const ctx    = canvas.getContext('2d', { alpha: false });
-const miniEl = document.getElementById('mini');
-const mctx   = miniEl.getContext('2d');
+// --- Canvas + HUD refs (SPA Phase C) ---
+// Acquired by initCanvas() AFTER the game DOM is mounted, NOT at import: in the shell render.js is
+// module-cached and loads before the game <template> is cloned into #app, so touching #c at import
+// would throw. All are `let` so a remount re-binds them and game-engine's imported `canvas`/`W`
+// live bindings see the fresh element. alpha:false — draw() repaints the whole viewport opaque every
+// frame (floor fillRect), so the canvas never needs a transparent layer (cheaper at the exact stage
+// where the Mali scanline garbage appears, and costs nothing visually).
+export let canvas = null;
+export let ctx    = null;
+let miniEl = null, mctx = null;
 
-// --- HUD element refs (cached once — avoid getElementById on every frame) ---
-const _hudLap       = document.getElementById('lap');
-const _hudLapNum    = document.getElementById('lapNum');
-const _hudLast      = document.getElementById('last');
-const _hudBest      = document.getElementById('best');
-const _hudScore     = document.getElementById('score');
-const _hudLapScores = document.getElementById('lapScores');
-const _hudSpd       = document.getElementById('spd');
-const _hudCombo     = document.getElementById('combo');
-const _hudFlash     = document.getElementById('flash');
-const _hudCount     = document.getElementById('count');
-const _hudWallet    = document.getElementById('wallet');
+// HUD element refs (acquired once per mount by initCanvas — avoid getElementById on every frame).
+let _hudLap, _hudLapNum, _hudLast, _hudBest, _hudScore, _hudLapScores, _hudSpd, _hudCombo, _hudFlash, _hudCount, _hudWallet;
 
 // Previous values for rarely-changing fields — only write DOM when the value changes.
 // lapTime and speed are skipped (they change every frame; a prev-check would add overhead
@@ -42,12 +34,19 @@ let _prevWallet    = -1;
 // Per-device DPR cap (default 1.5). ?dpr=1|1.25|1.5 overrides for on-device A/B (sticks in
 // localStorage). Lowering it shrinks the canvas backbuffer — DPR 1.5→1.0 = 2.25× fewer fragments
 // AND 2.25× less tiler write-out (the buffer whose stale tiles show as scanline garbage on Mali).
-// Pure resolver in render-config.js; the param source (location.search now, route hash in the
-// shell) is threaded in by the caller.
-const _dprCap = resolveDprCap(new URLSearchParams(location.search).get('dpr'), localStorage);
+// Resolved per mount in initCanvas (pure resolver in render-config.js); default until then.
+let _dprCap = 1.5;
+let USE_SURFACE_BAKE = false;   // offscreen static-surface bake — resolved per mount in initCanvas
+
+// Optional device-tuning override the shell threads in from the route hash BEFORE a game mount
+// (standalone game.html/sandbox.html leave it null → initCanvas falls back to location.search, which
+// is empty in the shell so the persisted localStorage value is honored). See render-config.js.
+let _tuning = { dpr: null, surface: null };
+export const setDeviceTuning = (dpr = null, surface = null) => { _tuning = { dpr, surface }; };
 
 export let W, H, DPR;
 export const resize = () => {
+  if (!canvas) return;   // no game DOM yet (a menu screen, or a resize event before initCanvas)
   // Cap at 1.5 instead of 2: ~1.78× fewer fragment ops on DPR=2 devices;
   // on DPR=3 (iPhone / Android flagships) it also gives a sharper result
   // (2× exact upscale vs the 1.5× non-integer upscale of cap=2).
@@ -58,7 +57,37 @@ export const resize = () => {
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-window.addEventListener('resize', resize); resize();
+window.addEventListener('resize', resize);   // registered once; a no-op until initCanvas sets canvas
+
+// (Re)acquire the game DOM (#c + minimap + HUD) and size the canvas. Idempotent and safe to call on
+// every game mount: in the shell the game <template> is cloned into #app first, THEN startGame →
+// initRender calls this; on game.html/sandbox.html the DOM already exists at load. Returns false
+// (no-op) when #c is absent. Resolves the dpr/surface knobs here so they can differ per device/mount.
+// Does NOT touch cross-track caches (_texCache) — those must survive a remount.
+export const initCanvas = (root = document) => {
+  const el = root.getElementById('c');
+  if (!el) { canvas = null; return false; }
+  canvas = el;
+  ctx    = canvas.getContext('2d', { alpha: false });
+  miniEl = root.getElementById('mini');
+  mctx   = miniEl ? miniEl.getContext('2d') : null;
+  _hudLap       = root.getElementById('lap');
+  _hudLapNum    = root.getElementById('lapNum');
+  _hudLast      = root.getElementById('last');
+  _hudBest      = root.getElementById('best');
+  _hudScore     = root.getElementById('score');
+  _hudLapScores = root.getElementById('lapScores');
+  _hudSpd       = root.getElementById('spd');
+  _hudCombo     = root.getElementById('combo');
+  _hudFlash     = root.getElementById('flash');
+  _hudCount     = root.getElementById('count');
+  _hudWallet    = root.getElementById('wallet');   // Time-Attack only — null on sandbox (draw() guards it)
+  const search  = (typeof location !== 'undefined') ? new URLSearchParams(location.search) : new URLSearchParams();
+  _dprCap          = resolveDprCap(_tuning.dpr ?? search.get('dpr'), localStorage);
+  USE_SURFACE_BAKE = resolveSurfaceMode(_tuning.surface ?? search.get('surface'), localStorage) === 'bake';
+  resize();
+  return true;
+};
 
 // --- Colour theme (set via initRender from T.theme) ---
 // Default = dining-oak scheme, so old tracks don't break.
@@ -118,14 +147,12 @@ let trackPath = null, miniTrackPath = null;
 // where x/y/w/h are the world-space rectangle the bitmap covers.
 let trackSurface = null;
 
-// Diagnostic A/B toggle for the offscreen surface bake below. The bake trades per-frame path
-// tessellation for a big per-frame texture blit — which is a NET LOSS on fill-rate-poor GPUs
-// (it made even the simple tracks lag on an Adreno 610 / Moto G8 Plus) and it does NOT fix the
-// Mali gradient-overdraw glitch. So it is OFF by default: draw() falls back to the decimated
-// live stroke. Override per device with ?surface=bake (or ?surface=live); the choice sticks in
-// localStorage so it survives track re-selection while testing on a phone.
-const _surfaceMode = resolveSurfaceMode(new URLSearchParams(location.search).get('surface'), localStorage);
-const USE_SURFACE_BAKE = _surfaceMode === 'bake';
+// Diagnostic A/B toggle for the offscreen surface bake below (USE_SURFACE_BAKE, declared with the
+// canvas refs and resolved per mount in initCanvas). The bake trades per-frame path tessellation
+// for a big per-frame texture blit — a NET LOSS on fill-rate-poor GPUs (it made even the simple
+// tracks lag on an Adreno 610 / Moto G8 Plus) and it does NOT fix the Mali gradient-overdraw glitch.
+// So it is OFF by default: draw() falls back to the decimated live stroke. Override per device with
+// ?surface=bake (or ?surface=live); the choice sticks in localStorage so it survives re-selection.
 
 // Bake the static table + track ribbon into an offscreen canvas. Reads _T / _TABLE / TH /
 // trackPath / DPR / W — must be called from initRender AFTER those are set.
@@ -198,6 +225,7 @@ const _buildStandingCones = () => {
 
 // Called from game-engine.js before the game starts
 export const initRender = (T) => {
+  initCanvas(); // (re)acquire the game DOM (#c + HUD) + size the canvas — idempotent per mount (Phase C)
   _T = T; // single source of truth — draw functions access track fields via _T
   // Effective table dimensions: use the track's own TABLE, fall back to the config default.
   // Never mutate the shared TABLE singleton from config.js.
@@ -247,8 +275,11 @@ export const initRender = (T) => {
   _coneKnockedCount = 0;
   _buildStandingCones();
 
-  // Pre-render the static table + track ribbon ONLY when explicitly enabled (see _surfaceMode).
-  // Default OFF → draw() uses the decimated live stroke (cheaper on weak GPUs).
+  // Pre-render the static table + track ribbon ONLY when explicitly enabled (see USE_SURFACE_BAKE).
+  // Default OFF → draw() uses the decimated live stroke (cheaper on weak GPUs). Clear any prior bake
+  // FIRST (unconditionally): USE_SURFACE_BAKE is now per-mount, so an in-document remount that turns
+  // bake OFF must not leave the previous track's baked bitmap for draw() to blit (Phase C).
+  trackSurface = null;
   if (USE_SURFACE_BAKE) _buildTrackSurface();
 }
 
