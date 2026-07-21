@@ -2,9 +2,7 @@
 // (SPA Phase A). Renders a track card per track (stars / crown / trophy / perpetual badges, best
 // record, cap+tire chips), a Normal/Reversed direction toggle, and a horizontal-swipe flip.
 //
-// NOTE: drawThumb() + TRACK_GU are byte-identical to zen's copy; they stay verbatim here and get
-// de-duplicated into a shared js/track-thumb.js as a SEPARATE follow-up commit (keeps the dedup
-// bisectable from the render code).
+// The minimap renderer is the shared js/track-thumb.js (also used by the Zen screen).
 //
 // Screen contract: createTracksScreen(root=document) -> { destroy }. Persistent listeners (the two
 // toggle buttons, the Back link, and the swipe handlers on #track-select) go through the on()
@@ -12,68 +10,11 @@
 // and die when renderCards clears container.innerHTML, so they are not tracked (verbatim behaviour).
 import { TRACKS } from '../track-registry.js';
 import { records, collectedCaps, tireSwept, hasTrophy, hasPerpetual, wallet } from '../store.js';
-import { svgToCentreline, instanceId } from '../track-util.js';
+import { instanceId } from '../track-util.js';
 import { isDDK } from '../economy.js';
 import { initWalletHistory } from '../wallet-history.js';
 import { sfx, tapThenGo, soundThenGo } from '../sound.js';
-
-// ── Track preview rendering on canvas ───────────────────────────────────────
-const TRACK_GU = 100;
-
-async function drawThumb(canvas, svgSrc, theme) {
-  const th = {
-    background: theme?.background ?? '#0b0907',
-    table:      theme?.table      ?? '#2e241a',
-    tableEdge:  theme?.tableEdge  ?? '#5a4a36',
-    track:      theme?.track      ?? '#ffb14d',
-  };
-
-  let text;
-  try { text = await fetch(svgSrc).then(r => r.text()); }
-  catch { return; }
-
-  try {
-    const pts = svgToCentreline(text);
-    if (!pts) return;
-
-    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-
-    const extW = maxX - minX + TRACK_GU * 2;
-    const extH = maxY - minY + TRACK_GU * 2;
-    const pad  = 10;
-    const sx   = (canvas.width  - pad * 2) / extW;
-    const sy   = (canvas.height - pad * 2) / extH;
-    const s    = Math.min(sx, sy);
-    const ox   = (canvas.width  - extW * s) / 2 + TRACK_GU * s;
-    const oy   = (canvas.height - extH * s) / 2 + TRACK_GU * s;
-    const toC  = p => ({ x: (p.x - minX) * s + ox, y: (p.y - minY) * s + oy });
-
-    const cx = canvas.getContext('2d');
-
-    cx.fillStyle = th.background;
-    cx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const ti = 5, tr = 5;
-    cx.beginPath();
-    cx.roundRect(ti, ti, canvas.width - ti * 2, canvas.height - ti * 2, tr);
-    cx.fillStyle = th.table; cx.fill();
-    cx.strokeStyle = th.tableEdge; cx.lineWidth = 2; cx.stroke();
-
-    cx.lineWidth   = TRACK_GU * 2 * s;
-    cx.strokeStyle = th.track;
-    cx.lineCap     = 'round';
-    cx.lineJoin    = 'round';
-    cx.beginPath();
-    pts.forEach((p, idx) => {
-      const { x, y } = toC(p);
-      idx === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
-    });
-    cx.closePath();
-    cx.stroke();
-  } catch { /* render error — canvas keeps its fallback background */ }
-}
+import { drawThumb } from '../track-thumb.js';
 
 export const createTracksScreen = (root = document) => {
   const $ = (id) => root.getElementById(id);
