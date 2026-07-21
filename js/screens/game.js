@@ -11,8 +11,11 @@ import { setDeviceTuning } from '../render.js';
 import { soundThenGo } from '../sound.js';
 
 export const createGameScreen = (root = document, route = null) => {
-  const o    = optsFromRoute(route ?? {});
-  const meta = TRACKS.find(t => t.id === o.trackId);
+  const o = optsFromRoute(route ?? {});
+  // Sandbox = mode=sandbox with no track → the un-registered oval free-drive (stock car, infinite
+  // laps). Everything else is a registered Time Attack / Zen track.
+  const isSandbox = o.stock && !o.trackId;
+  const meta = isSandbox ? null : TRACKS.find(t => t.id === o.trackId);
   const html = document.documentElement;
   const prevTitle = document.title;
 
@@ -20,9 +23,9 @@ export const createGameScreen = (root = document, route = null) => {
   let T = null;         // resolved (possibly reversed) track module
   let destroyed = false;
 
-  // Invalid / missing track → bounce back to the picker via a hash nav (no hard reload). Return an
-  // inert screen; the queued hashchange re-renders. Nothing was mounted yet, so nothing to restore.
-  if (!meta) {
+  // Invalid / missing track (Time Attack / Zen only) → bounce back to the picker via a hash nav (no
+  // hard reload). Return an inert screen; the queued hashchange re-renders. Nothing mounted yet.
+  if (!isSandbox && !meta) {
     location.replace('#/' + (o.zen ? 'zen' : 'tracks'));
     return { destroy() {} };
   }
@@ -31,7 +34,10 @@ export const createGameScreen = (root = document, route = null) => {
   // and any ?dpr/?surface device knob from the hash (standalone pages read location.search instead).
   html.classList.add('fixed-viewport');
   document.body.classList.toggle('zen', o.zen);
-  document.title = `Desktop Drift — ${meta.name}${o.reversed ? ' (Reversed)' : ''}`;
+  document.body.classList.toggle('sandbox', isSandbox);   // hides the tpl-game "tires" row (no economy)
+  document.title = isSandbox
+    ? 'Desktop Drift — Sandbox Free Drive'
+    : `Desktop Drift — ${meta.name}${o.reversed ? ' (Reversed)' : ''}`;
   setDeviceTuning(route?.dpr ?? null, route?.surface ?? null);
 
   const start = () => {
@@ -47,11 +53,13 @@ export const createGameScreen = (root = document, route = null) => {
   // Exit to the menu through the navigator seam (in-document hash nav; the router then destroys us).
   const exit = () => soundThenGo('index.html', 'back');
 
-  // Dynamic import: the track module has a top-level await (SVG fetch), so this resolves only once
-  // the track is fully parsed. reverseTrack is a pure transform of the parsed track.
-  import(`../track-${meta.id}.js`).then(mod => {
+  // Dynamic import: sandbox is the un-registered oval; Time Attack / Zen load the chosen track. The
+  // track module has a top-level await (SVG/geometry), so this resolves only once it is fully parsed.
+  // reverseTrack is a pure transform of the parsed track (never applied to the sandbox oval).
+  const trackModule = isSandbox ? '../track-oval.js' : `../track-${meta.id}.js`;
+  import(trackModule).then(mod => {
     if (destroyed) return;                                  // navigated away before the track loaded
-    T = o.reversed ? reverseTrack(mod) : mod;
+    T = (o.reversed && !isSandbox) ? reverseTrack(mod) : mod;
     start();
   }).catch(err => {
     console.error('[game screen] failed to load track:', err);
@@ -65,6 +73,7 @@ export const createGameScreen = (root = document, route = null) => {
       engine = null;
       html.classList.remove('fixed-viewport');
       document.body.classList.remove('zen');
+      document.body.classList.remove('sandbox');
       document.title = prevTitle;
     },
   };

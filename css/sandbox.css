@@ -313,6 +313,10 @@
 body.zen #hud-left,
 body.zen #hud-right { display: none; }
 
+/* --- Sandbox (in the SPA shell): no tire economy, so hide the shared tpl-game "tires" row
+   (standalone sandbox.html omits it entirely). --- */
+body.sandbox #tiresRow { display: none; }
+
 /* --- Mobile HUD layout --- */
 @media (max-width: 640px) {
   #hud { gap: 6px; }

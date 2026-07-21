@@ -321,8 +321,10 @@ export const createSelectScreen = (root = document, route = null) => {
     }
     garage().carIndex = sel; save();
     const dirParam = reversed ? '&dir=rev' : '';
+    // Sandbox (no track) now runs in-document as the game screen too (game.html?mode=sandbox → the
+    // shell maps it to #/game?mode=sandbox), so exiting it no longer reloads the document.
     const dest = isZen ? `game.html?track=${trackMeta.id}&mode=zen`
-                       : (trackMeta ? `game.html?track=${trackMeta.id}${dirParam}` : 'sandbox.html');
+                       : (trackMeta ? `game.html?track=${trackMeta.id}${dirParam}` : 'game.html?mode=sandbox');
     soundThenGo(dest, 'tap');   // tap, then start the race (deferred so the sound isn't cut)
   });
 

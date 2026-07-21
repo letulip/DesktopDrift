@@ -583,9 +583,11 @@ page + query to the hash route and `location.replace` into the shell — so book
 
 The race now runs **inside the shell** as the `game` screen (`#/game?track=x&mode=zen&dir=rev`),
 so a restart/exit no longer reloads the document — the single session `AudioContext` survives
-(the payoff). `game.html` stays a standalone page (deep links, `game.html` on-error redirects), and
-its inline bootstrap is unchanged; `sandbox.html` deliberately stays standalone to bound the blast
-radius. The engine is now **re-entrant** — `location.reload()` used to be the correctness crutch:
+(the payoff). Sandbox joins in-document too (`#/game?mode=sandbox` → the un-registered `track-oval.js`,
+stock car, infinite laps — `createGameScreen` branches on `isSandbox = o.stock && !o.trackId`).
+`game.html` / `sandbox.html` stay standalone pages (deep links, `game.html` on-error redirects) with
+their inline bootstraps unchanged, but the in-app flow no longer hard-navs to them. The engine is now
+**re-entrant** — `location.reload()` used to be the correctness crutch:
 - **State reset:** `startGame()` calls `resetState()` (js/state.js — resets the shared `S` singleton
   from one `S_DEFAULTS` literal, clears `keys`/`pointers`, empties `S.skids`/`S.lapScores` **in place**
   so render.js's array bindings survive) and `resetCones(cones)` (js/track-util.js — stands cones back
@@ -607,10 +609,13 @@ radius. The engine is now **re-entrant** — `location.reload()` used to be the 
   chrome (`fixed-viewport` / `body.zen` / `document.title`); a `destroyed` flag blocks a late
   import/restart from mounting a zombie.
 - **Routing/CSS:** `route.js` `SCREENS` includes `game`; `optsFromRoute(route)` maps a route to
-  `startGame` opts (pure, unit-tested). `router.js` has `REGISTRY.game` + `PAGE_TO_SCREEN['game.html']
-  ='game'` (Race routes in-document; `sandbox.html` stays a hard nav). `index.html` links
-  `css/sandbox.css` (its bare `canvas` rule was scoped to `#c,#mini` so it can't touch the modify
-  `#preview`) and holds `<template id="tpl-game">`.
+  `startGame` opts (pure, unit-tested; `mode=sandbox` → `stock:true`, no track). `router.js` has
+  `REGISTRY.game` + `PAGE_TO_SCREEN['game.html']='game'`, so both Race (`game.html?track=…`) and
+  Sandbox (`game.html?mode=sandbox`) route in-document; only `donate.html` stays a hard nav.
+  `index.html` links `css/sandbox.css` (its bare `canvas` rule was scoped to `#c,#mini` so it can't
+  touch the modify `#preview`) and holds `<template id="tpl-game">`. Sandbox hides the shared HUD's
+  `#tiresRow` via `body.sandbox` (no tire economy). Passing an intermediate checkpoint fires a light
+  `sfx.checkpoint()` + `hapticCheckpoint()` (game-engine.js, gated `!ZEN` to match the checkpoint ring).
 - **Still deferred:** music/crossfade over the now-session-long `AudioContext`, moving the `sw-update`
   nudge off `isGameplayPage(pathname)` to engine-state gating, and any GPU-surface disposal tuning.
 
