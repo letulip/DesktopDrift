@@ -85,3 +85,10 @@ test('the game screen is routable (SPA Phase C)', () => {
   assert.equal(back.screen, 'game');
   assert.equal(back.mode, 'sandbox');
 });
+
+test('the donate screen is routable (no params)', () => {
+  assert.ok(SCREENS.includes('donate'));
+  assert.equal(parseRoute('#/donate').screen, 'donate');
+  assert.equal(routeToHash('donate', {}), '#/donate');
+  assert.deepEqual(parseRoute('#/donate'), { screen: 'donate', ...empty });
+});

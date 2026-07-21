@@ -26,6 +26,7 @@
   text-shadow: 0 6px 30px rgba(255,150,60,.18);
   text-align: center;
   width: auto;
+  box-decoration-break: clone;
 }
 .logo sup {
   font-size: .24em;
@@ -153,6 +154,7 @@
   .logo {
     width: fit-content;
     text-align: left;
+    box-decoration-break: clone;
   }
   .menu-logo {
     width: 60px;

@@ -2,13 +2,12 @@
 // DOM router (js/router.js) imports from here. See docs/plans/spa-migration.md + the analysis.
 //
 // Menu routes live in the hash so a GitHub-Pages refresh never 404s and a sandboxed portal iframe
-// never throws on pushState. Shape: `#/<screen>?<query>`. sandbox / donate stay SEPARATE documents
-// (hard navigations), so they are NOT screens here. 'game' IS a screen (SPA Phase C) — the race
-// runs in-document so restart/exit keep the single AudioContext alive.
+// never throws on pushState. Shape: `#/<screen>?<query>`. Every screen (incl. game and donate) runs
+// in the one shell document now; the legacy per-page URLs are thin redirect shims into these hashes.
 
 // The screens the shell can mount. 'menu' is the landing (index) screen; the rest match the
 // js/screens/*.js modules. An unknown screen name falls back to 'menu'.
-export const SCREENS = ['menu', 'tracks', 'zen', 'select', 'modify', 'settings', 'achievements', 'game'];
+export const SCREENS = ['menu', 'tracks', 'zen', 'select', 'modify', 'settings', 'achievements', 'game', 'donate'];
 
 // Parse a hash route into a flat, dependency-free descriptor. Accepts a full URL
 // ('https://…/index.html#/select?track=x'), a bare hash ('#/select?track=x'), or just the path

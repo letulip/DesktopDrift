@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#14110f">
+<title>Desktop Drift</title>
+<style>
+  html,body{margin:0;height:100%;background:#14110f;color:#f4ede2;font:15px/1.5 system-ui,-apple-system,sans-serif}
+  .wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+  a{color:#ffb14d}
+</style>
+<!-- GitHub Pages serves this for any unknown path. Redirect stray / old *.html links to the SPA
+     shell (the project root), so a dead link lands on the menu instead of a 404. The app root is the
+     <origin>/<repo>/ base of this project site; derive it from the requested path and guard against
+     a redirect loop (only redirect when there's a repo dir plus a sub-path). -->
+<script>
+  (function () {
+    var seg = location.pathname.split('/').filter(Boolean);   // ['DesktopDrift','old.html']
+    var base = seg.length > 1 ? '/' + seg[0] + '/' : '/';
+    if (base !== location.pathname) location.replace(base);
+  })();
+</script>
+</head>
+<body>
+  <div class="wrap"><p>Page not found — <a href="./">back to Desktop Drift</a></p></div>
+</body>
+</html>

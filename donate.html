@@ -1,80 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Support Desktop Drift — Free Browser Drift Game</title>
-<meta name="description" content="Support Desktop Drift — a free, open-source top-down drift racing game built with pure JavaScript and HTML5 Canvas. No install needed, play right in your browser.">
-<link rel="canonical" href="https://letulip.github.io/DesktopDrift/donate.html">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon.svg">
-<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#14110f">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="css/base.css" />
-<link rel="stylesheet" href="css/menu.css" />
-<link rel="stylesheet" href="css/donate.css" />
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell. Real markup lives in index.html's <template id="tpl-donate">. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<div id="menu">
-  <div class="menu-inner">
-    <div class="logo-wrapper">
-      <img src="icons/icon-192.png" alt="Desktop Drift" class="menu-logo" />
-      <h1 class="logo">DESKTOP DRIFT<sup>TM</sup></h1>
-    </div>
-    <h2 class="tagline">Support the project</h2>
-
-    <p class="donate-intro">
-      The game is free – and stays that way. If the drifts and the
-      table circuit brought you any joy, a small tip via&nbsp;Bybit&nbsp;Pay
-      is genuinely appreciated.
-    </p>
-    <p class="donate-intro">
-      It keeps new tracks and features coming.&nbsp;🙏
-    </p>
-
-    <div class="donate-card">
-      <div class="uid-label">Bybit UID</div>
-      <div class="uid-value" id="uid">25422832</div>
-
-      <button class="btn-copy" id="copyBtn" onclick="copyUID()">
-        Copy UID
-      </button>
-
-      <a class="btn-bybit"
-         href="https://www.bybit.com/en/bybitpay/"
-         target="_blank" rel="noopener noreferrer">
-        Open Bybit Pay &rarr;
-      </a>
-
-      <p class="steps">
-        Bybit&nbsp;Pay&nbsp;&rarr;&nbsp;Send&nbsp;&rarr;&nbsp;search&nbsp;by&nbsp;UID&nbsp;&rarr;&nbsp;any&nbsp;amount
-      </p>
-    </div>
-
-    <a class="back-link" href="index.html">&#8592; Back to menu</a>
-  </div>
-</div>
-
-<script>
-function copyUID() {
-  const uid = document.getElementById('uid').textContent.trim();
-  const btn = document.getElementById('copyBtn');
-  navigator.clipboard.writeText(uid).then(() => {
-    btn.textContent = '✓ Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.textContent = 'Copy UID';
-      btn.classList.remove('copied');
-    }, 2000);
-  }).catch(() => {
-    // Fallback for contexts where clipboard API is unavailable
-    btn.textContent = uid;
-    setTimeout(() => { btn.textContent = 'Copy UID'; }, 2000);
-  });
-}
-</script>
-</body>
+<body></body>
 </html>
