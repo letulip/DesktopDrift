@@ -39,3 +39,25 @@ test('SW precache covers cars/emotions/ on disk exactly (88 files)', () => {
   assert.equal(precached.length, 88);
   assert.deepEqual(precached, onDisk);
 });
+
+// Every screen module must be precached — else the SPA shell (which imports them, incl. the Phase-C
+// game screen) breaks on the first offline visit. Guards against adding a js/screens/*.js and
+// forgetting the ASSETS entry.
+test('SW precache includes every js/screens/*.js module', () => {
+  const assets = loadAssets().map(u => u.slice(ORIGIN.length));
+  const onDisk = fs.readdirSync(path.join(root, 'js', 'screens'))
+    .filter(f => f.endsWith('.js'))
+    .map(f => 'js/screens/' + f)
+    .sort();
+  for (const m of onDisk) assert.ok(assets.includes(m), `sw.js ASSETS is missing ${m}`);
+});
+
+// The Phase-C change reshapes the precache (adds the game screen), so the cache version must be
+// bumped past the last shipped one or clients keep the stale shell.
+test('SW cache version is a bumped desktop-drift-vN (past v232)', () => {
+  const ctx = vm.createContext({ URL, self: { location: ORIGIN, addEventListener: () => {} } });
+  const src = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const cache = vm.runInContext(src + '\nCACHE;', ctx);
+  assert.match(cache, /^desktop-drift-v\d+$/);
+  assert.notEqual(cache, 'desktop-drift-v232');
+});

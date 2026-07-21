@@ -1,5 +1,5 @@
 import { CARS, TABLE as TABLE_CFG, PHYS_HZ, GRIP_WOBBLE, STEER_WOBBLE, NM_BAND, GU_TO_KMH } from './config.js';
-import { car, S, keys, pointers, initCar } from './state.js';
+import { car, S, keys, pointers, initCar, resetState } from './state.js';
 import { canvas, W, draw, initItems, initRender, setCarPaint, setCarEmotion } from './render.js';
 import { createPause } from './pause.js';
 import { createConfirmExit } from './confirm-exit.js';
@@ -16,10 +16,10 @@ import {
   MULT_GAIN_PER_S, MULT_TRANSITION_BONUS, MULT_NEARMISS_BONUS, MULT_MAX,
 } from './scoring.js';
 import { stepSweep } from './cola.js';
-import { hapticCone, hapticCrash } from './haptics.js';
+import { hapticCone, hapticCrash, hapticCheckpoint } from './haptics.js';
 import { sfx, drift, stopDrift } from './sound.js';
 import { stepCar } from './physics.js';
-import { nearestCenter, circularAdvance, instanceId } from './track-util.js';
+import { nearestCenter, circularAdvance, instanceId, resetCones } from './track-util.js';
 import { nearMiss, finishDot, crossedFinish, advanceCheckpoint, resolveWall, resolveProps, stepKnockedCone } from './collision.js';
 import { resolveSteer } from './input.js';
 import { gameplayStart, gameplayStop, happyMoment } from './platform.js';
@@ -47,7 +47,13 @@ export const startGame = (T, opts = {}) => {
     console.warn('[game-engine] startGame: a previous game is still active — stopping it (possible engine duplication)');
     prev.stop();
   }
+  // Re-entrant restart (SPA Phase C): with no location.reload() to rebuild module state, reset the
+  // shared S singleton + inputs to defaults before anything reads them.
+  resetState();
   const { center, cones, props, checkpoints, K, CP_R, TRACK_HALF, CONE_R, startAngle } = T;
+  // Stand the cones back up: cones[] is ES-module-cached and shared by reverseTrack ({...T}), so a
+  // replayed race would otherwise reuse cones still knocked/displaced from the previous run.
+  resetCones(cones);
   // Effective table bounds for this session — track's own TABLE, or the config default.
   // Local const shadows the module-level import so the shared singleton is never mutated.
   const TABLE = T.TABLE ?? TABLE_CFG;
@@ -256,8 +262,9 @@ export const startGame = (T, opts = {}) => {
 
   // ─── UI ───────────────────────────────────────────────────────────────────────
 
-  const raceResults  = createRaceResults();
+  const raceResults  = createRaceResults({ onRestart: opts.onRestart });
   let raceFinished   = false; // flag: stop() must not destroy raceResults after a finish
+  let gameplayActive = false; // true between GO (gameplayStart) and teardown — gates the paired gameplayStop() in stop()
   let tiresEarned    = 0;     // tire-PICKUP coins this run — logged as one ledger entry at finish
   // Per-run achievement accumulators (reset here, read once at finish). Separate from the
   // per-combo S.* fields (e.g. S.nearMisses is zeroed on every combo reset).
@@ -305,15 +312,19 @@ export const startGame = (T, opts = {}) => {
   };
 
   // Menu button — ask for confirmation first so a stray tap doesn't eject the player.
-  // Game is paused for the duration of the dialog.
+  // Game is paused for the duration of the dialog. Exit / restart are injectable (opts) so the SPA
+  // shell can route through the navigator seam / restart in-document while keeping one AudioContext;
+  // the defaults preserve standalone game.html behavior (hard-nav to the menu / full document reload).
+  const doExit    = opts.onExit    ?? (() => { location.href = 'index.html'; });
+  const doRestart = opts.onRestart ?? (() => { location.reload(); });
   const confirmExit = createConfirmExit();
   const onMenuClick = e => {
     e.preventDefault();
     const wasAlreadyPaused = pause.isPaused();
     pause.pause();
     confirmExit.show({
-      onExit:    () => { gameplayStop(); location.href = 'index.html'; },
-      onRestart: () => { location.reload(); },
+      onExit:    () => { stop(true); doExit(); },   // stop(true) emits the paired gameplayStop() + tears down overlays
+      onRestart: () => doRestart(),
       onCancel:  () => { if (!wasAlreadyPaused) pause.resume(); },
     });
   };
@@ -389,7 +400,7 @@ export const startGame = (T, opts = {}) => {
       S.startCd -= dt;
       const cd = Math.ceil(Math.max(0, S.startCd));
       if (cd >= 1 && cd !== cdBeep) { cdBeep = cd; sfx.count(); }   // 3-2-1 pips (one per number)
-      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); gameplayStart(); }   // GO!
+      if (S.startCd <= 0) { S.goT = 1.0; sfx.go(); gameplayStart(); gameplayActive = true; }   // GO!
       draw(0);
       return;
     }
@@ -582,8 +593,7 @@ export const startGame = (T, opts = {}) => {
           }
 
           raceFinished = true;
-          stop();
-          gameplayStop();
+          stop();   // keeps the results overlay (raceFinished) and emits the paired gameplayStop()
           // Finish sting: a new record gets the bigger celebration, otherwise the finish flourish;
           // any achievement unlocked this run chimes in shortly after so it doesn't collide.
           if (isNewRecord) { sfx.record(); happyMoment(); } else sfx.finish();
@@ -610,6 +620,9 @@ export const startGame = (T, opts = {}) => {
       // inserted on oversized gaps (sampleCheckpointsByCorner post-process 3).
       const nx = advanceCheckpoint(S.nextCp, car.x, car.y, checkpoints, CP_R);
       if (nx !== S.nextCp) {
+        // Passed an intermediate checkpoint — a light audio + haptic cue. Gated on !ZEN to match the
+        // checkpoint ring, which draw() only shows outside Zen (Zen surfaces no checkpoints at all).
+        if (!ZEN) { sfx.checkpoint(); hapticCheckpoint(); }
         S.nextCp = nx;
         if (S.nextCp === 0) prevFinishDot = null; // reset before the next approach to the finish
       }
@@ -623,15 +636,20 @@ export const startGame = (T, opts = {}) => {
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
   // stop() makes the engine reentrant: removes all listeners, cancels the loop,
   // and destroys its UI components. Foundation for restart / results-screen / ghost.
-  const stop = () => {
+  const stop = (full = false) => {
     stopDrift();
     cancelAnimationFrame(rafId);
     for (const [t, type, h, o] of listeners) t.removeEventListener(type, h, o);
     listeners.length = 0;
     pause.destroy();
     confirmExit.destroy();
-    // raceResults stays alive after a race finish; only removed on restart
-    if (!raceFinished) raceResults.destroy();
+    // raceResults stays up after a finish (raceFinished) so the player sees the overlay; a FULL stop
+    // (screen destroy / pre-restart in the shell) tears it down too, so a stranded overlay can't
+    // accumulate a second instance on the next race (all three overlays live on document.body).
+    if (full || !raceFinished) raceResults.destroy();
+    // Paired gameplayStop() for the platform SDK — emit exactly once per gameplayStart(), whether we
+    // reached the finish, exited, or the screen was destroyed mid-race (router nav / browser Back).
+    if (gameplayActive) { gameplayStop(); gameplayActive = false; }
     if (getActive() === api) setActive(null);
   };
   const api = { stop };

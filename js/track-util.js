@@ -102,11 +102,13 @@ export const placeCones = (outer, inner, minSpacing = 160) => {
   for (let i = 0; i < N; i++) {
     const next = (i + 1) % N;
     if (i === 0 || outerAcc >= minSpacing) {
-      cones.push({ x: outer[i].x, y: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
+      // x0/y0 = the immutable standing position; a knocked cone drifts x/y away and resetCones()
+      // restores it on a re-entrant race restart (SPA Phase C — no location.reload to rebuild them).
+      cones.push({ x: outer[i].x, y: outer[i].y, x0: outer[i].x, y0: outer[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       outerAcc = 0;
     }
     if (i === 0 || innerAcc >= minSpacing) {
-      cones.push({ x: inner[i].x, y: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
+      cones.push({ x: inner[i].x, y: inner[i].y, x0: inner[i].x, y0: inner[i].y, vx: 0, vy: 0, ang: 0, spin: 0, knocked: false, ci: i });
       innerAcc = 0;
     }
     outerAcc += Math.hypot(outer[next].x - outer[i].x, outer[next].y - outer[i].y);
@@ -318,6 +320,17 @@ export const reconcileTires = (storedIds, tiles) => {
 // Note: inner/outer are reversed but intentionally NOT swapped — left/right flip when you
 // drive the other way, but render builds the road as an even-odd polygon (see render.js)
 // and collision treats it as a band, so the drivable surface is identical either direction.
+// Stand every cone back up at its recorded x0/y0 and zero its motion. Called by startGame on a
+// re-entrant restart, since the cones[] array is shared (ES-module cache + reverseTrack {...T}) and
+// would otherwise carry knocked/displaced state into the next race. Pure; mutates in place.
+export const resetCones = (cones) => {
+  for (const c of cones) {
+    c.knocked = false;
+    c.vx = 0; c.vy = 0; c.ang = 0; c.spin = 0;
+    c.x = c.x0; c.y = c.y0;
+  }
+};
+
 export const reverseTrack = (T) => {
   const center = T.center.slice().reverse();
   const inner  = T.inner.slice().reverse();

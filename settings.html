@@ -1,86 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Desktop Drift — Settings</title>
-  <meta name="description" content="Settings for Desktop Drift — configure speed units and other game preferences.">
-  <meta name="robots" content="noindex, follow">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <meta name="theme-color" content="#14110f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/menu.css">
-  <link rel="stylesheet" href="css/settings.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#14110f">
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell. Real markup lives in index.html's <template id="tpl-settings">. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<div id="settings-page">
-  <p id="settings-title">Settings</p>
-
-  <div class="settings-group">
-    <div class="settings-label">Speed units</div>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-kmh">km/h</button>
-      <button class="unit-btn" id="btn-mph">mph</button>
-    </div>
-  </div>
-
-  <div class="settings-group" id="haptics-group" style="display:none">
-    <div class="settings-label">Haptic feedback</div>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-hap-on">On</button>
-      <button class="unit-btn" id="btn-hap-off">Off</button>
-    </div>
-  </div>
-
-  <div class="settings-group" id="sound-group">
-    <div class="settings-label">Sound</div>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-snd-on">On</button>
-      <button class="unit-btn" id="btn-snd-off">Off</button>
-    </div>
-  </div>
-
-  <div class="settings-group" id="volume-group">
-    <div class="settings-label">Volume</div>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-vol-low">Low</button>
-      <button class="unit-btn" id="btn-vol-med">Med</button>
-      <button class="unit-btn" id="btn-vol-high">High</button>
-    </div>
-  </div>
-
-  <div class="settings-group" id="profile-group">
-    <div class="settings-label">Profile / Sync</div>
-    <div class="profile-desc">Move your progress to another device. Export here, then import on the other device.</div>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-profile-copy">Copy code</button>
-      <button class="unit-btn" id="btn-profile-download">Download file</button>
-    </div>
-    <textarea id="profile-input" class="profile-input" rows="3" spellcheck="false"
-              autocapitalize="off" autocomplete="off"
-              placeholder="Paste a profile code here to import…"></textarea>
-    <div class="unit-row">
-      <button class="unit-btn" id="btn-profile-import">Import from code</button>
-      <label class="unit-btn" for="profile-file">Import from file</label>
-      <input type="file" id="profile-file" accept="application/json,.json" hidden>
-    </div>
-    <div id="profile-status" class="profile-status" role="status" aria-live="polite"></div>
-  </div>
-
-  <a id="backLink" href="index.html">← Back to menu</a>
-</div>
-
-<script type="module">
-  import { createSettingsScreen } from './js/screens/settings.js';
-  createSettingsScreen();
-</script>
-
-<script type="module" src="./js/sw-update.js"></script>
-</body>
+<body></body>
 </html>

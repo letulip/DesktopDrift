@@ -537,15 +537,16 @@ imports and calls the factory once:
   createSettingsScreen();
 </script>
 ```
-**Contract:** `create<Screen>(root = document) -> { destroy }`. `root` is always `document`
-today; it is a parameter so the Phase-B router can mount a screen into a subtree without
-touching the modules. Every listener on a **persistent/static element or `window`** goes
-through a local `on(el, type, fn, opts)` accumulator; `destroy()` removes them, cancels any
-rAF, calls captured unsubscribes (`onEmotionReady`), clears the containers the screen filled,
-and undoes shared-state mutations. Listeners on **created** elements stay direct (they die
-when `destroy()` empties their container). `destroy()` is **inert at mount** — nothing calls
-it until the Phase-B router; the extraction is otherwise byte-for-byte 1:1 with the old inline
-scripts (see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
+**Contract:** `create<Screen>(root = document, route = null) -> { destroy }`. `root` is
+`document`; the Phase-B router (below) clones the screen's template into `#app` then calls the
+factory with the parsed hash `route` (select/modify read track/mode/dir/car from it, falling back
+to `location.search` when run standalone). Every listener on a **persistent/static element or
+`window`** goes through a local `on(el, type, fn, opts)` accumulator; `destroy()` removes them,
+cancels any rAF, calls captured unsubscribes (`onEmotionReady`), clears the containers the screen
+filled, and undoes shared-state mutations. Listeners on **created** elements stay direct (they die
+when `destroy()` empties their container). The router calls `destroy()` on every navigation (in
+Phase A it was inert); each extraction is otherwise byte-for-byte 1:1 with the old inline scripts
+(see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
 - **Gotcha (`modify.js`):** `draw()` mutates the shared `CARS[carIdx].body` and does **not**
   restore it (verbatim with the original — harmless while each page is its own document). The
   restore `M.body = factoryBody` lives **only in `destroy()`**, so it fixes the colour-leak the
@@ -553,6 +554,70 @@ scripts (see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
 - `js/track-thumb.js` — shared minimap renderer (`drawThumb` + `TRACK_GU`), used by `tracks`
   and `zen` (was duplicated byte-identically in both).
 - The **game / sandbox** pages are NOT screens yet — they stay separate documents until Phase C.
+
+### SPA shell + router (`js/router.js`, `js/route.js`) — Phase B
+
+`index.html` is the **shell**: `<div id="app">` + one `<template id="tpl-<screen>">` per menu
+screen (menu/tracks/zen/select/modify/settings/achievements) + the union of the 11 menu
+stylesheets + a bootstrap calling `startRouter()`. The old per-page URLs (`tracks.html` …
+`achievements.html`) are now 14-line **redirect shims** (`js/redirect-shim.js`) that map the
+page + query to the hash route and `location.replace` into the shell — so bookmarks / deep links
+/ the game's on-error redirects keep working, and the screen markup lives once (in the templates).
+- **Routing is hash-based** (`#/select?track=x&dir=rev`) — no `404.html` on Pages, no `pushState`
+  in sandboxed portal iframes. `js/route.js` is the pure `parseRoute` / `routeToHash` seam
+  (unit-tested, `tests/route.test.js`). `js/router.js` on `hashchange` destroys the current screen,
+  clones the screen's `<template>` into `#app`, and mounts `createXScreen(document, route)`. Only
+  one screen is live at a time, so `document.getElementById` is unambiguous even though templates
+  reuse ids (`<template>.content` is an inert fragment). The template is resolved before teardown,
+  so a missing one keeps the current screen up instead of blanking `#app`.
+- **Navigation seam:** `sound.js` `soundThenGo`/`tapThenGo` route through a swappable `_navigate`
+  (`setNavigator`); the router installs `navTo`, which maps internal page hrefs → hash routes and
+  hard-navs game/sandbox/donate/external. A global `document` click interceptor catches bare
+  `<a href>` clicks a screen didn't handle (skipped via `e.defaultPrevented`). One document ⇒
+  **one AudioContext for the whole menu session** — the payoff.
+- **Still separate documents:** `sandbox.html`, `donate.html` (hard navs). `game.html` also still
+  exists as a standalone page (deep-link + on-error redirect back-compat), but the shell now routes
+  the race **in-document** — see Phase C below.
+
+### SPA shell — the game joins the document (`js/screens/game.js`) — Phase C
+
+The race now runs **inside the shell** as the `game` screen (`#/game?track=x&mode=zen&dir=rev`),
+so a restart/exit no longer reloads the document — the single session `AudioContext` survives
+(the payoff). Sandbox joins in-document too (`#/game?mode=sandbox` → the un-registered `track-oval.js`,
+stock car, infinite laps — `createGameScreen` branches on `isSandbox = o.stock && !o.trackId`).
+`game.html` / `sandbox.html` stay standalone pages (deep links, `game.html` on-error redirects) with
+their inline bootstraps unchanged, but the in-app flow no longer hard-navs to them. The engine is now
+**re-entrant** — `location.reload()` used to be the correctness crutch:
+- **State reset:** `startGame()` calls `resetState()` (js/state.js — resets the shared `S` singleton
+  from one `S_DEFAULTS` literal, clears `keys`/`pointers`, empties `S.skids`/`S.lapScores` **in place**
+  so render.js's array bindings survive) and `resetCones(cones)` (js/track-util.js — stands cones back
+  up at their `x0/y0`; `cones[]` is ES-module-cached and shared by `reverseTrack`, so a replay would
+  otherwise reuse knocked/displaced cones). Both are pure + unit-tested.
+- **render.js is DOM-late:** it no longer captures `#c`/HUD at import (the shell loads it before the
+  `tpl-game` clone exists). `canvas`/`ctx`/`mini`/HUD refs are `let`, (re)acquired by the idempotent
+  `initCanvas()` called at the top of `initRender()`; `resize()` is guarded `if(!canvas)return`; the
+  window resize listener registers once. `_texCache` (cross-track) is NOT reset per mount. dpr/surface
+  resolve per-mount via `js/render-config.js` (pure, unit-tested) — the shell threads the route hash
+  via `setDeviceTuning()`; standalone pages fall back to `location.search`.
+- **Injected exit/restart:** `startGame(T, opts)` takes `opts.onExit`/`opts.onRestart` (defaults keep
+  standalone `location.href`/`location.reload`). The shell passes a seam-routed exit (`soundThenGo` →
+  `navTo` → `#/menu`) and an **in-place restart** (`engine.stop(true)` + `startGame` again — never
+  re-set an identical `#/game` hash, it fires no `hashchange`). `stop(full)` tears down the results
+  overlay on a full stop so Race-Again can't stack a second `#raceResultsOverlay`; a `gameplayActive`
+  flag emits exactly one `gameplayStop()` per `gameplayStart()` across finish / exit / mid-race
+  `destroy()` (router nav / Back). `createGameScreen.destroy()` calls `stop(true)` + restores the shell
+  chrome (`fixed-viewport` / `body.zen` / `document.title`); a `destroyed` flag blocks a late
+  import/restart from mounting a zombie.
+- **Routing/CSS:** `route.js` `SCREENS` includes `game`; `optsFromRoute(route)` maps a route to
+  `startGame` opts (pure, unit-tested; `mode=sandbox` → `stock:true`, no track). `router.js` has
+  `REGISTRY.game` + `PAGE_TO_SCREEN['game.html']='game'`, so both Race (`game.html?track=…`) and
+  Sandbox (`game.html?mode=sandbox`) route in-document; only `donate.html` stays a hard nav.
+  `index.html` links `css/sandbox.css` (its bare `canvas` rule was scoped to `#c,#mini` so it can't
+  touch the modify `#preview`) and holds `<template id="tpl-game">`. Sandbox hides the shared HUD's
+  `#tiresRow` via `body.sandbox` (no tire economy). Passing an intermediate checkpoint fires a light
+  `sfx.checkpoint()` + `hapticCheckpoint()` (game-engine.js, gated `!ZEN` to match the checkpoint ring).
+- **Still deferred:** music/crossfade over the now-session-long `AudioContext`, moving the `sw-update`
+  nudge off `isGameplayPage(pathname)` to engine-state gating, and any GPU-surface disposal tuning.
 
 ### Track dependency injection
 

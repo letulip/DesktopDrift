@@ -121,9 +121,14 @@ export const sfx = {
   record:     () => play('record'),
 };
 
-// Navigate to `href` after a soft cue, deferring the unload just long enough for the sound to be
-// heard — an AudioContext dies with its page, so an un-deferred nav would cut the sound off.
-export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeout(() => { location.href = href; }, ms); };
+// Navigation seam. Every screen navigates through soundThenGo / tapThenGo, so overriding the
+// navigator here reroutes the whole app without touching the screens. The default is a hard
+// document nav (an AudioContext dies with its page, so the nav is deferred just long enough for the
+// cue to be heard); the SPA shell installs an in-document hash navigator via setNavigator() so the
+// menu session keeps one document (and one AudioContext). game/sandbox/donate stay hard navs.
+let _navigate = (href) => { location.href = href; };
+export const setNavigator = (fn) => { if (typeof fn === 'function') _navigate = fn; };
+export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeout(() => { _navigate(href); }, ms); };
 export const tapThenGo = (href, ms = 100) => soundThenGo(href, 'tap', ms);
 
 // ── Drift sound: a reactive slide sample + a whisper-quiet continuous static bed ─

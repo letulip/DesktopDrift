@@ -15,7 +15,10 @@ import { createShareModal } from './share.js';
 // this collapses to an icon + reward chip so a big burst can't overflow a short screen.
 const ACH_NAMED = 4;
 
-export const createRaceResults = () => {
+export const createRaceResults = ({ onRestart } = {}) => {
+  // Restart action: injected by the SPA shell (in-document re-mount, keeps the AudioContext) or the
+  // standalone default — reload game.html?track=<id> for a clean start.
+  const restart = onRestart ?? (() => setTimeout(() => location.reload(), 100));
   const overlay = document.createElement('div');
   overlay.id = 'raceResultsOverlay';
   overlay.innerHTML = `
@@ -39,9 +42,8 @@ export const createRaceResults = () => {
   overlay.querySelector('#rr-restart').addEventListener('click', () => {
     sfx.tap();
     // Canonical interstitial slot (race is over, engine already stopped): a real
-    // adapter shows an ad here; the default resolves immediately.
-    commercialBreak().then(() =>
-      setTimeout(() => location.reload(), 100)); // reload game.html?track=<id> — clean start
+    // adapter shows an ad here; the default resolves immediately. Then restart.
+    commercialBreak().then(() => restart());
   });
   overlay.querySelector('#rr-back').addEventListener('click', () => {
     soundThenGo('tracks.html', 'back');

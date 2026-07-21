@@ -1,48 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Desktop Drift — Zen Drift</title>
-  <meta name="description" content="Zen Drift mode in Desktop Drift. Pick a track and drift with no timers, no scores, no pressure.">
-  <meta name="robots" content="noindex, follow">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <meta name="theme-color" content="#14110f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/menu.css">
-  <link rel="stylesheet" href="css/tracks.css">
-  <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="css/header.css">
-  <link rel="stylesheet" href="css/content.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#14110f">
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell. Real markup lives in index.html's <template id="tpl-zen">. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<div id="track-select">
-
-  <header id="ts-header">
-    <h1 id="ts-title">Zen Drift</h1>
-    <p  id="ts-sub">Choose a track — just drift</p>
-  </header>
-
-  <div id="content">
-    <div id="track-cards"></div>
-  </div>
-
-  <footer id="ts-footer">
-    <a href="index.html" class="ts-back">← Back to menu</a>
-  </footer>
-
-</div>
-
-<script type="module">
-  import { createZenScreen } from './js/screens/zen.js';
-  createZenScreen();
-</script>
-<script type="module" src="./js/sw-update.js"></script>
-</body>
+<body></body>
 </html>
