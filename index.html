@@ -22,88 +22,304 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Desktop Drift">
-<link rel="stylesheet" href="css/base.css" />
-<link rel="stylesheet" href="css/menu.css" />
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/header.css">
+<link rel="stylesheet" href="css/content.css">
+<link rel="stylesheet" href="css/footer.css">
+<link rel="stylesheet" href="css/menu.css">
+<link rel="stylesheet" href="css/wallet.css">
+<link rel="stylesheet" href="css/tracks.css">
+<link rel="stylesheet" href="css/select.css">
+<link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/achievements.css">
+<link rel="stylesheet" href="css/ach-toast.css">
 </head>
 <body>
-<div id="menu">
-  <div class="menu-inner">
-    <img src="icons/icon-192.png" alt="Desktop Drift" class="menu-logo" />
-    <h1 class="logo">DESKTOP DRIFT<sup>TM</sup></h1>
-    <div class="menu-crown" id="menu-crown" style="display:none" title="Absolute DDK — a crown on every track, both directions">👑 Absolute DDK</div>
-    <p class="tagline">Top-down drift racing across the kitchen table</p>
-    <div class="tiles">
-      <a class="tile" href="select.html?mode=sandbox">
-        <div class="tile-title">Sandbox</div>
-        <div class="tile-sub">Free roam the table circuit.<br>No limits — just learn the slide.</div>
-        <span class="tile-badge">▶ Play</span>
-      </a>
-      <a class="tile" href="tracks.html">
-        <div class="tile-title">Time Attack</div>
-        <div class="tile-sub">Chase your best lap. Choose a track.</div>
-        <div class="tile-stat" id="ta-avg-pps">No records yet<span id="ta-caps" style="display:none"></span></div>
-        <span class="tile-badge">▶ Play</span>
-      </a>
-      <a class="tile" href="zen.html">
-        <div class="tile-title">Zen Drift</div>
-        <div class="tile-sub">No score, no timer, no pressure.<br>Just drift.</div>
-        <span class="tile-badge">▶ Play</span>
-      </a>
+<!-- SPA shell (Phase B). Menu screens mount here via the hash router (js/router.js); their markup
+     lives in the <template>s below. game / sandbox / donate stay separate documents. -->
+<div id="app"></div>
+
+  <template id="tpl-menu">
+    <div id="menu">
+      <div class="menu-inner">
+        <img src="icons/icon-192.png" alt="Desktop Drift" class="menu-logo" />
+        <h1 class="logo">DESKTOP DRIFT<sup>TM</sup></h1>
+        <div class="menu-crown" id="menu-crown" style="display:none" title="Absolute DDK — a crown on every track, both directions">👑 Absolute DDK</div>
+        <p class="tagline">Top-down drift racing across the kitchen table</p>
+        <div class="tiles">
+          <a class="tile" href="select.html?mode=sandbox">
+            <div class="tile-title">Sandbox</div>
+            <div class="tile-sub">Free roam the table circuit.<br>No limits — just learn the slide.</div>
+            <span class="tile-badge">▶ Play</span>
+          </a>
+          <a class="tile" href="tracks.html">
+            <div class="tile-title">Time Attack</div>
+            <div class="tile-sub">Chase your best lap. Choose a track.</div>
+            <div class="tile-stat" id="ta-avg-pps">No records yet<span id="ta-caps" style="display:none"></span></div>
+            <span class="tile-badge">▶ Play</span>
+          </a>
+          <a class="tile" href="zen.html">
+            <div class="tile-title">Zen Drift</div>
+            <div class="tile-sub">No score, no timer, no pressure.<br>Just drift.</div>
+            <span class="tile-badge">▶ Play</span>
+          </a>
+        </div>
+        <div class="menu-links">
+          <a class="settings-link" href="achievements.html">🏆 Achievements</a>
+          <a class="settings-link" href="settings.html">⚙ Settings</a>
+        </div>
+        <!-- <div class="menu-foot" id="menu-wallet" style="display:none">Tires: <span id="wallet-count">0</span></div> -->
+        <div class="menu-foot">Keyboard: ← → to steer</div>
+        <div class="menu-foot menu-foot-support">
+          <a href="donate.html" class="support-link">☕ Support the Dev ☕</a>
+        </div>
+      </div>
     </div>
-    <div class="menu-links">
-      <a class="settings-link" href="achievements.html">🏆 Achievements</a>
-      <a class="settings-link" href="settings.html">⚙ Settings</a>
+  </template>
+
+  <template id="tpl-tracks">
+    <div id="track-select">
+    
+      <header id="ts-header">
+        <div class="ts-header-row">
+          <div class="ts-header-text">
+            <h1 id="ts-title">Time Attack</h1>
+            <p  id="ts-sub">Choose a track</p>
+          </div>
+          <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+        </div>
+        <div id="ts-mode">
+          <button class="mode-btn is-active" id="btn-normal">Normal</button>
+          <button class="mode-btn" id="btn-reversed">Reversed</button>
+        </div>
+      </header>
+    
+      <div id="content">
+        <div id="track-cards"></div>
+      </div>
+    
+      <footer id="ts-footer">
+        <a href="index.html" class="ts-back">← Back to menu</a>
+      </footer>
+    
     </div>
-    <!-- <div class="menu-foot" id="menu-wallet" style="display:none">Tires: <span id="wallet-count">0</span></div> -->
-    <div class="menu-foot">Keyboard: ← → to steer</div>
-    <div class="menu-foot menu-foot-support">
-      <a href="donate.html" class="support-link">☕ Support the Dev ☕</a>
+  </template>
+
+  <template id="tpl-zen">
+    <div id="track-select">
+    
+      <header id="ts-header">
+        <h1 id="ts-title">Zen Drift</h1>
+        <p  id="ts-sub">Choose a track — just drift</p>
+      </header>
+    
+      <div id="content">
+        <div id="track-cards"></div>
+      </div>
+    
+      <footer id="ts-footer">
+        <a href="index.html" class="ts-back">← Back to menu</a>
+      </footer>
+    
     </div>
-  </div>
-</div>
-<script>
-try {
-  const data = JSON.parse(localStorage.getItem('desktop-drift') || 'null');
-  if (data?.records) {
-    const ppsList = Object.values(data.records)
-      .map(t => t.timeattack?.bestPPS)
-      .filter(v => v != null);
-    if (ppsList && ppsList.length > 0) {
-      const avg = Math.round(ppsList.reduce((a, b) => a + b, 0) / ppsList.length);
-      // Update only the text node, not the whole element — setting textContent
-      // on the parent would destroy the #ta-caps child span.
-      document.getElementById('ta-avg-pps').firstChild.textContent =
-        'Avg ' + avg.toLocaleString() + ' PPS';
-    }
-  }
-  if (data?.stats?.caps) {
-    const total = Object.values(data.stats.caps)
-      .reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
-    if (total > 0) {
-      const el = document.getElementById('ta-caps');
-      el.textContent = total === 1 ? ` • 1 cap collected` : ` • ${total} caps collected`;
-      el.style.display = '';
-    }
-  }
-  if (data?.wallet > 0) {
-    document.getElementById('wallet-count').textContent = data.wallet;
-    document.getElementById('menu-wallet').style.display = '';
-  }
-  if (data?.achievements?.['absolute-ddk']?.unlocked) {
-    document.getElementById('menu-crown').style.display = '';
-  }
-} catch {}
-</script>
+  </template>
+
+  <template id="tpl-select">
+    <div id="garage">
+    
+      <header id="ts-header">
+        <div class="ts-header-text">
+          <h1 id="mode-title"></h1>
+          <p id="ts-sub">Choose your car</p>
+        </div>
+        <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+      </header>
+    
+      <div id="content" class="content--column">
+    
+        <div id="cars"></div>
+        <div id="car-dots" class="car-dots"></div>
+    
+        <button id="raceBtn">Race! 🏁</button>
+      </div>
+    
+    
+      <footer id="ts-footer">
+        <a id="backLink" href="index.html" class="ts-back">← Back to menu</a>
+      </footer>
+    </div>
+  </template>
+
+  <template id="tpl-modify">
+    <div id="modify">
+    
+      <header id="ts-header">
+        <div class="ts-header-text">
+          <h1 id="car-name"></h1>
+          <p id="ts-sub">Customize &amp; buy</p>
+        </div>
+        <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
+      </header>
+    
+      <div id="content" class="content--column content--modify">
+    
+        <div class="preview-stage">
+          <canvas id="preview"></canvas>
+        </div>
+    
+        <!-- All customization in one tabbed selector (one panel shown at a time) -->
+        <div id="custom">
+          <div class="shop-tabs" role="tablist">
+            <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
+            <button class="shop-tab" type="button" data-panel="neon">Neon FX</button>
+            <button class="shop-tab" type="button" data-panel="trail">Trail</button>
+            <button class="shop-tab" type="button" data-panel="flair">Flair</button>
+          </div>
+    
+          <!-- Only the panels scroll; header + preview + tabs stay pinned above -->
+          <div id="panels">
+          <!-- Colour: body colour (free) + finish (paid) — they belong together -->
+          <div class="cust-panel" data-panel="colour">
+            <div id="body-palette" class="swatch-grid"></div>
+            <div id="body-name" class="swatch-name"></div>
+            <div class="finish-sub">
+              <div class="cust-sublabel">Finish</div>
+              <div id="shop-finish" class="shop-grid"></div>
+            </div>
+            <div class="finish-sub">
+              <div class="cust-sublabel">Glass tint</div>
+              <div id="shop-glass" class="shop-grid"></div>
+            </div>
+            <div class="finish-sub">
+              <div class="cust-sublabel">Outline</div>
+              <div id="shop-outline" class="shop-grid"></div>
+            </div>
+          </div>
+    
+          <!-- Neon FX underglow — on/off + layout + per-zone colours + animation -->
+          <div class="cust-panel" data-panel="neon" hidden>
+            <button id="neon-btn" type="button">✦ Underglow</button>
+            <div id="neon-controls" style="display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .2s;">
+              <div class="finish-sub">
+                <div class="cust-sublabel">Layout</div>
+                <div id="neon-layout" class="shop-grid"></div>
+              </div>
+              <div id="neon-colors" style="display:flex;flex-direction:column;align-items:center;gap:12px;"></div>
+              <div class="finish-sub">
+                <div class="cust-sublabel">Animation</div>
+                <div id="neon-anim" class="shop-grid"></div>
+              </div>
+            </div>
+          </div>
+    
+          <!-- Trail colour (paid) -->
+          <div class="cust-panel" data-panel="trail" hidden>
+            <div id="shop-trail" class="shop-grid"></div>
+          </div>
+    
+          <!-- Flair: external add-ons. First sub-section = Moods (windshield eye/expression, paid) -->
+          <div class="cust-panel" data-panel="flair" hidden>
+            <div class="finish-sub">
+              <div class="cust-sublabel">Moods</div>
+              <div id="shop-moods" class="shop-grid"></div>
+            </div>
+          </div>
+          </div><!-- /#panels -->
+        </div>
+    
+      </div>
+    
+      <footer id="modify-bar">
+        <div id="buy-warning" class="buy-warning" hidden></div>
+        <div class="modify-bar-row">
+          <a id="backLink" class="ts-back" href="select.html">← Back</a>
+          <button id="applyBtn" type="button">Apply</button>
+        </div>
+      </footer>
+    </div>
+  </template>
+
+  <template id="tpl-settings">
+    <div id="settings-page">
+      <p id="settings-title">Settings</p>
+    
+      <div class="settings-group">
+        <div class="settings-label">Speed units</div>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-kmh">km/h</button>
+          <button class="unit-btn" id="btn-mph">mph</button>
+        </div>
+      </div>
+    
+      <div class="settings-group" id="haptics-group" style="display:none">
+        <div class="settings-label">Haptic feedback</div>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-hap-on">On</button>
+          <button class="unit-btn" id="btn-hap-off">Off</button>
+        </div>
+      </div>
+    
+      <div class="settings-group" id="sound-group">
+        <div class="settings-label">Sound</div>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-snd-on">On</button>
+          <button class="unit-btn" id="btn-snd-off">Off</button>
+        </div>
+      </div>
+    
+      <div class="settings-group" id="volume-group">
+        <div class="settings-label">Volume</div>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-vol-low">Low</button>
+          <button class="unit-btn" id="btn-vol-med">Med</button>
+          <button class="unit-btn" id="btn-vol-high">High</button>
+        </div>
+      </div>
+    
+      <div class="settings-group" id="profile-group">
+        <div class="settings-label">Profile / Sync</div>
+        <div class="profile-desc">Move your progress to another device. Export here, then import on the other device.</div>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-profile-copy">Copy code</button>
+          <button class="unit-btn" id="btn-profile-download">Download file</button>
+        </div>
+        <textarea id="profile-input" class="profile-input" rows="3" spellcheck="false"
+                  autocapitalize="off" autocomplete="off"
+                  placeholder="Paste a profile code here to import…"></textarea>
+        <div class="unit-row">
+          <button class="unit-btn" id="btn-profile-import">Import from code</button>
+          <label class="unit-btn" for="profile-file">Import from file</label>
+          <input type="file" id="profile-file" accept="application/json,.json" hidden>
+        </div>
+        <div id="profile-status" class="profile-status" role="status" aria-live="polite"></div>
+      </div>
+    
+      <a id="backLink" href="index.html">← Back to menu</a>
+    </div>
+  </template>
+
+  <template id="tpl-achievements">
+    <div id="ach-page">
+    
+      <header id="ach-header">
+        <h1 id="ach-title">Achievements</h1>
+        <div id="ach-count" title="Unlocked / total">0 / 0</div>
+      </header>
+    
+      <div id="ach-content">
+        <div id="ach-sections"></div>
+      </div>
+    
+      <footer id="ach-footer">
+        <a href="index.html" class="ach-back">← Menu</a>
+      </footer>
+    
+    </div>
+  </template>
+
 <script type="module">
-  import { tapThenGo } from './js/sound.js';
-  // Soft tap on every menu item; navigation is briefly deferred so the sound isn't cut by unload.
-  for (const a of document.querySelectorAll('#menu a[href]')) {
-    a.addEventListener('click', (e) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
-      e.preventDefault();
-      tapThenGo(a.getAttribute('href'));
-    });
-  }
+  import { startRouter } from './js/router.js';
+  startRouter();
 </script>
 <script type="module" src="./js/sw-update.js"></script>
 </body>
