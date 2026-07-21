@@ -11,6 +11,7 @@ import { createSelectScreen }       from './screens/select.js';
 import { createModifyScreen }       from './screens/modify.js';
 import { createSettingsScreen }     from './screens/settings.js';
 import { createAchievementsScreen } from './screens/achievements.js';
+import { createGameScreen }         from './screens/game.js';
 
 // screen name → { make: factory(root, route), tpl: template id in the shell }
 const REGISTRY = {
@@ -21,15 +22,17 @@ const REGISTRY = {
   modify:       { make: createModifyScreen,       tpl: 'tpl-modify' },
   settings:     { make: createSettingsScreen,     tpl: 'tpl-settings' },
   achievements: { make: createAchievementsScreen, tpl: 'tpl-achievements' },
+  game:         { make: createGameScreen,         tpl: 'tpl-game' },
 };
 
 // Old-style page → screen name, for translating hrefs (from soundThenGo / tapThenGo / <a href>)
-// into hash routes. Anything not here (game.html / sandbox.html / donate.html / external) is a
-// hard navigation.
+// into hash routes. game.html routes in-document now (SPA Phase C). Anything not here
+// (sandbox.html / donate.html / external) is a hard navigation.
 const PAGE_TO_SCREEN = {
   'index.html': 'menu', 'tracks.html': 'tracks', 'zen.html': 'zen',
   'select.html': 'select', 'modify.html': 'modify',
   'settings.html': 'settings', 'achievements.html': 'achievements',
+  'game.html': 'game',
 };
 
 let current = null;   // { screen, instance }

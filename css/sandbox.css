@@ -1,5 +1,7 @@
-/* Game screen (sandbox.html): canvas + HUD overlay */
-canvas { display: block; }
+/* Game screen (sandbox.html / game.html / the SPA shell's tpl-game): canvas + HUD overlay.
+   Scoped to the two game canvases (not a bare `canvas` rule) so that when this sheet is linked into
+   the SPA shell it can't touch the modify screen's #preview canvas. */
+#c, #mini { display: block; }
 #hud {
   position: fixed; top: 12px; left: 12px; right: 12px;
   font: 14px/1.4 var(--font-body);

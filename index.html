@@ -33,6 +33,9 @@
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/achievements.css">
 <link rel="stylesheet" href="css/ach-toast.css">
+<!-- Game screen (tpl-game) styles: HUD, pause/exit/results overlays. Scoped to game-only ids +
+     body.zen, so it never touches the menu screens (SPA Phase C). -->
+<link rel="stylesheet" href="css/sandbox.css">
 </head>
 <body>
 <!-- SPA shell (Phase B). Menu screens mount here via the hash router (js/router.js); their markup
@@ -315,6 +318,36 @@
       </footer>
     
     </div>
+  </template>
+
+  <template id="tpl-game">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div id="hud-left">
+        <div class="panel" id="timePanel">
+          <div>lap: <span class="big" id="lap">0.00</span> s</div>
+          <div class="dim">last: <span id="last">—</span></div>
+          <div class="dim">best: <span id="best">—</span></div>
+        </div>
+        <canvas id="mini" width="156" height="134"></canvas>
+      </div>
+      <div id="controls">
+        <button id="menuBtn" title="back to menu">☰ Menu</button>
+      </div>
+      <div id="hud-right">
+        <div class="panel" id="scorePanel">
+          <div>score: <span class="big" id="score">0</span></div>
+          <div class="dim" id="lapScores"></div>
+          <div class="dim">speed: <span id="spd">0.0</span> <span id="spdUnit"></span></div>
+          <div class="dim">tires: <span id="wallet">0</span></div>
+        </div>
+        <div id="lapCounter"><span id="lapNum">1</span>/<span id="lapTotal">-</span></div>
+      </div>
+    </div>
+    <div id="combo"></div>
+    <div id="flash"></div>
+    <div id="count"></div>
+    <div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Dodge the obstacles!</div>
   </template>
 
 <script type="module">
