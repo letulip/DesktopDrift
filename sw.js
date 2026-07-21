@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v224';
+const CACHE = 'desktop-drift-v225';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -66,6 +66,8 @@ const ASSETS = [
   'js/profile-io.js',
   'js/profile-sync.js',
   'js/screens/settings.js',
+  'js/screens/achievements.js',
+  'js/screens/zen.js',
   'js/physics.js',
   'js/track-util.js',
   'js/collision.js',
