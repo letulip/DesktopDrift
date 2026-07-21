@@ -1,58 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Desktop Drift — Garage</title>
-  <meta name="description" content="Choose your car and customise your look in the Desktop Drift garage. Pick a body colour and neon underglow, then hit the track.">
-  <meta name="robots" content="noindex, follow">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <meta name="theme-color" content="#14110f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/menu.css">
-  <link rel="stylesheet" href="css/select.css">
-  <link rel="stylesheet" href="css/wallet.css">
-  <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="css/header.css">
-  <link rel="stylesheet" href="css/content.css">
-  <link rel="stylesheet" href="css/ach-toast.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#14110f">
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell. Real markup lives in index.html's <template id="tpl-select">. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<div id="garage">
-
-  <header id="ts-header">
-    <div class="ts-header-text">
-      <h1 id="mode-title"></h1>
-      <p id="ts-sub">Choose your car</p>
-    </div>
-    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
-  </header>
-
-  <div id="content" class="content--column">
-
-    <div id="cars"></div>
-    <div id="car-dots" class="car-dots"></div>
-
-    <button id="raceBtn">Race! 🏁</button>
-  </div>
-
-
-  <footer id="ts-footer">
-    <a id="backLink" href="index.html" class="ts-back">← Back to menu</a>
-  </footer>
-</div>
-
-<script type="module">
-  import { createSelectScreen } from './js/screens/select.js';
-  createSelectScreen();
-</script>
-
-<script type="module" src="./js/sw-update.js"></script>
-</body>
+<body></body>
 </html>

@@ -1,120 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Desktop Drift — Modify</title>
-  <meta name="description" content="Customize your car in the Desktop Drift garage: body colour, neon underglow, paint finishes and trail colours.">
-  <meta name="robots" content="noindex, follow">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <meta name="theme-color" content="#14110f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Desktop Drift">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/menu.css">
-  <link rel="stylesheet" href="css/select.css">
-  <link rel="stylesheet" href="css/wallet.css">
-  <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="css/header.css">
-  <link rel="stylesheet" href="css/content.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#14110f">
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell. Real markup lives in index.html's <template id="tpl-modify">. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<div id="modify">
-
-  <header id="ts-header">
-    <div class="ts-header-text">
-      <h1 id="car-name"></h1>
-      <p id="ts-sub">Customize &amp; buy</p>
-    </div>
-    <div class="wallet-pill" title="Tire coins">🛞 <span id="wallet-amount">0</span></div>
-  </header>
-
-  <div id="content" class="content--column content--modify">
-
-    <div class="preview-stage">
-      <canvas id="preview"></canvas>
-    </div>
-
-    <!-- All customization in one tabbed selector (one panel shown at a time) -->
-    <div id="custom">
-      <div class="shop-tabs" role="tablist">
-        <button class="shop-tab is-active" type="button" data-panel="colour">Colour</button>
-        <button class="shop-tab" type="button" data-panel="neon">Neon FX</button>
-        <button class="shop-tab" type="button" data-panel="trail">Trail</button>
-        <button class="shop-tab" type="button" data-panel="flair">Flair</button>
-      </div>
-
-      <!-- Only the panels scroll; header + preview + tabs stay pinned above -->
-      <div id="panels">
-      <!-- Colour: body colour (free) + finish (paid) — they belong together -->
-      <div class="cust-panel" data-panel="colour">
-        <div id="body-palette" class="swatch-grid"></div>
-        <div id="body-name" class="swatch-name"></div>
-        <div class="finish-sub">
-          <div class="cust-sublabel">Finish</div>
-          <div id="shop-finish" class="shop-grid"></div>
-        </div>
-        <div class="finish-sub">
-          <div class="cust-sublabel">Glass tint</div>
-          <div id="shop-glass" class="shop-grid"></div>
-        </div>
-        <div class="finish-sub">
-          <div class="cust-sublabel">Outline</div>
-          <div id="shop-outline" class="shop-grid"></div>
-        </div>
-      </div>
-
-      <!-- Neon FX underglow — on/off + layout + per-zone colours + animation -->
-      <div class="cust-panel" data-panel="neon" hidden>
-        <button id="neon-btn" type="button">✦ Underglow</button>
-        <div id="neon-controls" style="display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .2s;">
-          <div class="finish-sub">
-            <div class="cust-sublabel">Layout</div>
-            <div id="neon-layout" class="shop-grid"></div>
-          </div>
-          <div id="neon-colors" style="display:flex;flex-direction:column;align-items:center;gap:12px;"></div>
-          <div class="finish-sub">
-            <div class="cust-sublabel">Animation</div>
-            <div id="neon-anim" class="shop-grid"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Trail colour (paid) -->
-      <div class="cust-panel" data-panel="trail" hidden>
-        <div id="shop-trail" class="shop-grid"></div>
-      </div>
-
-      <!-- Flair: external add-ons. First sub-section = Moods (windshield eye/expression, paid) -->
-      <div class="cust-panel" data-panel="flair" hidden>
-        <div class="finish-sub">
-          <div class="cust-sublabel">Moods</div>
-          <div id="shop-moods" class="shop-grid"></div>
-        </div>
-      </div>
-      </div><!-- /#panels -->
-    </div>
-
-  </div>
-
-  <footer id="modify-bar">
-    <div id="buy-warning" class="buy-warning" hidden></div>
-    <div class="modify-bar-row">
-      <a id="backLink" class="ts-back" href="select.html">← Back</a>
-      <button id="applyBtn" type="button">Apply</button>
-    </div>
-  </footer>
-</div>
-
-<script type="module">
-  import { createModifyScreen } from './js/screens/modify.js';
-  createModifyScreen();
-</script>
-
-<script type="module" src="./js/sw-update.js"></script>
-</body>
+<body></body>
 </html>
