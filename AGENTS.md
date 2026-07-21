@@ -537,15 +537,16 @@ imports and calls the factory once:
   createSettingsScreen();
 </script>
 ```
-**Contract:** `create<Screen>(root = document) -> { destroy }`. `root` is always `document`
-today; it is a parameter so the Phase-B router can mount a screen into a subtree without
-touching the modules. Every listener on a **persistent/static element or `window`** goes
-through a local `on(el, type, fn, opts)` accumulator; `destroy()` removes them, cancels any
-rAF, calls captured unsubscribes (`onEmotionReady`), clears the containers the screen filled,
-and undoes shared-state mutations. Listeners on **created** elements stay direct (they die
-when `destroy()` empties their container). `destroy()` is **inert at mount** — nothing calls
-it until the Phase-B router; the extraction is otherwise byte-for-byte 1:1 with the old inline
-scripts (see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
+**Contract:** `create<Screen>(root = document, route = null) -> { destroy }`. `root` is
+`document`; the Phase-B router (below) clones the screen's template into `#app` then calls the
+factory with the parsed hash `route` (select/modify read track/mode/dir/car from it, falling back
+to `location.search` when run standalone). Every listener on a **persistent/static element or
+`window`** goes through a local `on(el, type, fn, opts)` accumulator; `destroy()` removes them,
+cancels any rAF, calls captured unsubscribes (`onEmotionReady`), clears the containers the screen
+filled, and undoes shared-state mutations. Listeners on **created** elements stay direct (they die
+when `destroy()` empties their container). The router calls `destroy()` on every navigation (in
+Phase A it was inert); each extraction is otherwise byte-for-byte 1:1 with the old inline scripts
+(see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
 - **Gotcha (`modify.js`):** `draw()` mutates the shared `CARS[carIdx].body` and does **not**
   restore it (verbatim with the original — harmless while each page is its own document). The
   restore `M.body = factoryBody` lives **only in `destroy()`**, so it fixes the colour-leak the
@@ -553,6 +554,32 @@ scripts (see `docs/plans/spa-migration.md` + `spa-migration-analysis.md`).
 - `js/track-thumb.js` — shared minimap renderer (`drawThumb` + `TRACK_GU`), used by `tracks`
   and `zen` (was duplicated byte-identically in both).
 - The **game / sandbox** pages are NOT screens yet — they stay separate documents until Phase C.
+
+### SPA shell + router (`js/router.js`, `js/route.js`) — Phase B
+
+`index.html` is the **shell**: `<div id="app">` + one `<template id="tpl-<screen>">` per menu
+screen (menu/tracks/zen/select/modify/settings/achievements) + the union of the 11 menu
+stylesheets + a bootstrap calling `startRouter()`. The old per-page URLs (`tracks.html` …
+`achievements.html`) are now 14-line **redirect shims** (`js/redirect-shim.js`) that map the
+page + query to the hash route and `location.replace` into the shell — so bookmarks / deep links
+/ the game's on-error redirects keep working, and the screen markup lives once (in the templates).
+- **Routing is hash-based** (`#/select?track=x&dir=rev`) — no `404.html` on Pages, no `pushState`
+  in sandboxed portal iframes. `js/route.js` is the pure `parseRoute` / `routeToHash` seam
+  (unit-tested, `tests/route.test.js`). `js/router.js` on `hashchange` destroys the current screen,
+  clones the screen's `<template>` into `#app`, and mounts `createXScreen(document, route)`. Only
+  one screen is live at a time, so `document.getElementById` is unambiguous even though templates
+  reuse ids (`<template>.content` is an inert fragment). The template is resolved before teardown,
+  so a missing one keeps the current screen up instead of blanking `#app`.
+- **Navigation seam:** `sound.js` `soundThenGo`/`tapThenGo` route through a swappable `_navigate`
+  (`setNavigator`); the router installs `navTo`, which maps internal page hrefs → hash routes and
+  hard-navs game/sandbox/donate/external. A global `document` click interceptor catches bare
+  `<a href>` clicks a screen didn't handle (skipped via `e.defaultPrevented`). One document ⇒
+  **one AudioContext for the whole menu session** — the payoff.
+- **Still separate documents:** `game.html`, `sandbox.html`, `donate.html` (hard navs). Because of
+  that, the `sw-update` nudge's `isGameplayPage(pathname)` gate and the SW precache are **unchanged
+  and still correct** in Phase B (game→menu is a real document load, so a waiting worker resurfaces
+  on return). Moving the nudge to engine-state gating and disposing GPU surfaces on screen exit are
+  **Phase C** (when the game joins the shell and there is no document reload between race and menu).
 
 ### Track dependency injection
 
