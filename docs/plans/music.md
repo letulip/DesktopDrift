@@ -134,3 +134,17 @@ owner has/wants a specific track. This is the decision that most shapes the buil
 - Per-track music / dynamic tempo tied to combo or speed (a fun future, not now).
 - Any change to the SFX system, the drift layers, or the volume curve.
 - A full mixer UI — the Music row is the only new control.
+
+## Decisions (locked by owner)
+
+1. **Asset:** loop **file(s)** (mp3/ogg) — owner supplies a royalty-free / original track. The build
+   references an expected path (e.g. `sounds/music.mp3`) and stays gracefully silent if the file is
+   absent (async load + `.catch`, like `sounds/drift.mp3`), so the infra can land before the asset.
+2. **Control:** a **volume slider** (0..100%, 0 = off) — the app's one slider, by owner preference.
+   Add the matching `<input type="range">` styling (settings.css) in the new inline settings row.
+3. **Default:** music **ON at a modest level** (e.g. `musicVolume: 0.5`) so it's heard out of the box;
+   trivially turned down/off via the slider.
+4. **Scope:** **Phase 1 only** — one ambient loop for the session, ducked during a race. Its own PR.
+
+**Prerequisites before the music PR:** (a) merge the settings-audio PR so music builds on the new
+inline settings layout (the slider row lives there); (b) owner provides the loop file.
