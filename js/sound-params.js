@@ -24,7 +24,7 @@ export const SFX = {
   toggle: s([[784, 0]], 0.10, 0.07),                          // settings toggle — tiny chime
 
   // ── Gameplay (Stage 2) ───────────────────────────────────────────────────
-  count:  s([[440, 0]], 0.18, 0.10),                          // countdown 3-2-1 pip
+  count:  s([[440, 0]], 0.18, 0.14),                          // countdown 3-2-1 pip — louder, near GO (a single low note reads quieter than GO's two bright notes at the same gain)
   go:     s([[660, 0], [988, 0.07]], 0.28, 0.13),             // GO! — brighter up
   pickup: s([[330, 0]], 0.13, 0.10),                          // tire pickup — a soft bonk (cone-hit character)
   cap:    s([[659, 0], [988, 0.08], [1319, 0.16]], 0.34, 0.10), // cola-cap collect — sparkle up

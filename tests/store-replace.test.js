@@ -39,7 +39,7 @@ test('replaceAll: back-fills missing keys from defaults (partial import is safe)
 
 test('replaceAll: heals a wrong-typed slice instead of adopting it', () => {
   replaceAll({ settings: null, garage: 'oops', wallet: 3 });
-  assert.deepEqual(settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 }); // null → default shape
+  assert.deepEqual(settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 1.0 }); // null → default shape
   assert.deepEqual(garage(), { carIndex: 0, cars: {} });         // 'oops' → default shape
   assert.equal(wallet(), 3);
 });

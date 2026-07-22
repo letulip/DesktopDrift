@@ -26,7 +26,7 @@ const VERSION = 4;
 
 const defaults = () => ({
   version:      VERSION,
-  settings:     { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 },
+  settings:     { units: 'kmh', haptics: true, soundEnabled: true, volume: 1.0 },   // high by default (VOLUME_LEVELS.high) so new players actually hear the game; existing saves keep their stored level
   // garage: selected car + a PER-CAR equipped look (each car keeps its own body/neon/
   // finish/trail). cars is keyed by car index. Purchases (owned) stay account-wide.
   garage:       { carIndex: 0, cars: {} },

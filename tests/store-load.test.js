@@ -23,7 +23,7 @@ const { settings, garage, records, achievements, stats, collectedCaps, wallet,
 
 test('loads persisted settings + fills missing fields from defaults', () => {
   // Saved units kept; haptics absent in the save → filled from defaults (no data loss).
-  assert.deepEqual(settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 0.65 });
+  assert.deepEqual(settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 1.0 });
 });
 
 test('v1→v2 migration: old global look moves onto the active car (per-car looks)', () => {
@@ -71,7 +71,7 @@ test('unknown version preserves data (no reset)', async () => {
     }),
   });
   const fresh = await import('../js/store.js?v=future');
-  assert.deepEqual(fresh.settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 0.65 }); // saved kept, gap filled
+  assert.deepEqual(fresh.settings(), { units: 'mph', haptics: true, soundEnabled: true, volume: 1.0 }); // saved kept, gap filled
   assert.equal(fresh.records().oval.timeattack.bestPPS, 42);           // records preserved
 });
 
@@ -79,7 +79,7 @@ test('unknown version preserves data (no reset)', async () => {
 test('corrupt save falls back to defaults', async () => {
   installLocalStorage({ 'desktop-drift': '{ not valid json' });
   const fresh = await import('../js/store.js?v=corrupt');
-  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 });
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 1.0 });
   assert.deepEqual(fresh.records(), {});
 });
 
@@ -95,7 +95,7 @@ test('corrupt slice (wrong type) heals to default, other data kept', async () =>
     }),
   });
   const fresh = await import('../js/store.js?v=corruptslice');
-  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 0.65 }); // no TypeError
+  assert.deepEqual(fresh.settings(), { units: 'kmh', haptics: true, soundEnabled: true, volume: 1.0 }); // no TypeError
   assert.equal(fresh.settings().units, 'kmh');
   assert.deepEqual(fresh.garage(), { carIndex: 0, cars: {} });
   assert.equal(fresh.records().oval.timeattack.bestPPS, 7);            // good data untouched
