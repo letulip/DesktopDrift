@@ -52,6 +52,24 @@ test('SW precache includes every js/screens/*.js module', () => {
   for (const m of onDisk) assert.ok(assets.includes(m), `sw.js ASSETS is missing ${m}`);
 });
 
+// Every item / collectible art file the game references (imgSrc / imgFull in items.js +
+// collectibles.js) must be PRECACHED. Runtime caching alone loses it: activate wipes every
+// non-current cache on each version bump, so lazily-cached art vanished offline after every deploy
+// and on any not-yet-visited track. Guards against adding an item to items.js and forgetting the
+// ITEM_ASSETS entry in sw.js (and against a referenced file that doesn't exist on disk).
+test('SW precache covers every item/collectible art file the game references', () => {
+  const assets = new Set(loadAssets().map(u => u.slice(ORIGIN.length)));
+  const src = ['js/items.js', 'js/collectibles.js']
+    .map(f => fs.readFileSync(path.join(root, f), 'utf8')).join('\n')
+    .replace(/\/\/.*$/gm, '');   // strip line comments so a commented-out example path isn't a "reference"
+  const referenced = new Set([...src.matchAll(/(?:items|objects)\/[a-z0-9._-]+\.svg/gi)].map(m => m[0]));
+  assert.ok(referenced.size >= 70, `expected the full item catalog, found only ${referenced.size}`);
+  for (const art of referenced) {
+    assert.ok(assets.has(art), `sw.js ASSETS is missing referenced art: ${art}`);
+    assert.ok(fs.existsSync(path.join(root, art)), `referenced art does not exist on disk: ${art}`);
+  }
+});
+
 // The Phase-C change reshapes the precache (adds the game screen), so the cache version must be
 // bumped past the last shipped one or clients keep the stale shell.
 test('SW cache version is a bumped desktop-drift-vN (past v232)', () => {

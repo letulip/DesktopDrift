@@ -65,6 +65,9 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    draw a top-down SVG (portrait, 1:64 scale) + descriptor. Items must read from above
    (avoid bare circles); keep clear of the racing line
    (distance-to-centerline > TRACK_HALF + collider.r + margin); ~8–12 per track.
+   ⚠️ A **new item SVG** (a new `imgSrc`) must also be added to `ITEM_ASSETS` in `sw.js`
+   (step 7) — it's precached now, and `tests/sw-assets.test.js` fails if a referenced item
+   isn't in `ASSETS` (or doesn't exist on disk).
 5. **Cola caps (collectibles).** Optional but free if you copied the template. Place one
    or more `<line id="ITEM_COLA_CAP" .../>` proxy-lines in the SVG (line midpoint =
    position) at WIDE corners where a drift "donut" fits clear of walls/props. The
@@ -81,9 +84,10 @@ No `index.html` tile, no sitemap entry (`game.html` is `noindex`).
    This is what makes the track appear on `tracks.html`. **No `page` field** — routing is
    automatic via `game.html?track=<id>` (dynamic import of `js/track-${id}.js`).
 7. **Service worker** `sw.js`: add `tracks/<id>.svg` and `js/track-<id>.js` to `ASSETS`,
-   then bump the cache version. **No HTML to add** — `game.html` is already in ASSETS.
-   (`js/cola.js`, `js/track-factory.js`, and the cola SVGs are already in ASSETS —
-   shared across all tracks, no need to add them again.)
+   plus **any new item SVG to `ITEM_ASSETS`** (item art is precached — the sw-assets test
+   enforces coverage), then bump the cache version. **No HTML to add** — `game.html` is
+   already in ASSETS. (`js/cola.js`, `js/track-factory.js`, the cola SVGs, and the tire coin
+   are already in ASSETS — shared across all tracks, no need to add them again.)
    (SWR self-heals a forgotten bump on the next load, but bump anyway for first-load-fresh.)
 8. **Verify + PR** via the **desktopdrift-pr** skill (npm test + node --check + browser
    smoke with the SW cleared; branch `feat/track-<id>` → PR).

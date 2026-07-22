@@ -1,6 +1,6 @@
 // Desktop Drift — Service Worker
 // Cache version: bump this string to force all clients to re-download assets.
-const CACHE = 'desktop-drift-v236';
+const CACHE = 'desktop-drift-v237';
 
 // Build absolute URLs relative to this SW's own location so the same file
 // works on http://localhost:8777/ and https://letulip.github.io/DesktopDrift/
@@ -14,11 +14,94 @@ const MOOD_CARS = ['bavarian', 'bismark', 'catana', 'horse', 'panda', 'plum', 's
 const MOODS = ['angry', 'bored', 'evil', 'joy', 'lol', 'love', 'puzzled', 'questioned', 'sleep', 'smug', 'tired'];
 const MOOD_ASSETS = MOOD_CARS.flatMap(car => MOODS.map(m => `cars/emotions/${car}-${m}.svg`));
 
-// Pre-cache: HTML, CSS and ALL js modules (critical for startup — must be
-// available before the first offline visit). SVGs from items/ and objects/ are
-// intentionally NOT here — there are dozens of them; they are picked up by the
-// runtime cache (fetch handler below) on first request. When adding a new js
-// module, add it here.
+// Item + collectible art (items/*.svg + the tire coin). PRECACHED, not runtime-cached: activate
+// (below) deletes every non-current cache on each version bump, and the runtime cache lives in that
+// SAME versioned cache — so lazily-cached art vanished offline after every deploy, and any track
+// never opened online under the current cache version had no item art at all (it fell back to
+// procedural placeholders). Precaching fixes both, and cold offline starts too — same reasoning as
+// the moods above. Only the art actually referenced by items.js / collectibles.js is listed;
+// tests/sw-assets.test.js asserts this covers every imgSrc/imgFull and has no stale/missing entry.
+const ITEM_ASSETS = [
+  'objects/tire.svg',
+  'items/card-knife-ready.svg',
+  'items/comb-ready.svg',
+  'items/compass-ready.svg',
+  'items/compass2-ready.svg',
+  'items/cook-knife-ready.svg',
+  'items/corrector-ready.svg',
+  'items/cup-ready.svg',
+  'items/cutlery-set1-ready.svg',
+  'items/cutlery-set2-ready.svg',
+  'items/daily-ready.svg',
+  'items/doughnut-1-ready.svg',
+  'items/doughnut-2-ready.svg',
+  'items/doughnut-3-ready.svg',
+  'items/drill-ready.svg',
+  'items/ducttape-dispensor-ready.svg',
+  'items/fork1-ready.svg',
+  'items/fork2-ready.svg',
+  'items/fries1-ready.svg',
+  'items/fries2-ready.svg',
+  'items/gloves1-ready.svg',
+  'items/grater-ready.svg',
+  'items/horseshoe-ready.svg',
+  'items/hummer1-ready.svg',
+  'items/kitchen-board-1-ready.svg',
+  'items/kitchen-board-2-ready.svg',
+  'items/knife1-ready.svg',
+  'items/knife2-ready.svg',
+  'items/knife3-ready.svg',
+  'items/laptop-open-ready.svg',
+  'items/laptop-ready.svg',
+  'items/mitten-ready.svg',
+  'items/mixer2-ready.svg',
+  'items/nails1-ready.svg',
+  'items/nails2-ready.svg',
+  'items/notebook2-ready.svg',
+  'items/opener-ready.svg',
+  'items/pan-steer-ready.svg',
+  'items/pan1-ready.svg',
+  'items/pen-pencil-ready.svg',
+  'items/pen1-ready.svg',
+  'items/pencil-plus-ready.svg',
+  'items/pencil-ready.svg',
+  'items/pencil2-ready.svg',
+  'items/phone1-ready.svg',
+  'items/phone2-ready.svg',
+  'items/plate-bbq-ready.svg',
+  'items/plate-chicken-ready.svg',
+  'items/plate-mashed-chicken-ready.svg',
+  'items/plate-sausage-ready.svg',
+  'items/plate-soup1-ready.svg',
+  'items/plate-soup2-ready.svg',
+  'items/plate-soup3-ready.svg',
+  'items/plate1-ready.svg',
+  'items/plate1-yellow-ready.svg',
+  'items/plate2-ready.svg',
+  'items/rubber-duck-ready.svg',
+  'items/ruler-plus-ready.svg',
+  'items/ruler-ready.svg',
+  'items/ruler2-ready.svg',
+  'items/screwdriver1-ready.svg',
+  'items/screwdriver2-ready.svg',
+  'items/smartphone1-ready.svg',
+  'items/smartphone2-ready.svg',
+  'items/spatula1-ready.svg',
+  'items/spatula2-ready.svg',
+  'items/stapler-ready.svg',
+  'items/tablet-10inch-ready.svg',
+  'items/toolset1-ready.svg',
+  'items/toolset2-ready.svg',
+  'items/trident1-ready.svg',
+  'items/washer-ready.svg',
+  'items/wrench1-ready.svg',
+  'items/wrench2-ready.svg',
+  'items/writing-board-ready.svg',
+];
+
+// Pre-cache: HTML, CSS, ALL js modules (critical for startup), track geometry SVGs, and now the
+// item/collectible art too (see ITEM_ASSETS above — runtime caching lost it on every update). When
+// adding a new js module, add it here; a new item SVG goes in ITEM_ASSETS (a test guards both).
 const ASSETS = [
   '',
   'index.html',
@@ -133,11 +216,27 @@ const ASSETS = [
   'icons/icon-maskable-192.png',
   'icons/icon-maskable-512.png',
   ...MOOD_ASSETS,
+  ...ITEM_ASSETS,
 ].map(p => BASE + p);
 
-// Pre-cache all static assets on install
+// Split the precache into a critical shell (the app can't run offline without it → atomic addAll,
+// all-or-nothing) and best-effort art (item/mood/icon/sound SVGs + PNGs). A single failed cosmetic
+// asset must NOT reject the whole install and leave the client with no offline cache at all — that
+// was the "sometimes doesn't load offline" risk, made worse by the larger art set. Best-effort art
+// still (re)caches on install; anything that slips through is picked up by the runtime cache later.
+const isCritical = (url) =>
+  url === BASE ||
+  /\.(html|css|js|woff2)$/.test(url) ||
+  /\/manifest\.json$/.test(url) ||
+  /\/tracks\/[^/]+\.svg$/.test(url);   // track geometry — a track can't load offline without its SVG
+const CRITICAL    = ASSETS.filter(isCritical);
+const BEST_EFFORT = ASSETS.filter(u => !isCritical(u));
+
+// Pre-cache on install: the shell atomically, the art best-effort.
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then(c =>
+    c.addAll(CRITICAL).then(() => Promise.allSettled(BEST_EFFORT.map(u => c.add(u))))
+  ));
   // NB: no eager skipWaiting — a fresh worker stays in "waiting" so the page (js/sw-update.js)
   // can show a "new version" nudge and the user chooses when to switch, instead of the page
   // being reloaded out from under them. The waiting worker activates on the message below.

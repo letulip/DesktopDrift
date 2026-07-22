@@ -820,9 +820,18 @@ The fetch handler serves the cached copy immediately (fast + offline) **and** in
 parallel re-fetches from network, overwriting the cache — so updated assets reach
 the player on the *next* load even if `CACHE` wasn't bumped (a forgotten bump
 self-heals). **Still bump `CACHE` on any asset change**: the version bump byte-changes
-`sw.js` so the browser installs a fresh worker, and `addAll(ASSETS)` re-primes the
-precache. ASSETS lists every HTML page, CSS, JS, track SVGs, sounds, `share/template.png`,
-and icons. Individual `items/` SVGs are NOT precached (fetched + runtime-cached lazily).
+`sw.js` so the browser installs a fresh worker and re-primes the precache. ASSETS lists every HTML
+page, CSS, JS, track SVGs, sounds, `share/template.png`, icons, the mood grid (`MOOD_ASSETS`), **and
+the item/collectible art** (`ITEM_ASSETS` = `items/*.svg` + `objects/tire.svg` — only the art
+`items.js`/`collectibles.js` actually reference; `tests/sw-assets.test.js` asserts the set covers
+every imgSrc and exists on disk). **Item art MUST be precached, not runtime-cached:** `activate`
+deletes every non-current cache on each bump and the runtime cache lives in that same versioned
+cache, so lazily-cached art vanished offline after every deploy (and on any not-yet-visited track —
+it fell back to procedural placeholders). **install() is two-tier:** a critical shell (root +
+`.html`/`.css`/`.js`/`.woff2` + `manifest.json` + `tracks/*.svg`) cached atomically via `addAll`, and
+the rest (art/icons/sounds/moods) best-effort via `Promise.allSettled` — so one failed cosmetic asset
+can't reject the whole install and leave a client with no offline cache at all. **A new item SVG →
+add it to `ITEM_ASSETS` (the test guards it); a new js module → `ASSETS`.**
 
 **Registration + update nudge (`js/sw-update.js`).** Every page loads this module
 (`<script type="module" src="./js/sw-update.js">`) instead of an inline `register`. It
