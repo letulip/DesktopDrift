@@ -1,33 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Main menu — primary landing page -->
+  <!-- Single-page app: everything lives under the shell at the root URL (hash routes for the
+       screens). The former sandbox.html / donate.html landing pages are now noindex redirect shims
+       into the shell, so only the canonical root is listed. -->
   <url>
     <loc>https://letulip.github.io/DesktopDrift/</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-07-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
-
-  <!-- Game modes -->
-  <url>
-    <loc>https://letulip.github.io/DesktopDrift/sandbox.html</loc>
-    <lastmod>2026-06-05</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Support page -->
-  <url>
-    <loc>https://letulip.github.io/DesktopDrift/donate.html</loc>
-    <lastmod>2026-06-05</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- Omitted (transitional / app screens with noindex):
-       tracks.html (Time Attack track select), green-study.html (a track),
-       select.html (garage). timeattack.html was removed in the track-registry
-       refactor — do not re-add. -->
 
 </urlset>

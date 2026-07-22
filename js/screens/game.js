@@ -1,8 +1,8 @@
-// Game screen for the SPA shell (SPA Phase C). Ports game.html's inline bootstrap into the screen
-// contract createGameScreen(root, route) -> { destroy }. The race runs in-document, so restart and
-// exit keep the single session AudioContext alive (no location.reload / hard nav). Menu screens and
-// the game now share one document. game.html stays a standalone page (deep-link back-compat); its
-// own inline bootstrap is unchanged and startGame's opts default to that standalone behavior.
+// Game screen for the SPA shell (SPA Phase C). Runs the race in-document (handles Time Attack, Zen,
+// and Sandbox via the route) under the screen contract createGameScreen(root, route) -> { destroy },
+// so restart and exit keep the single session AudioContext alive (no location.reload / hard nav).
+// game.html / sandbox.html are now redirect shims into #/game; the engine's injected exit/restart
+// opts still default to the standalone location.href/reload behavior for any bare startGame() call.
 import { TRACKS } from '../track-registry.js';
 import { startGame } from '../game-engine.js';
 import { reverseTrack } from '../track-util.js';

@@ -1,7 +1,8 @@
-// SPA hash router (SPA Phase B). Owns the one #app container in index.html: on every hash change
-// it destroys the current screen, clones the matching <template> into #app, and mounts the screen
-// module with the parsed route. Menu screens only — game / sandbox / donate stay separate
-// documents. Pure route parsing lives in js/route.js; the navigation seam in js/sound.js.
+// SPA hash router. Owns the one #app container in index.html: on every hash change it destroys the
+// current screen, clones the matching <template> into #app, and mounts the screen module with the
+// parsed route. EVERY screen mounts here — menu, game, sandbox (a game mode), and donate; the legacy
+// *.html URLs are redirect shims into these hashes. Pure route parsing lives in js/route.js; the
+// navigation seam in js/sound.js.
 import { parseRoute, routeToHash } from './route.js';
 import { setNavigator } from './sound.js';
 import { createMenuScreen }         from './screens/menu.js';
@@ -12,6 +13,7 @@ import { createModifyScreen }       from './screens/modify.js';
 import { createSettingsScreen }     from './screens/settings.js';
 import { createAchievementsScreen } from './screens/achievements.js';
 import { createGameScreen }         from './screens/game.js';
+import { createDonateScreen }       from './screens/donate.js';
 
 // screen name → { make: factory(root, route), tpl: template id in the shell }
 const REGISTRY = {
@@ -23,16 +25,18 @@ const REGISTRY = {
   settings:     { make: createSettingsScreen,     tpl: 'tpl-settings' },
   achievements: { make: createAchievementsScreen, tpl: 'tpl-achievements' },
   game:         { make: createGameScreen,         tpl: 'tpl-game' },
+  donate:       { make: createDonateScreen,       tpl: 'tpl-donate' },
 };
 
 // Old-style page → screen name, for translating hrefs (from soundThenGo / tapThenGo / <a href>)
-// into hash routes. game.html routes in-document now (SPA Phase C). Anything not here
-// (sandbox.html / donate.html / external) is a hard navigation.
+// into hash routes. All legacy pages route in-document now; sandbox.html is intentionally absent
+// (nothing links to it in-app, and it needs an injected mode=sandbox — the redirect shim handles a
+// direct hit). Anything not here (external) is a hard navigation.
 const PAGE_TO_SCREEN = {
   'index.html': 'menu', 'tracks.html': 'tracks', 'zen.html': 'zen',
   'select.html': 'select', 'modify.html': 'modify',
   'settings.html': 'settings', 'achievements.html': 'achievements',
-  'game.html': 'game',
+  'game.html': 'game', 'donate.html': 'donate',
 };
 
 let current = null;   // { screen, instance }
@@ -96,6 +100,12 @@ const onDocClick = (e) => {
 };
 
 export const startRouter = () => {
+  // Clean URL: strip a trailing "index.html" from the path (a direct hit, and the shim redirects,
+  // land on index.html#/…) so the address bar shows the canonical "…/#/…" root. replaceState only —
+  // no reload, and it leaves location.hash (which render() reads below) untouched.
+  const clean = location.pathname.replace(/(^|\/)index\.html$/, '$1');
+  if (clean !== location.pathname) history.replaceState(null, '', clean + location.search + location.hash);
+
   setNavigator(navTo);                       // route soundThenGo/tapThenGo in-document
   addEventListener('hashchange', render);
   document.addEventListener('click', onDocClick);   // catch bare-link navigations (F6)

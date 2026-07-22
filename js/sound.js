@@ -125,7 +125,7 @@ export const sfx = {
 // navigator here reroutes the whole app without touching the screens. The default is a hard
 // document nav (an AudioContext dies with its page, so the nav is deferred just long enough for the
 // cue to be heard); the SPA shell installs an in-document hash navigator via setNavigator() so the
-// menu session keeps one document (and one AudioContext). game/sandbox/donate stay hard navs.
+// whole session keeps one document (and one AudioContext). Only genuinely external URLs hard-nav.
 let _navigate = (href) => { location.href = href; };
 export const setNavigator = (fn) => { if (typeof fn === 'function') _navigate = fn; };
 export const soundThenGo = (href, id = 'tap', ms = 100) => { play(id); setTimeout(() => { _navigate(href); }, ms); };

@@ -553,18 +553,21 @@ Phase A it was inert); each extraction is otherwise byte-for-byte 1:1 with the o
   moment screens share a document (Phase B/C) without changing Phase-A behaviour.
 - `js/track-thumb.js` — shared minimap renderer (`drawThumb` + `TRACK_GU`), used by `tracks`
   and `zen` (was duplicated byte-identically in both).
-- The **game / sandbox** pages are NOT screens yet — they stay separate documents until Phase C.
+- `js/screens/game.js` (game + sandbox) and `js/screens/donate.js` are screens too — see Phase C.
 
-### SPA shell + router (`js/router.js`, `js/route.js`) — Phase B
+### SPA shell + router (`js/router.js`, `js/route.js`) — Phase B/C
 
-`index.html` is the **shell**: `<div id="app">` + one `<template id="tpl-<screen>">` per menu
-screen (menu/tracks/zen/select/modify/settings/achievements) + the union of the 11 menu
-stylesheets + a bootstrap calling `startRouter()`. The old per-page URLs (`tracks.html` …
-`achievements.html`) are now 14-line **redirect shims** (`js/redirect-shim.js`) that map the
-page + query to the hash route and `location.replace` into the shell — so bookmarks / deep links
-/ the game's on-error redirects keep working, and the screen markup lives once (in the templates).
-- **Routing is hash-based** (`#/select?track=x&dir=rev`) — no `404.html` on Pages, no `pushState`
-  in sandboxed portal iframes. `js/route.js` is the pure `parseRoute` / `routeToHash` seam
+`index.html` is the **shell**: `<div id="app">` + one `<template id="tpl-<screen>">` per screen
+(menu/tracks/zen/select/modify/settings/achievements/game/donate) + the union of the screen
+stylesheets + a bootstrap calling `startRouter()`. **Every** legacy per-page URL (`tracks.html` …
+`achievements.html`, plus `game.html` / `sandbox.html` / `donate.html`) is now a 14-line **redirect
+shim** (`js/redirect-shim.js`) that maps the page + query to the hash route and `location.replace`s
+into the shell — so bookmarks / deep links / the game's on-error redirects keep working, and the
+markup lives once (in the templates). `sandbox.html` has no query, so the shim injects `mode=sandbox`.
+A root **`404.html`** sends any other unknown path to the shell root (project-site base, loop-guarded).
+- **Routing is hash-based** (`#/select?track=x&dir=rev`) — a Pages refresh never 404s and a
+  sandboxed portal iframe never throws on `pushState` (the `404.html` above is only an unknown-path
+  catch-all, not the routing mechanism). `js/route.js` is the pure `parseRoute` / `routeToHash` seam
   (unit-tested, `tests/route.test.js`). `js/router.js` on `hashchange` destroys the current screen,
   clones the screen's `<template>` into `#app`, and mounts `createXScreen(document, route)`. Only
   one screen is live at a time, so `document.getElementById` is unambiguous even though templates
@@ -572,12 +575,11 @@ page + query to the hash route and `location.replace` into the shell — so book
   so a missing one keeps the current screen up instead of blanking `#app`.
 - **Navigation seam:** `sound.js` `soundThenGo`/`tapThenGo` route through a swappable `_navigate`
   (`setNavigator`); the router installs `navTo`, which maps internal page hrefs → hash routes and
-  hard-navs game/sandbox/donate/external. A global `document` click interceptor catches bare
-  `<a href>` clicks a screen didn't handle (skipped via `e.defaultPrevented`). One document ⇒
-  **one AudioContext for the whole menu session** — the payoff.
-- **Still separate documents:** `sandbox.html`, `donate.html` (hard navs). `game.html` also still
-  exists as a standalone page (deep-link + on-error redirect back-compat), but the shell now routes
-  the race **in-document** — see Phase C below.
+  hard-navs only external URLs. A global `document` click interceptor catches bare `<a href>` clicks
+  a screen didn't handle (skipped via `e.defaultPrevented`). One document ⇒ **one AudioContext for
+  the whole session** — the payoff.
+- **No more standalone app pages.** `game.html` / `sandbox.html` / `donate.html` are redirect shims
+  (above); the whole app lives in the shell. Only genuinely external links (Bybit Pay) hard-nav.
 
 ### SPA shell — the game joins the document (`js/screens/game.js`) — Phase C
 
@@ -611,7 +613,8 @@ their inline bootstraps unchanged, but the in-app flow no longer hard-navs to th
 - **Routing/CSS:** `route.js` `SCREENS` includes `game`; `optsFromRoute(route)` maps a route to
   `startGame` opts (pure, unit-tested; `mode=sandbox` → `stock:true`, no track). `router.js` has
   `REGISTRY.game` + `PAGE_TO_SCREEN['game.html']='game'`, so both Race (`game.html?track=…`) and
-  Sandbox (`game.html?mode=sandbox`) route in-document; only `donate.html` stays a hard nav.
+  Sandbox (`game.html?mode=sandbox`) route in-document. Donate is its own screen too
+  (`js/screens/donate.js`, `REGISTRY.donate`, `#/donate`) — the menu "Support" link opens it in-shell.
   `index.html` links `css/sandbox.css` (its bare `canvas` rule was scoped to `#c,#mini` so it can't
   touch the modify `#preview`) and holds `<template id="tpl-game">`. Sandbox hides the shared HUD's
   `#tiresRow` via `body.sandbox` (no tire economy). Passing an intermediate checkpoint fires a light

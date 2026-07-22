@@ -1,55 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" class="fixed-viewport">
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Desktop Drift — Sandbox Free Drive</title>
-<meta name="description" content="Free-drive mode in Desktop Drift. Practise drifting on the oval track with no time pressure — pure driving fun in your browser, no install needed.">
-<link rel="canonical" href="https://letulip.github.io/DesktopDrift/sandbox.html">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon.svg">
-<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#14110f">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Desktop Drift">
-<link rel="stylesheet" href="css/base.css" />
-<link rel="stylesheet" href="css/sandbox.css" />
+<title>Desktop Drift</title>
+<style>html,body{margin:0;background:#14110f}</style>
+<!-- Legacy URL → SPA shell (game screen, sandbox mode). Real markup lives in index.html's
+     <template id="tpl-game">; redirect-shim.js injects mode=sandbox for this page. -->
+<script type="module" src="./js/redirect-shim.js"></script>
 </head>
-<body>
-<canvas id="c"></canvas>
-<div id="hud">
-  <div id="hud-left">
-    <div class="panel" id="timePanel">
-      <div>lap: <span class="big" id="lap">0.00</span> s</div>
-      <div class="dim">last: <span id="last">—</span></div>
-      <div class="dim">best: <span id="best">—</span></div>
-    </div>
-    <canvas id="mini" width="156" height="134"></canvas>
-  </div>
-  <div id="controls">
-    <button id="menuBtn" title="back to menu">☰ Menu</button>
-  </div>
-  <div id="hud-right">
-    <div class="panel" id="scorePanel">
-      <div>score: <span class="big" id="score">0</span></div>
-      <div class="dim" id="lapScores"></div>
-      <div class="dim">speed: <span id="spd">0.0</span> <span id="spdUnit"></span></div>
-    </div>
-    <div id="lapCounter"><span id="lapNum">1</span>/<span id="lapTotal">-</span></div>
-  </div>
-</div>
-<div id="combo"></div>
-<div id="flash"></div>
-<div id="count"></div>
-<div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Hit a cone — penalty!</div>
-
-<script type="module">
-  import * as T from './js/track-oval.js';
-  import { startGame } from './js/game-engine.js';
-  startGame(T, { stock: true });   // free test-drive: always the factory car, no tuning
-</script>
-<script type="module" src="./js/sw-update.js"></script>
-</body>
+<body></body>
 </html>

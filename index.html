@@ -36,10 +36,12 @@
 <!-- Game screen (tpl-game) styles: HUD, pause/exit/results overlays. Scoped to game-only ids +
      body.zen, so it never touches the menu screens (SPA Phase C). -->
 <link rel="stylesheet" href="css/sandbox.css">
+<link rel="stylesheet" href="css/donate.css">
 </head>
 <body>
-<!-- SPA shell (Phase B). Menu screens mount here via the hash router (js/router.js); their markup
-     lives in the <template>s below. game / sandbox / donate stay separate documents. -->
+<!-- SPA shell. Every screen (menu, game, sandbox, donate) mounts here via the hash router
+     (js/router.js); their markup lives in the <template>s below. The legacy *.html URLs are thin
+     redirect shims (js/redirect-shim.js) that bounce into these hash routes. -->
 <div id="app"></div>
 
   <template id="tpl-menu">
@@ -350,6 +352,46 @@
     <div id="flash"></div>
     <div id="count"></div>
     <div id="hint">Hold the LEFT half of the screen to steer left, the RIGHT half to steer right (or ← → keys). Drift through the corners. Dodge the obstacles!</div>
+  </template>
+
+  <template id="tpl-donate">
+    <div id="menu">
+      <div class="menu-inner">
+        <div class="logo-wrapper">
+          <img src="icons/icon-192.png" alt="Desktop Drift" class="menu-logo" />
+          <h1 class="logo">DESKTOP DRIFT<sup>TM</sup></h1>
+        </div>
+        <h2 class="tagline">Support the project</h2>
+
+        <p class="donate-intro">
+          The game is free – and stays that way. If the drifts and the
+          table circuit brought you any joy, a small tip via&nbsp;Bybit&nbsp;Pay
+          is genuinely appreciated.
+        </p>
+        <p class="donate-intro">
+          It keeps new tracks and features coming.&nbsp;🙏
+        </p>
+
+        <div class="donate-card">
+          <div class="uid-label">Bybit UID</div>
+          <div class="uid-value" id="uid">25422832</div>
+
+          <button class="btn-copy" id="copyBtn">Copy UID</button>
+
+          <a class="btn-bybit"
+             href="https://www.bybit.com/en/bybitpay/"
+             target="_blank" rel="noopener noreferrer">
+            Open Bybit Pay &rarr;
+          </a>
+
+          <p class="steps">
+            Bybit&nbsp;Pay&nbsp;&rarr;&nbsp;Send&nbsp;&rarr;&nbsp;search&nbsp;by&nbsp;UID&nbsp;&rarr;&nbsp;any&nbsp;amount
+          </p>
+        </div>
+
+        <a class="back-link" href="index.html">&#8592; Back to menu</a>
+      </div>
+    </div>
   </template>
 
 <script type="module">
