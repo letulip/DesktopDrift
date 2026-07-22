@@ -31,6 +31,12 @@ test('SFX: the UI + gameplay ids the wiring depends on all exist', () => {
   }
 });
 
+test('SFX: the 3-2-1 countdown pip is audible — at least as loud as the GO cue', () => {
+  // A single low 440 Hz note reads quieter than GO's two bright notes at the same gain, so keep
+  // count.gain >= go.gain or the pips get lost right before the (louder, brighter) GO.
+  assert.ok(SFX.count.gain >= SFX.go.gain, `count gain ${SFX.count.gain} should be >= go gain ${SFX.go.gain}`);
+});
+
 test('clampVolume: clamps to [0,1] and falls back to default on garbage', () => {
   assert.equal(clampVolume(0.5), 0.5);
   assert.equal(clampVolume(0), 0);
