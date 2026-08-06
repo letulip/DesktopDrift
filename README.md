@@ -55,3 +55,32 @@ Follow my Devlog on YouTube https://www.youtube.com/@DesktopDrift
 - ✅ Profile sync (export / import your save)
 - 🔜 Per-car records
 - 🔜 Tuning parts, car classes & options
+
+## Source Code & License
+
+This project is **source-available** under the [PolyForm Shield License 1.0.0](LICENSE).
+
+**The [LICENSE](LICENSE) file is the authoritative text; if this summary and LICENSE disagree, LICENSE wins.**
+
+In plain words:
+
+- **✅ Allowed:**
+  - Reading, forking, and studying the code for learning.
+  - Running the app locally for personal use.
+  - Creating private modifications for your own gameplay.
+  - Passing copies along, provided the license terms and the Required Notice travel with them.
+  - Submitting bug reports or feature suggestions via Issues.
+
+- **❌ Not allowed:**
+  - Providing any product that competes with this game – a public deployment of it (or a derivative), a portal build, a commercial reskin, a competing tennis management game built from this code. Free of charge still counts as competing.
+  - Stripping the license terms or the Required Notice from copies you pass along.
+
+**Why this model?**
+We believe in transparency (you can check the math, the economy, and the match engine) – but `Ties Break: Ace Parent` is a commercial creative work. PolyForm Shield keeps the learning open and the competing closed. If you'd like to use the code beyond what the license grants (e.g., for a port, adaptation, or institutional use), please reach out via GitHub Issues.
+
+**Privacy:** everything stays on your device – no accounts, no analytics, no third-party requests. Details in [PRIVACY.md](PRIVACY.md).
+
+**Contributions:**
+We welcome community feedback and suggestions. However, we do not accept unsolicited pull requests that add new features – we want to keep the creative vision coherent. If you'd like to contribute, please open an Issue first to discuss. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+© 2026 Igor Vladimirskiy. All rights reserved where not licensed.
