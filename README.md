@@ -76,7 +76,7 @@ In plain words:
   - Stripping the license terms or the Required Notice from copies you pass along.
 
 **Why this model?**
-We believe in transparency (you can check the math, the economy, and the match engine) – but `Ties Break: Ace Parent` is a commercial creative work. PolyForm Shield keeps the learning open and the competing closed. If you'd like to use the code beyond what the license grants (e.g., for a port, adaptation, or institutional use), please reach out via GitHub Issues.
+We believe in transparency (you can check the math, the economy, and the match engine) – but `Desktop Drift` is a commercial creative work. PolyForm Shield keeps the learning open and the competing closed. If you'd like to use the code beyond what the license grants (e.g., for a port, adaptation, or institutional use), please reach out via GitHub Issues.
 
 **Privacy:** everything stays on your device – no accounts, no analytics, no third-party requests. Details in [PRIVACY.md](PRIVACY.md).
 
