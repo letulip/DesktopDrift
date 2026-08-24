@@ -83,23 +83,41 @@ for (const file of readdirSync(join(ROOT, 'css')).filter(f => f.endsWith('.css')
   cssCount++;
 }
 
-// --- Minify JS (js/ directory) ---
+// --- Minify JS (js/ directory, RECURSIVELY — js/screens/*.js must ship too) ---
+// readdirSync recursive so subdirectories (js/screens/, added by the SPA migration) are included.
+// Missing this shipped a dist/ with no screen modules → every js/screens/*.js 404'd on prod and the
+// SPA shell couldn't mount a single screen. The platform/adapter checks match on the basename.
 mkdirSync(join(DIST, 'js'), { recursive: true });
 let jsCount = 0;
-for (const file of readdirSync(join(ROOT, 'js')).filter(f => f.endsWith('.js'))) {
-  if (/^platform-/.test(file)) continue; // adapters never ship as standalone files (any build)
-  if (PLATFORM && file === 'sw-update.js') continue; // platform builds ship no service worker
+for (const file of readdirSync(join(ROOT, 'js'), { recursive: true }).filter(f => f.endsWith('.js'))) {
+  const base = basename(file);
+  if (/^platform-/.test(base)) continue; // adapters never ship as standalone files (any build)
+  if (PLATFORM && base === 'sw-update.js') continue; // platform builds ship no service worker
   // The adapter swap: dist-<name>/js/platform.js is built from the adapter source.
-  const srcPath = ADAPTER && file === 'platform.js' ? ADAPTER : join(ROOT, 'js', file);
+  const srcPath = ADAPTER && base === 'platform.js' ? ADAPTER : join(ROOT, 'js', file);
   const input = readFileSync(srcPath, 'utf8');
   const result = await terserMinify(input, { module: true, compress: true, mangle: true });
   if (result.error) {
     console.error(`JS error in js/${file}:`, result.error);
     process.exit(1);
   }
+  mkdirSync(dirname(join(DIST, 'js', file)), { recursive: true }); // ensure dist/js/screens/ exists
   writeFileSync(join(DIST, 'js', file), result.code);
   hashInputs.push(result.code);
   jsCount++;
+}
+
+// Guard: every non-adapter source js module MUST have reached dist. A silently-dropped module (a
+// whole subdirectory once did — js/screens/) 404s on prod and the SPA can't mount. Fail the build
+// here rather than shipping a broken dist that only breaks in the browser.
+const wantJs = readdirSync(join(ROOT, 'js'), { recursive: true })
+  .filter(f => f.endsWith('.js'))
+  .filter(f => !/^platform-/.test(basename(f)))
+  .filter(f => !(PLATFORM && basename(f) === 'sw-update.js'));
+const missingJs = wantJs.filter(f => !existsSync(join(DIST, 'js', f)));
+if (missingJs.length) {
+  console.error('build: these source js modules did not reach dist/ (they would 404 on prod):', missingJs);
+  process.exit(1);
 }
 
 // --- Minify sw.js (root service worker; skipped for platform builds) ---
