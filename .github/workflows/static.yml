@@ -14,11 +14,12 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+# Two jobs so (1) tests gate the deploy — a red build never reaches the live site, even on a direct
+# push to main; and (2) a transient Pages/artifact-service failure in `deploy` can be re-run on its
+# own ("Re-run failed jobs") reusing the already-built artifact, without rebuilding. GitHub Pages
+# keeps serving the last successful deploy, so a failed run never takes the live site down.
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,6 +31,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Test (gate the deploy — do not ship a red build)
+        run: npm test
       - name: Build (minify JS + CSS)
         run: npm run build
       - name: Setup Pages
@@ -38,6 +41,14 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'dist'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

@@ -524,6 +524,16 @@ stays readable. No framework, no bundler.
 | test | `npm test` | `node --test tests/*.test.js`. Must be green before every commit. |
 | syntax check | `node --check js/*.js && echo OK` | Run before every commit (all ES modules). |
 
+**CI / deploy (GitHub Actions).** `.github/workflows/ci.yml` runs on every PR into `main` (and
+branch pushes): `npm ci` → `npm test` → `node --check` (all js + `sw.js`) → `npm run build`, so a
+broken test / syntax error / build is caught **before merge**. `.github/workflows/static.yml` deploys
+`main` to Pages in two jobs — **`build`** (`npm ci` → `npm test` **gate** → `npm run build` →
+`upload-pages-artifact`) and **`deploy`** (`needs: build` → `deploy-pages`). The test gate means a red
+build never reaches the live site, even on a direct push to `main`. A **failed deploy does NOT take
+the site down** — Pages keeps serving the last successful deploy; a transient Pages/artifact-service
+failure (`No artifacts named "github-pages"` — GitHub's message literally says to re-run) is fixed by
+**"Re-run failed jobs"** (the split lets `deploy` re-run using the built artifact, no rebuild).
+
 ## Architecture
 
 ### Screens (`js/screens/*.js`) — SPA Phase A

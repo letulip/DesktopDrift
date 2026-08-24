@@ -1,0 +1,36 @@
+name: CI
+
+# Fast feedback on every PR into main (and on branch pushes), so a change that breaks the tests, a
+# JS syntax error, or the production build is caught BEFORE it reaches main — where the only workflow
+# is the live Pages deploy. Pair with the test-gate in the deploy job (static.yml) which also guards
+# direct-to-main pushes.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]   # main is covered by the deploy workflow; avoid double runs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Syntax check (every js module + the service worker)
+        run: |
+          for f in js/*.js js/screens/*.js sw.js scripts/*.js; do node --check "$f"; done
+      - name: Production build (same as the deploy)
+        run: npm run build
